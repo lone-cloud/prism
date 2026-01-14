@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SUP</string>
+    <string name="info_text">SUP routes push notifications through Signal for privacy. Configure your self-hosted server above, then enable notification access to monitor Signal messages.</string>
+</resources>

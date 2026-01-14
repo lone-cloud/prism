@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:id="@+id/server_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Server URL"
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <EditText
+        android:id="@+id/server_url"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="https://your-server.com"
+        android:inputType="textUri"
+        app:layout_constraintTop_toBottomOf="@id/server_label"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/api_key_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="API Key (optional)"
+        app:layout_constraintTop_toBottomOf="@id/server_url"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <EditText
+        android:id="@+id/api_key"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="your-api-key"
+        android:inputType="textPassword"
+        app:layout_constraintTop_toBottomOf="@id/api_key_label"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/save_button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Save Settings"
+        app:layout_constraintTop_toBottomOf="@id/api_key"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp" />
+
+    <Button
+        android:id="@+id/enable_listener_button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Enable Notification Access"
+        app:layout_constraintTop_toBottomOf="@id/save_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/info"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/info_text"
+        android:textSize="12sp"
+        android:alpha="0.7"
+        app:layout_constraintTop_toBottomOf="@id/enable_listener_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
