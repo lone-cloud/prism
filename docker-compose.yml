@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  sup-server:
+    image: ghcr.io/eggy/sup:latest
+    ports:
+      - '8080:8080'
+    environment:
+      - PORT=8080
+      - API_KEY=${API_KEY:-}
+      - SIGNAL_CLI_VERBOSE=${SIGNAL_CLI_VERBOSE:-false}
+    volumes:
+      - signal-data:/root/.local/share/signal-cli
+    restart: unless-stopped
+
+volumes:
+  signal-data:

@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "mathiasfrohlich.kotlin",
+    "vscjava.vscode-gradle",
+    "adelphes.android-dev-ext"
+  ]
+}

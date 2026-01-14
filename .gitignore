@@ -1,0 +1,15 @@
+node_modules/
+signal-cli
+.env
+sup-server
+
+android/.gradle
+android/local.properties
+android/build/
+android/*/build/
+android/*.iml
+android/captures/
+android/.externalNativeBuild
+android/.cxx
+android/*.keystore
+android/*.jks
