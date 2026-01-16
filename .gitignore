@@ -2,6 +2,7 @@ node_modules/
 signal-cli
 .env
 sup-server
+sup-proton-bridge
 
 android/.gradle
 android/local.properties
