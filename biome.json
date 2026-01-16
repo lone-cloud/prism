@@ -18,13 +18,19 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "complexity": {
+        "useArrowFunction": "warn"
+      },
+      "style": {
+        "useShorthandFunctionType": "warn"
+      }
     }
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "trailingCommas": "es5",
+      "trailingCommas": "all",
       "semicolons": "always"
     }
   },

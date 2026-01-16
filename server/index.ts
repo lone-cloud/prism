@@ -1,18 +1,16 @@
 import chalk from 'chalk';
 import { CONTENT_TYPE, ROUTES, TEMPLATES } from './constants/server';
+import { handleHealth } from './routes/health';
+import { handleLink, handleLinkQR, handleLinkStatus, handleUnlink } from './routes/link';
+import { handleGetNotifications, handleNotify, handleTopics } from './routes/notify';
 import {
-  checkSignalCli,
-  createGroup,
-  finishLink,
-  generateLinkQR,
-  hasValidAccount,
-  initSignal,
-  sendGroupMessage,
-  startDaemon,
-  unlinkDevice,
-} from './signal';
-import { getAllMappings, getGroupId, register, remove } from './store';
-import { formatAsSignalMessage, parseUnifiedPushRequest } from './unifiedpush';
+  handleDiscovery,
+  handleEndpoints,
+  handleMatrixNotify,
+  handleRegister,
+  handleUnregister,
+} from './routes/unifiedpush';
+import { checkSignalCli, hasValidAccount, initSignal, startDaemon } from './signal';
 
 const PORT = Bun.env.PORT || 8080;
 const API_KEY = Bun.env.API_KEY;
@@ -36,10 +34,16 @@ if (!API_KEY) {
   console.warn(chalk.dim('   Set API_KEY env var for production deployments.'));
 }
 
-const getBaseUrl = (req: Request) => {
+const requireHttps = (req: Request) => {
   const proto = req.headers.get('x-forwarded-proto') || 'http';
-  const host = req.headers.get('host') || `localhost:${PORT}`;
-  return `${proto}://${host}`;
+  const host = req.headers.get('host') || '';
+  const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+
+  if (API_KEY && proto !== 'https' && !isLocalhost) {
+    return new Response('HTTPS required when API_KEY is configured', { status: 403 });
+  }
+
+  return null;
 };
 
 const server = Bun.serve({
@@ -51,151 +55,53 @@ const server = Bun.serve({
 
     if (url.pathname === ROUTES.FAVICON) {
       const file = Bun.file('server/assets/favicon.png');
-      return new Response(file, {
-        headers: { 'content-type': 'image/png' },
-      });
+      return new Response(file, { headers: { 'content-type': 'image/png' } });
     }
 
-    if (url.pathname === ROUTES.HEALTH) {
-      const signalOk = await checkSignalCli();
-      const linked = signalOk && (await hasValidAccount());
-      return Response.json({
-        status: 'ok',
-        signal: signalOk ? 'connected' : 'disconnected',
-        linked,
-        mode: 'daemon',
-      });
-    }
-
-    if (url.pathname === ROUTES.LINK) {
-      const linked = await hasValidAccount();
-      if (linked) {
-        let html = await Bun.file(TEMPLATES.LINKED).text();
-        const passwordField = API_KEY
-          ? '<input type="password" name="password" placeholder="Enter API_KEY" required style="padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px;" />'
-          : '';
-        html = html.replace('{{PASSWORD_FIELD}}', passwordField);
-
-        return new Response(html, {
-          headers: { 'content-type': CONTENT_TYPE.HTML },
-        });
-      }
-
-      const html = await Bun.file(TEMPLATES.LINK).text();
-      return new Response(html, {
-        headers: { 'content-type': CONTENT_TYPE.HTML },
-      });
-    }
-
-    if (url.pathname === ROUTES.LINK_QR) {
-      const qrDataUrl = await generateLinkQR();
-      return new Response(qrDataUrl, {
-        headers: { 'content-type': CONTENT_TYPE.TEXT },
-      });
-    }
-
-    if (url.pathname === ROUTES.LINK_STATUS) {
-      let linked = await hasValidAccount();
-
-      if (!linked) {
-        try {
-          await finishLink();
-          await initSignal({});
-          linked = true;
-        } catch {
-          // Not ready yet or failed
-        }
-      }
-
-      return Response.json({ linked });
-    }
-
-    if (url.pathname === ROUTES.LINK_UNLINK && req.method === 'POST') {
-      if (API_KEY) {
-        const formData = await req.formData();
-        const password = formData.get('password');
-
-        if (password !== API_KEY) {
-          return new Response('Invalid password', { status: 403 });
-        }
-      }
-
-      await unlinkDevice();
-
-      if (daemon) {
-        daemon.kill();
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      daemon = await startDaemon();
-
-      return new Response('', {
-        status: 303,
-        headers: { Location: ROUTES.LINK },
-      });
-    }
+    if (url.pathname === ROUTES.HEALTH) return handleHealth();
+    if (url.pathname === ROUTES.LINK) return handleLink();
+    if (url.pathname === ROUTES.LINK_QR) return handleLinkQR();
+    if (url.pathname === ROUTES.LINK_STATUS) return handleLinkStatus();
 
     if (!(await hasValidAccount())) {
       const html = await Bun.file(TEMPLATES.SETUP).text();
-      return new Response(html, {
-        headers: { 'content-type': CONTENT_TYPE.HTML },
-      });
+      return new Response(html, { headers: { 'content-type': CONTENT_TYPE.HTML } });
     }
 
     if (url.pathname === ROUTES.MATRIX_NOTIFY && req.method === 'POST') {
-      const message = await parseUnifiedPushRequest(req);
-      const groupId = getGroupId(message.endpoint);
+      return handleMatrixNotify(req);
+    }
 
-      if (!groupId) {
-        return new Response('Endpoint not registered', { status: 404 });
+    const httpsCheck = requireHttps(req);
+    if (httpsCheck) return httpsCheck;
+
+    if (url.pathname === ROUTES.LINK_UNLINK && req.method === 'POST') {
+      const response = await handleUnlink(req, daemon);
+
+      if (response.status === 303) {
+        daemon = await startDaemon();
       }
 
-      const signalMessage = formatAsSignalMessage(message);
-      await sendGroupMessage(groupId, signalMessage);
-
-      return Response.json({ success: true });
+      return response;
     }
 
-    if (url.pathname.startsWith(ROUTES.UP_PREFIX) && req.method === 'POST') {
-      if (API_KEY && req.headers.get('authorization') !== `Bearer ${API_KEY}`) {
-        return new Response('Unauthorized', { status: 401 });
-      }
-      const endpointId = url.pathname.split('/')[2] ?? '';
-      const { appName } = (await req.json()) as {
-        appName: string;
-        token?: string;
-      };
-
-      const groupId: string = getGroupId(endpointId) ?? (await createGroup(`SUP - ${appName}`));
-
-      if (!getGroupId(endpointId)) {
-        register(endpointId, groupId, appName);
-      }
-
-      const baseUrl = getBaseUrl(req);
-      const endpoint = `${baseUrl}${ROUTES.MATRIX_NOTIFY}/${endpointId}`;
-
-      return Response.json({ endpoint, gateway: 'matrix' });
+    if (url.pathname.startsWith(ROUTES.UP_PREFIX)) {
+      if (req.method === 'POST') return handleRegister(req, url);
+      if (req.method === 'DELETE') return handleUnregister(url);
     }
 
-    if (url.pathname.startsWith(ROUTES.UP_PREFIX) && req.method === 'DELETE') {
-      const endpointId = url.pathname.split('/')[2] ?? '';
-      remove(endpointId);
-      return new Response('', { status: 204 });
+    if (url.pathname === ROUTES.UP && req.method === 'GET') return handleDiscovery();
+    if (url.pathname === ROUTES.ENDPOINTS && req.method === 'GET') return handleEndpoints();
+    if (url.pathname === ROUTES.TOPICS && req.method === 'GET') return handleTopics();
+    if (url.pathname === ROUTES.NOTIFICATIONS && req.method === 'GET') {
+      return handleGetNotifications(req, url);
     }
 
-    if (url.pathname === ROUTES.UP && req.method === 'GET') {
-      return Response.json({
-        unifiedpush: { version: 1 },
-        gateway: 'matrix',
-      });
+    if (url.pathname.startsWith(ROUTES.NOTIFY_PREFIX) && req.method === 'POST') {
+      return handleNotify(req, url);
     }
 
-    if (url.pathname === ROUTES.ENDPOINTS && req.method === 'GET') {
-      return Response.json(getAllMappings());
-    }
-
-    return new Response('Not Found', { status: 404 });
+    return new Response(null, { status: 404 });
   },
 });
 

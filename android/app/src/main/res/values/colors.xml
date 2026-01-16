@@ -1,7 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="md_theme_light_primary">#6200EE</color>
-    <color name="md_theme_light_onPrimary">#FFFFFF</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="md_theme_primary">#6750A4</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#EADDFF</color>
+    <color name="md_theme_onPrimaryContainer">#21005D</color>
+    <color name="md_theme_secondary">#625B71</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer">#E8DEF8</color>
+    <color name="md_theme_onSecondaryContainer">#1D192B</color>
+    <color name="md_theme_tertiary">#7D5260</color>
+    <color name="md_theme_onTertiary">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer">#FFD8E4</color>
+    <color name="md_theme_onTertiaryContainer">#31111D</color>
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_errorContainer">#FFDAD6</color>
+    <color name="md_theme_onErrorContainer">#93000A</color>
+    <color name="md_theme_background">#FFFFFF</color>
+    <color name="md_theme_onBackground">#171D1B</color>
+    <color name="md_theme_surface">#FFFFFF</color>
+    <color name="md_theme_onSurface">#171D1B</color>
+    <color name="md_theme_surfaceVariant">#E0E0E0</color>
+    <color name="md_theme_onSurfaceVariant">#3F4946</color>
+    <color name="md_theme_outline">#6F7976</color>
+    <color name="md_theme_outlineVariant">#C0C0C0</color>
+    <color name="md_theme_inverseSurface">#2B3230</color>
+    <color name="md_theme_inverseOnSurface">#F0F0F0</color>
+    <color name="md_theme_inversePrimary">#D0BCFF</color>
+    <color name="md_theme_primaryFixed">#EADDFF</color>
+    <color name="md_theme_onPrimaryFixed">#21005D</color>
+    <color name="md_theme_primaryFixedDim">#D0BCFF</color>
+    <color name="md_theme_onPrimaryFixedVariant">#4F378B</color>
+    <color name="md_theme_secondaryFixed">#E8DEF8</color>
+    <color name="md_theme_onSecondaryFixed">#1D192B</color>
+    <color name="md_theme_secondaryFixedDim">#CCC2DC</color>
+    <color name="md_theme_onSecondaryFixedVariant">#4A4458</color>
+    <color name="md_theme_tertiaryFixed">#FFD8E4</color>
+    <color name="md_theme_onTertiaryFixed">#31111D</color>
+    <color name="md_theme_tertiaryFixedDim">#EFB8C8</color>
+    <color name="md_theme_onTertiaryFixedVariant">#633B48</color>
+    <color name="md_theme_surfaceDim">#E0E0E0</color>
+    <color name="md_theme_surfaceBright">#FFFFFF</color>
+    <color name="md_theme_surfaceContainerLowest">#FFFFFF</color>
+    <color name="md_theme_surfaceContainerLow">#F5F5F5</color>
+    <color name="md_theme_surfaceContainer">#F0F0F0</color>
+    <color name="md_theme_surfaceContainerHigh">#EEEEEE</color>
+    <color name="md_theme_surfaceContainerHighest">#E0E0E0</color>
+
+    <color name="action_bar">#6750A4</color> <!-- md_theme_primary (purple) -->
+    <color name="detail_activity_background">#EEEEEE</color> <!-- Light gray for detail activity in light mode -->
+
+    <!-- Chip colors -->
+
+    <!-- Remove black status bar in Action mode: https://stackoverflow.com/a/79456725 -->
 </resources>

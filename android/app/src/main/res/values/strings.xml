@@ -1,5 +1,163 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SUP</string>
-    <string name="info_text">SUP routes push notifications through Signal for privacy. Configure your self-hosted server above, then enable notification access to monitor Signal messages.</string>
+    <string name="app_base_url" translatable="false">https://sup.example.com</string>
+    
+    <!-- Common -->
+    <string name="common_button_copy">Copy</string>
+    
+    <!-- Main screen -->
+    <string name="main_action_bar_title">Subscriptions</string>
+    <string name="main_no_subscriptions_text">No subscriptions yet</string>
+    <string name="main_add_button_description">Add subscription</string>
+    <string name="main_how_to_intro">SUP delivers notifications from your server via Signal.</string>
+    <string name="main_how_to_link">Learn more</string>
+    <string name="main_menu_connection_error">Connection error</string>
+    <string name="main_menu_notifications_enabled">Pause all</string>
+    <string name="main_menu_notifications_disabled_forever">Resume all</string>
+    <string name="main_menu_settings_title">Settings</string>
+    <string name="main_menu_docs_title">Documentation</string>
+    <string name="main_menu_rate_title">Rate app</string>
+    <string name="main_menu_report_bug_title">Report bug</string>
+    <string name="main_action_mode_menu_unsubscribe">Unsubscribe</string>
+    
+    <!-- Main banners -->
+    <string name="main_banner_battery_text">Battery optimization settings may prevent notifications from being delivered</string>
+    <string name="main_banner_battery_button_remind_later">Remind later</string>
+    <string name="main_banner_battery_button_dismiss">Dismiss</string>
+    <string name="main_banner_battery_button_fix_now">Fix now</string>
+    <string name="main_banner_websocket_text">WebSocket not supported</string>
+    <string name="main_banner_websocket_button_remind_later">Remind later</string>
+    <string name="main_banner_websocket_button_dismiss">Dismiss</string>
+    <string name="main_banner_websocket_button_enable_now">Enable now</string>
+    <string name="main_banner_websocket_reconnect_text">WebSocket reconnection needed</string>
+    <string name="main_banner_websocket_reconnect_button_remind_later">Remind later</string>
+    <string name="main_banner_websocket_reconnect_button_dismiss">Dismiss</string>
+    <string name="main_banner_websocket_reconnect_button_enable_now">Enable now</string>
+    
+    <!-- Detail screen -->
+    <string name="detail_no_notifications_text">No notifications yet</string>
+    <string name="detail_how_to_intro">Notifications will appear here when messages are sent to this topic.</string>
+    <string name="detail_how_to_example">Example: curl -d \"Hello\" %1$s</string>
+    <string name="detail_how_to_link">Learn more</string>
+    <string name="detail_fab_publish_description">Send notification</string>
+    <string name="detail_menu_notifications_enabled">Pause</string>
+    <string name="detail_menu_notifications_disabled_forever">Resume</string>
+    <string name="detail_menu_enable_instant">Enable instant delivery</string>
+    <string name="detail_menu_disable_instant">Disable instant delivery</string>
+    <string name="detail_menu_settings">Settings</string>
+    <string name="detail_menu_copy_url">Copy URL</string>
+    <string name="detail_menu_clear">Clear all</string>
+    <string name="detail_menu_test">Test notification</string>
+    <string name="detail_menu_unsubscribe">Unsubscribe</string>
+    <string name="detail_action_mode_menu_delete">Delete</string>
+    <string name="detail_item_menu_download">Download</string>
+    <string name="detail_item_menu_cancel">Cancel</string>
+    <string name="detail_item_menu_open">Open</string>
+    <string name="detail_item_menu_delete">Delete</string>
+    <string name="detail_item_menu_save_file">Save</string>
+    <string name="detail_item_menu_copy_url">Copy URL</string>
+    <string name="detail_item_menu_copy_contents">Copy contents</string>
+    
+    <!-- Publish dialog -->
+    
+    <!-- Share activity -->
+    
+    <!-- Certificate dialog -->
+    
+    <!-- User dialog -->
+    
+    <!-- Add dialog -->
+    <string name="add_dialog_title">Subscribe to topic</string>
+    <string name="add_dialog_topic_name_hint">Topic name</string>
+    <string name="add_dialog_button_subscribe">Subscribe</string>
+    <string name="add_dialog_description_below">Subscribe to receive notifications for this topic</string>
+    <string name="add_dialog_use_another_server">Use another server</string>
+    <string name="add_dialog_use_another_server_description">Enter custom server URL</string>
+    <string name="add_dialog_instant_delivery">Instant delivery</string>
+    <string name="add_dialog_instant_delivery_description">Ensures instant notification delivery</string>
+    <string name="add_dialog_foreground_description">Keep service running in foreground</string>
+    <string name="add_dialog_login_description">Authentication required</string>
+    <string name="add_dialog_login_username_hint">Username</string>
+    <string name="add_dialog_login_password_hint">Password</string>
+    
+    <!-- Connection error -->
+    
+    <!-- Message bar -->
+    <string name="message_bar_expand_button_description">Expand</string>
+    <string name="message_bar_hint">Enter message</string>
+    <string name="message_bar_publish_button_description">Send</string>
+    
+    <!-- Attachment -->
+    
+    <!-- Notification channels -->
+    <string name="channel_subscriber_service_name">Background Service</string>
+    
+    <!-- UnifiedPush -->
+    
+    <!-- Priorities -->
+    <string name="common_priority_min_name">Min</string>
+    <string name="common_priority_low_name">Low</string>
+    <string name="common_priority_default_name">Default</string>
+    <string name="common_priority_high_name">High</string>
+    <string name="common_priority_max_name">Max</string>
+    <string name="settings_notifications_priority_min">Min priority</string>
+    <string name="settings_notifications_priority_low">Low priority</string>
+    <string name="settings_notifications_priority_default">Default priority</string>
+    <string name="settings_notifications_priority_high">High priority</string>
+    <string name="settings_notifications_priority_max">Max priority</string>
+    
+    <!-- Utils -->
+    <string name="common_copied_to_clipboard">Copied to clipboard</string>
+    
+    <!-- Main item -->
+    <string name="main_item_status_unified_push">UnifiedPush</string>
+    <string name="main_item_status_text_one">1 notification</string>
+    <string name="main_item_status_text_not_one">%1$d notifications</string>
+    <string name="main_item_status_reconnecting">Reconnecting…</string>
+    <string name="main_item_date_yesterday">yesterday</string>
+    
+    <!-- Delete dialog -->
+    <string name="main_action_mode_delete_dialog_message">Permanently delete selected subscriptions?</string>
+    <string name="main_action_mode_delete_dialog_permanently_delete">Delete</string>
+    <string name="main_action_mode_delete_dialog_cancel">Cancel</string>
+    
+    <!-- Notification popup -->
+    <string name="channel_notifications_group_default_name">Default</string>
+    <string name="add_dialog_error_ssl_untrusted">Untrusted certificate. Check server certificate.</string>
+    <string name="add_dialog_login_title">Login required</string>
+    <string name="add_dialog_login_error_not_authorized">Not authorized for user %1$s</string>
+    <string name="add_dialog_button_login">Login</string>
+    <string name="add_dialog_base_urls_dropdown_clear">Clear URLs</string>
+    <string name="add_dialog_base_urls_dropdown_choose">Choose URL</string>
+    <string name="detail_deep_link_subscribed_toast_message">Subscribed to %1$s</string>
+    <string name="detail_item_snack_deleted">Notification deleted</string>
+    <string name="detail_item_snack_undo">Undo</string>
+    <string name="detail_test_message_error_unauthorized_anon">Test notification failed: not authorized (anonymous access disabled)</string>
+    <string name="detail_test_message_error_too_large">Test notification failed: message too large</string>
+    <string name="detail_test_title">Test notification</string>
+    <string name="detail_test_message">This is a test notification</string>
+    <string name="detail_test_message_error">Test notification failed</string>
+    <string name="detail_menu_notifications_disabled_until">Resume (%1$s)</string>
+    <string name="detail_clear_dialog_message">Delete all notifications?</string>
+    <string name="detail_clear_dialog_permanently_delete">Delete</string>
+    <string name="detail_clear_dialog_cancel">Cancel</string>
+    <string name="publish_dialog_error_server">Publish failed due to server error</string>
+    <string name="publish_dialog_error_sending">Publish failed</string>
+    <string name="refresh_message_no_results">No new notifications</string>
+    <string name="refresh_message_result">%1$d new notification(s)</string>
+    <string name="refresh_message_error_one">Connection failed: %1$s</string>
+    <string name="notification_dialog_enabled_toast_message">Notifications enabled</string>
+    <string name="notification_dialog_muted_forever_toast_message">Notifications muted</string>
+    <string name="notification_dialog_muted_until_toast_message">Notifications muted until %1$s</string>
+    <string name="detail_delete_dialog_message">Delete this subscription?</string>
+    <string name="detail_delete_dialog_permanently_delete">Delete</string>
+    <string name="detail_delete_dialog_cancel">Cancel</string>
+    <string name="detail_action_mode_delete_dialog_message">Delete selected notifications?</string>
+    <string name="detail_action_mode_delete_dialog_permanently_delete">Delete</string>
+    <string name="detail_action_mode_delete_dialog_cancel">Cancel</string>
+    <string name="detail_item_tags">Tags: %1$s</string>
+    <string name="main_menu_notifications_disabled_until">Resume all (%1$s)</string>
+    <string name="main_menu_report_bug_url">https://github.com/yourusername/sup/issues</string>
+    <string name="main_menu_docs_url">https://sup.example.com/docs</string>
+    <string name="refresh_message_error">Connection failed</string>
 </resources>

@@ -9,6 +9,9 @@ export const ROUTES = {
   UP: '/up',
   UP_PREFIX: '/up/',
   ENDPOINTS: '/endpoints',
+  NOTIFY_PREFIX: '/notify/',
+  TOPICS: '/topics',
+  NOTIFICATIONS: '/notifications',
 } as const;
 
 export const CONTENT_TYPE = {

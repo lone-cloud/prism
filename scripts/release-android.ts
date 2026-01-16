@@ -1,19 +1,19 @@
 import { $ } from 'bun';
 
-async function main() {
-  const version = process.argv[2];
+const version = process.argv[2];
 
-  if (!version) {
-    console.error('Usage: bun run release <version>');
-    console.error('Example: bun run release v0.1.0');
-    process.exit(1);
-  }
+if (!version) {
+  console.error('Usage: bun run release <version>');
+  console.error('Example: bun run release v0.1.0');
+  process.exit(1);
+}
 
-  if (!version.startsWith('v')) {
-    console.error('❌ Version must start with "v" (e.g., v0.1.0)');
-    process.exit(1);
-  }
+if (!version.startsWith('v')) {
+  console.error('❌ Version must start with "v" (e.g., v0.1.0)');
+  process.exit(1);
+}
 
+try {
   const status = await $`git status --porcelain`.text();
   if (status.trim()) {
     console.error('❌ You have uncommitted changes. Commit or stash them first.');
@@ -46,9 +46,7 @@ GitHub Actions will now:
 
 Check progress: https://github.com/lone-cloud/sup/actions
 `);
-}
-
-main().catch((error) => {
-  console.error('Release failed:', error.message);
+} catch (error) {
+  console.error('Release failed:', error);
   process.exit(1);
-});
+}

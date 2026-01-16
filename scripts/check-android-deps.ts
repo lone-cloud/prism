@@ -2,6 +2,12 @@ import { join } from 'node:path';
 
 const BUILD_GRADLE = join(import.meta.dir, '..', 'android', 'app', 'build.gradle.kts');
 
+function isStableVersion(version: string) {
+  const unstableKeywords = ['alpha', 'beta', 'rc', 'snapshot', 'dev', 'preview'];
+  const lower = version.toLowerCase();
+  return !unstableKeywords.some((keyword) => lower.includes(keyword));
+}
+
 async function parseCurrentVersions() {
   const content = await Bun.file(BUILD_GRADLE).text();
   const deps: Record<string, string> = {};
@@ -22,12 +28,16 @@ async function parseCurrentVersions() {
 
 async function checkMavenVersion(group: string, artifact: string) {
   try {
-    const url = `https://search.maven.org/solrsearch/select?q=g:${encodeURIComponent(group)}+AND+a:${encodeURIComponent(artifact)}&rows=1&wt=json`;
+    const url = `https://search.maven.org/solrsearch/select?q=g:${encodeURIComponent(group)}+AND+a:${encodeURIComponent(artifact)}&rows=50&wt=json&core=gav`;
     const response = await fetch(url);
     const data = (await response.json()) as {
-      response: { docs: Array<{ latestVersion: string }> };
+      response: { docs: Array<{ v: string }> };
     };
-    return data.response.docs[0]?.latestVersion || null;
+
+    const versions = [...new Set(data.response.docs.map((doc) => doc.v))];
+    const stableVersions = versions.filter(isStableVersion);
+
+    return stableVersions[0] || versions[0] || null;
   } catch (_error) {
     return null;
   }
@@ -39,8 +49,12 @@ async function checkGoogleMavenVersion(group: string, artifact: string) {
     const url = `https://maven.google.com/${groupPath}/${artifact}/maven-metadata.xml`;
     const response = await fetch(url);
     const xml = await response.text();
-    const match = xml.match(/<latest>(.*?)<\/latest>/);
-    return match?.[1] ?? null;
+
+    const versionMatches = xml.matchAll(/<version>(.*?)<\/version>/g);
+    const versions = Array.from(versionMatches, (m) => m[1]).filter((v): v is string => !!v);
+
+    const stableVersions = versions.filter(isStableVersion);
+    return stableVersions[stableVersions.length - 1] ?? versions[versions.length - 1] ?? null;
   } catch (_error) {
     return null;
   }

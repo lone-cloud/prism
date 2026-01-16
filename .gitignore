@@ -13,3 +13,4 @@ android/.externalNativeBuild
 android/.cxx
 android/*.keystore
 android/*.jks
+android/.kotlin

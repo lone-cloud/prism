@@ -63,7 +63,6 @@ class DistributorService : Service() {
                     val jsonResponse = JSONObject(responseBody)
                     val endpoint = jsonResponse.getString("endpoint")
 
-                    // Store mapping
                     prefs.edit()
                         .putString("endpoint_$appId", endpoint)
                         .putString("token_$appId", token)
@@ -85,7 +84,6 @@ class DistributorService : Service() {
         val token = intent.getStringExtra("token") ?: return
         Log.d("SUP", "Unregistering: token=$token")
 
-        // Find and remove mapping
         val allPrefs = prefs.all
         for ((key, value) in allPrefs) {
             if (key.startsWith("token_") && value == token) {
@@ -129,7 +127,6 @@ class DistributorService : Service() {
     }
 
     private fun getAppPackageFromToken(token: String): String {
-        // Token format is typically package:randomId
         return token.split(":").firstOrNull() ?: ""
     }
 }
