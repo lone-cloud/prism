@@ -30,7 +30,7 @@ export const handleRegister = async (req: Request, url: URL) => {
     token?: string;
   };
 
-  const groupId: string = getGroupId(endpointId) ?? (await createGroup(`SUP - ${appName}`));
+  const groupId: string = getGroupId(endpointId) ?? (await createGroup(appName));
 
   if (!getGroupId(endpointId)) {
     register(endpointId, groupId, appName);

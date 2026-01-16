@@ -5,6 +5,14 @@ plugins {
 
 subprojects {
     configurations.all {
-        resolutionStrategy.activateDependencyLocking()
+        resolutionStrategy {
+            activateDependencyLocking()
+            failOnDynamicVersions()
+            failOnChangingVersions()
+        }
+    }
+    
+    dependencyLocking {
+        lockAllConfigurations()
     }
 }

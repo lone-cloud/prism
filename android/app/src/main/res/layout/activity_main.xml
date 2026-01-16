@@ -232,26 +232,21 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/main_subscriptions_list_container"
+        <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/main_subscriptions_list"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:visibility="visible"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
+                android:clipToPadding="false"
+                android:background="?android:attr/selectableItemBackground"
+                app:layoutManager="LinearLayoutManager"
                 app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/main_banner_websocket_reconnect">
-            <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/main_subscriptions_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingTop="5dp"
-                    android:paddingBottom="5dp"
-                    android:clipToPadding="false"
-                    android:background="?android:attr/selectableItemBackground"
-                    app:layoutManager="LinearLayoutManager"/>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+                app:layout_constraintTop_toBottomOf="@id/main_banner_websocket_reconnect"/>
 
         <LinearLayout
                 android:orientation="vertical"

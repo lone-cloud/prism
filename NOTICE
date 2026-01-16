@@ -11,10 +11,13 @@ The Android application (android/) contains modified code from:
   Licensed under Apache License 2.0
 
 Major modifications:
-
-- Replaced HTTP polling with Signal-based message delivery for privacy
-- Removed web-based features and simplified UI
-- Intended for self-hosted, low-volume personal use
+- Completely replaced HTTP/WebSocket polling with Signal-based push delivery
+- Removed all user authentication, attachment downloads, and action buttons
+- Removed Firebase, certificate pinning, and instant delivery features
+- Simplified database schema (removed 4 tables, 17 fields)
+- Removed ~1000+ lines of code for unused features
+- Changed theme and branding
+- Designed for privacy-focused, self-hosted personal use only
 
 The original ntfy-android license is included below:
 

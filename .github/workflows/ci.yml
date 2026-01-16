@@ -3,8 +3,14 @@ name: CI
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
 
 jobs:
   check:
@@ -20,5 +26,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Run checks
-        run: bun check
+      - name: Lint and type check
+        run: bun run check
+
+      - name: Build server
+        run: cd server && bun run build
+
+      - name: Build proton-bridge
+        run: cd proton-bridge && bun run build
+

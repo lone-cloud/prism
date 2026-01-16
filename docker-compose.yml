@@ -2,16 +2,40 @@ version: '3.8'
 
 services:
   sup-server:
-    image: ghcr.io/eggy/sup:latest
+    build: ./server
     ports:
       - '8080:8080'
     environment:
       - PORT=8080
       - API_KEY=${API_KEY:-}
-      - SIGNAL_CLI_VERBOSE=${SIGNAL_CLI_VERBOSE:-false}
+      - VERBOSE=${VERBOSE:-false}
     volumes:
       - signal-data:/root/.local/share/signal-cli
     restart: unless-stopped
 
+  protonmail-bridge:
+    image: shenxn/protonmail-bridge:latest
+    container_name: protonmail-bridge
+    profiles: ['protonmail']
+    volumes:
+      - proton-bridge-data:/root
+    restart: unless-stopped
+
+  proton-bridge:
+    build: ./proton-bridge
+    container_name: sup-proton-bridge
+    profiles: ['protonmail']
+    depends_on:
+      - sup-server
+      - protonmail-bridge
+    environment:
+      - BRIDGE_IMAP_USERNAME=${BRIDGE_IMAP_USERNAME}
+      - BRIDGE_IMAP_PASSWORD=${BRIDGE_IMAP_PASSWORD}
+      - SUP_API_KEY=${API_KEY}
+      - SUP_TOPIC=${SUP_TOPIC:-Proton Mail}
+      - VERBOSE=${VERBOSE:-false}
+    restart: unless-stopped
+
 volumes:
   signal-data:
+  proton-bridge-data:

@@ -36,11 +36,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -61,7 +56,6 @@ import com.lonecloud.sup.util.maybeSplitTopicUrl
 import com.lonecloud.sup.util.randomSubscriptionId
 import com.lonecloud.sup.util.shortUrl
 import com.lonecloud.sup.util.topicShortUrl
-import com.lonecloud.sup.work.DeleteWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,12 +78,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
     // UI elements
     private lateinit var menu: Menu
     private lateinit var mainList: RecyclerView
-    private lateinit var mainListContainer: SwipeRefreshLayout
     private lateinit var adapter: MainAdapter
     private lateinit var fab: FloatingActionButton
 
     // Other stuff
-    private var workManager: WorkManager? = null // Context-dependent
     private var dispatcher: NotificationDispatcher? = null // Context-dependent
     private var appBaseUrl: String? = null // Context-dependent
 
@@ -131,7 +123,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
         Log.d(TAG, "Create $this")
 
         // Dependencies that depend on Context
-        workManager = WorkManager.getInstance(this)
         dispatcher = NotificationDispatcher(this, repository)
         appBaseUrl = getString(R.string.app_base_url)
 
@@ -169,11 +160,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
             insets
         }
 
-        // Swipe to refresh
-        mainListContainer = findViewById(R.id.main_subscriptions_list_container)
-        mainListContainer.setOnRefreshListener { refreshAllSubscriptions() }
-        mainListContainer.setColorSchemeColors(Colors.swipeToRefreshColor(this))
-
         // Update main list based on viewModel (& its datasource/livedata)
         val noEntries: View = findViewById(R.id.main_no_subscriptions)
         val onSubscriptionClick = { s: Subscription -> onSubscriptionItemClick(s) }
@@ -204,10 +190,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
                 // Update main list
                 adapter.submitList(subscriptions as MutableList<Subscription>)
                 if (it.isEmpty()) {
-                    mainListContainer.visibility = View.GONE
+                    mainList.visibility = View.GONE
                     noEntries.visibility = View.VISIBLE
                 } else {
-                    mainListContainer.visibility = View.VISIBLE
+                    mainList.visibility = View.VISIBLE
                     noEntries.visibility = View.GONE
                 }
 
@@ -291,7 +277,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
 
         // Background things
         schedulePeriodicServiceRestartWorker()
-        schedulePeriodicDeleteWorker()
 
         // Permissions
         maybeRequestNotificationPermission()
@@ -324,24 +309,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
         val batteryBanner = findViewById<View>(R.id.main_banner_battery)
         batteryBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
         Log.d(TAG, "Battery: ignoring optimizations = $ignoringOptimizations (we want this to be true); remind time reached = $batteryRemindTimeReached; banner = $showBanner")
-    }
-
-    private fun schedulePeriodicDeleteWorker() {
-        val workerVersion = repository.getDeleteWorkerVersion()
-        val workPolicy = if (workerVersion == DeleteWorker.VERSION) {
-            Log.d(TAG, "Delete worker version matches: choosing KEEP as existing work policy")
-            ExistingPeriodicWorkPolicy.KEEP
-        } else {
-            Log.d(TAG, "Delete worker version DOES NOT MATCH: choosing REPLACE as existing work policy")
-            repository.setDeleteWorkerVersion(DeleteWorker.VERSION)
-            ExistingPeriodicWorkPolicy.REPLACE
-        }
-        val work = PeriodicWorkRequestBuilder<DeleteWorker>(DELETE_WORKER_INTERVAL_MINUTES, TimeUnit.MINUTES)
-            .addTag(DeleteWorker.TAG)
-            .addTag(DeleteWorker.WORK_NAME_PERIODIC_ALL)
-            .build()
-        Log.d(TAG, "Delete worker: Scheduling period work every $DELETE_WORKER_INTERVAL_MINUTES minutes")
-        workManager!!.enqueueUniquePeriodicWork(DeleteWorker.WORK_NAME_PERIODIC_ALL, workPolicy, work)
     }
 
     private fun schedulePeriodicServiceRestartWorker() {
@@ -563,10 +530,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
     private fun onSubscriptionItemClick(subscription: Subscription) {
         if (actionMode != null) {
             handleActionModeClick(subscription)
-        } else if (subscription.upAppId != null) { // UnifiedPush
+        } else if (subscription.upAppId != null) {
             startDetailSettingsView(subscription)
-        } else {
-            startDetailView(subscription)
         }
     }
 
@@ -576,56 +541,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
         }
     }
 
-    private fun refreshAllSubscriptions() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            Log.d(TAG, "Polling for new notifications")
-            var errors = 0
-            var errorMessage = "" // First error
-            var newNotificationsCount = 0
-            repository.getSubscriptions().forEach { subscription ->
-                Log.d(TAG, "subscription: $subscription")
-                try {
-                    val notifications = api.poll(subscription.id, subscription.baseUrl, subscription.topic, null)
-                    val newNotifications = repository.onlyNewNotifications(subscription.id, notifications)
-                    newNotifications.forEach { notification ->
-                        newNotificationsCount++
-                        val notificationWithId = notification.copy(notificationId = Random.nextInt())
-                        if (repository.addNotification(notificationWithId)) {
-                            dispatcher?.dispatch(subscription, notificationWithId)
-                        }
-                    }
-                } catch (e: Exception) {
-                    val topic = displayName(appBaseUrl, subscription)
-                    if (errorMessage == "") errorMessage = "$topic: ${e.message}"
-                    errors++
-                }
-            }
-            val toastMessage = if (errors > 0) {
-                getString(R.string.refresh_message_error, errors, errorMessage)
-            } else if (newNotificationsCount == 0) {
-                getString(R.string.refresh_message_no_results)
-            } else {
-                getString(R.string.refresh_message_result, newNotificationsCount)
-            }
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, toastMessage, Toast.LENGTH_LONG).show()
-                mainListContainer.isRefreshing = false
-            }
-            Log.d(TAG, "Finished polling for new notifications")
-        }
-    }
 
-    private fun startDetailView(subscription: Subscription) {
-        Log.d(TAG, "Entering detail view for subscription $subscription")
-
-        val intent = Intent(this, DetailActivity::class.java)
-        intent.putExtra(EXTRA_SUBSCRIPTION_ID, subscription.id)
-        intent.putExtra(EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
-        intent.putExtra(EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
-        intent.putExtra(EXTRA_SUBSCRIPTION_DISPLAY_NAME, displayName(appBaseUrl, subscription))
-        intent.putExtra(EXTRA_SUBSCRIPTION_MUTED_UNTIL, subscription.mutedUntil)
-        startActivity(intent)
-    }
 
     private fun startDetailSettingsView(subscription: Subscription) {
         Log.d(TAG, "Opening subscription settings for ${topicShortUrl(subscription.baseUrl, subscription.topic)}")
@@ -649,7 +565,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
     }
 
     private fun onMultiDeleteClick() {
-        Log.d(DetailActivity.TAG, "Showing multi-delete dialog for selected items")
+        Log.d(TAG, "Showing multi-delete dialog for selected items")
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setMessage(R.string.main_action_mode_delete_dialog_message)
@@ -732,7 +648,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener {
         // Thanks to varunon9 (https://gist.github.com/varunon9/f2beec0a743c96708eb0ef971a9ff9cd) for this!
 
         const val POLL_WORKER_INTERVAL_MINUTES = 60L
-        const val DELETE_WORKER_INTERVAL_MINUTES = 8 * 60L
         const val SERVICE_START_WORKER_INTERVAL_MINUTES = 3 * 60L
     }
 }

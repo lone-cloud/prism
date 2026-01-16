@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-RUN bun build --compile server/index.ts --outfile sup-server
+RUN bun build --compile src/server.ts --outfile sup-server
 
 FROM alpine:3.21
 

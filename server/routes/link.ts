@@ -34,9 +34,7 @@ export const handleLinkStatus = async () => {
       await finishLink();
       await initSignal({});
       linked = true;
-    } catch {
-      // Not ready yet or failed
-    }
+    } catch {}
   }
 
   return Response.json({ linked });

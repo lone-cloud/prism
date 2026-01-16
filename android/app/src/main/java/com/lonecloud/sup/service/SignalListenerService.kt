@@ -36,7 +36,6 @@ class SignalListenerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "Service started")
         
-        // Process notification from intent if present
         intent?.getStringExtra(EXTRA_NOTIFICATION_DATA)?.let { data ->
             scope.launch {
                 processNotification(data)
@@ -70,10 +69,7 @@ class SignalListenerService : Service() {
 
     private suspend fun processNotification(data: String) {
         try {
-            // Parse notification data and dispatch
             Log.d(TAG, "Processing notification: $data")
-            // This will be called by SignalNotificationListener
-            // with parsed notification data
         } catch (e: Exception) {
             Log.e(TAG, "Error processing notification: ${e.message}", e)
         }

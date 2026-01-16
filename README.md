@@ -8,8 +8,15 @@ SUP is a UnifiedPush distributor that routes push notifications through Signal, 
 
 ## Architecture
 
-- **Server** (Bun/TypeScript): Receives UnifiedPush webhooks and forwards them via signal-cli to Signal groups
-- **Android App** (Kotlin): Monitors Signal notifications, extracts payloads, and wakes target apps
+SUP consists of three services that **MUST run together on the same machine**:
+
+- **sup-server** (Bun/TypeScript): Receives webhooks, sends Signal messages via signal-cli
+- **protonmail-bridge** (Official Proton): Decrypts ProtonMail emails, runs local IMAP server
+- **proton-bridge** (Custom): Monitors IMAP, forwards to sup-server
+
+All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
+
+**Android App** (Kotlin): Monitors Signal notifications, extracts UnifiedPush payloads, delivers to apps
 
 ## Why?
 
@@ -17,44 +24,122 @@ Traditional push notification systems (ntfy, FCM) require persistent WebSocket c
 
 ## Setup
 
+**⚠️ DOCKER COMPOSE REQUIRED**: The services must be deployed together using `docker compose`. Running individual Dockerfiles separately is not supported and will compromise security.
+
 ### Prerequisites
 
-- **Docker** (recommended) - includes Java 25 JRE
-- **Or for local development:**
-  - Bun 1.3+
-  - Java 21+ JRE (signal-cli is Java bytecode, not native)
-
-### Quick Start with Docker
+#### Installing Docker on Arch Linux
 
 ```bash
-docker run -d -p 8080:8080 -v sup-data:/root/.local/share/signal-cli ghcr.io/lone-cloud/sup:latest
+# Install Docker and Compose plugin
+sudo pacman -S docker docker-buildx
+
+# Start Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add your user to docker group (logout/login required)
+sudo usermod -aG docker $USER
 ```
 
-Visit `http://localhost:8080/link` to link your Signal account via QR code.
+After adding yourself to the docker group, **logout and login** for it to take effect.
 
-> **Note:** The `-v sup-data:...` persists your Signal account data. Without it, you'll need to re-link on every restart.
+### Quick Start with Docker Compose
 
-**Optional: Add API key for production:**
-
-```bash
-docker run -d -p 8080:8080 -e API_KEY=your-secret -v sup-data:/root/.local/share/signal-cli ghcr.io/lone-cloud/sup:latest
-```
-
-### Alternative: Docker Compose
+**Without ProtonMail** (just UnifiedPush):
 
 ```bash
 # Clone the repo
 git clone https://github.com/lone-cloud/sup.git
 cd sup
 
-# Optional: Create .env file for API key
-echo "API_KEY=your-secret" > .env
+# Create .env file
+cat > .env << 'EOF'
+# Required: API key for securing your server
+API_KEY=your-random-secret-key-here
 
-# Run
-docker-compose up -d
+# Optional: Enable verbose logging
+VERBOSE=false
+EOF
+
+# Build and start SUP server only
+docker compose up -d
+
+# Link your Signal account (one-time setup)
+# Visit http://localhost:8080/link and scan QR code with Signal app
 ```
 
-Visit `http://localhost:8080/link` to link your Signal account.
+**With ProtonMail** (UnifiedPush + email notifications):
+
+```bash
+# Same setup as above, then start with protonmail profile
+docker compose --profile protonmail up -d
+```
+
+### ProtonMail Integration (Optional)
+
+To receive ProtonMail notifications via Signal:
+
+1. **Initialize ProtonMail Bridge** (one-time setup):
+
+   ```bash
+   docker compose run --rm protonmail-bridge init
+   ```
+  
+2. **Login to ProtonMail**:
+   - At the `>>>` prompt, run: `login`
+   - Enter your ProtonMail email
+   - Enter your ProtonMail password
+   - Enter your 2FA code
+
+3. **Get IMAP credentials**:
+   - Run: `info`
+   - Copy the Username and Password shown
+   - Run: `exit` to quit
+
+4. **Add credentials to .env**:
+
+   ```bash
+   # Add these to your .env file
+   BRIDGE_IMAP_USERNAME=your-email@proton.me
+   BRIDGE_IMAP_PASSWORD=bridge-generated-password-from-info-command
+   ```
+
+5. **Start all services with ProtonMail**:
+
+   ```bash
+   docker compose --profile protonmail up -d
+   ```
+
+Your phone will now receive Signal notifications when ProtonMail receives new emails.
+
+### Checking Logs
+
+```bash
+# Without ProtonMail
+docker compose logs -f
+
+# With ProtonMail
+docker compose --profile protonmail logs -f
+
+# View specific service
+docker compose logs -f sup-server
+docker compose --profile protonmail logs -f proton-bridge
+docker compose --profile protonmail logs -f protonmail-bridge
+```
+
+### Stopping Services
+
+```bash
+# Without ProtonMail
+docker compose down
+
+# With ProtonMail
+docker compose --profile protonmail down
+
+# Stop and remove volumes (warning: deletes Signal/ProtonMail data)
+docker compose --profile protonmail down -v
+```
 
 ### Development
 
@@ -97,7 +182,7 @@ Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup
 
 **Certificate Fingerprint for Obtainium verification:**
 
-```
+```text
 0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
 ```
 

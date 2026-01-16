@@ -78,56 +78,27 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
     implementation("androidx.activity:activity-ktx:1.12.2")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
-    implementation("androidx.work:work-runtime-ktx:2.11.0")
-    implementation("androidx.preference:preference-ktx:1.2.1")
 
     // JSON (Gson)
-    implementation("com.google.code.gson:gson:2.13.2")
+    implementation("com.google.code.gson:gson:2.13.1")
 
     // Room (SQLite)
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
 
     // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.4.0")
-
-    // Swipe to refresh
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
 
     // Material Design
     implementation("com.google.android.material:material:1.13.0")
 
     // LiveData
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
-    implementation("androidx.legacy:legacy-support-v4:1.0.0")
-
-    // Image viewer
-    implementation("com.github.stfalcon-studio:StfalconImageViewer:1.0.1")
-
-    // Glide (GIF support)
-    val glideVersion = "5.0.5"
-    implementation("com.github.bumptech.glide:glide:$glideVersion")
-    ksp("com.github.bumptech.glide:ksp:$glideVersion")
-
-    // Better click handling for links
-    implementation("me.saket:better-link-movement-method:2.2.0")
-
-    // Markdown
-    implementation("io.noties.markwon:core:4.6.2")
-    implementation("io.noties.markwon:image-picasso:4.6.2")
-    implementation("io.noties.markwon:image:4.6.2")
-    implementation("io.noties.markwon:linkify:4.6.2")
-    implementation("io.noties.markwon:ext-tables:4.6.2")
-    implementation("io.noties.markwon:ext-strikethrough:4.6.2")
-
-    // Markdown dependencies (R8 requirements)
-    implementation("pl.droidsonroids.gif:android-gif-drawable:1.2.29")
-    implementation("com.caverock:androidsvg:1.4")
 
     // UnifiedPush
     implementation("com.github.UnifiedPush:android-connector:3.0.10")

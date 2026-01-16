@@ -13,7 +13,7 @@ import com.lonecloud.sup.R
 import com.lonecloud.sup.db.*
 import com.lonecloud.sup.db.Notification
 import com.lonecloud.sup.ui.Colors
-import com.lonecloud.sup.ui.DetailActivity
+
 import com.lonecloud.sup.ui.MainActivity
 import com.lonecloud.sup.util.*
 import java.util.*
@@ -99,7 +99,14 @@ class NotificationService(val context: Context) {
     }
 
     private fun setClickAction(builder: NotificationCompat.Builder, subscription: Subscription) {
-        builder.setContentIntent(detailActivityIntent(subscription))
+        val intent = Intent(context, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            Random.nextInt(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        builder.setContentIntent(pendingIntent)
     }
 
     private fun subscriptionGroupName(subscription: Subscription): String {
@@ -115,20 +122,6 @@ class NotificationService(val context: Context) {
             Log.d(TAG, "Media player: Stopping insistent ring")
             val mediaPlayer = Repository.getInstance(context).mediaPlayer
             mediaPlayer.stop()
-        }
-    }
-
-    private fun detailActivityIntent(subscription: Subscription): PendingIntent? {
-        val intent = Intent(context, DetailActivity::class.java).apply {
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_DISPLAY_NAME, displayName(appBaseUrl, subscription))
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_MUTED_UNTIL, subscription.mutedUntil)
-        }
-        return TaskStackBuilder.create(context).run {
-            addNextIntentWithParentStack(intent)
-            getPendingIntent(Random().nextInt(), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
     }
 

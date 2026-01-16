@@ -372,6 +372,19 @@ interface SubscriptionDao {
     """)
     fun getByConnectorToken(connectorToken: String): SubscriptionWithMetadata?
 
+    @Query("""
+        SELECT 
+          s.id, s.baseUrl, s.topic, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.upAppId, s.upConnectorToken, s.displayName,
+          COUNT(n.id) totalCount, 
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          IFNULL(MAX(n.timestamp),0) AS lastActive
+        FROM Subscription AS s
+        LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1
+        WHERE s.upAppId = :upAppId
+        GROUP BY s.id
+    """)
+    fun getByUpAppId(upAppId: String): SubscriptionWithMetadata?
+
     @Insert
     fun add(subscription: Subscription)
 

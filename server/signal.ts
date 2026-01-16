@@ -98,17 +98,13 @@ export async function finishLink() {
 }
 
 export async function unlinkDevice() {
-  // Clear local account state
   account = null;
   currentLinkUri = null;
 
-  // Delete signal-cli account data to force fresh linking
   const dataPath = `${process.env.HOME}/.local/share/signal-cli/data`;
   try {
     await Bun.spawn(['rm', '-rf', dataPath], { stdout: 'pipe' });
-  } catch {
-    // Ignore errors if directory doesn't exist
-  }
+  } catch {}
 }
 
 export async function createGroup(name: string, members: string[] = []) {
@@ -155,7 +151,7 @@ export async function startDaemon() {
     stderr: 'pipe',
   });
 
-  const verbose = Bun.env.SIGNAL_CLI_VERBOSE === 'true';
+  const verbose = Bun.env.VERBOSE === 'true';
 
   (async () => {
     for await (const chunk of proc.stderr) {
@@ -164,7 +160,6 @@ export async function startDaemon() {
 
       if (!trimmed) continue;
 
-      // Ignore known harmless signal-cli bugs
       if (trimmed.includes('ConcurrentModificationException')) continue;
 
       if (verbose) {

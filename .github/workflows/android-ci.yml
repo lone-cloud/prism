@@ -1,0 +1,41 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Verify lockfile is up-to-date
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew dependencies --write-locks
+          if ! git diff --exit-code app/gradle.lockfile; then
+            echo "❌ Lockfile is out of date. Run: cd android && ./gradlew dependencies --write-locks"
+            exit 1
+          fi
+          echo "✅ Lockfile is up-to-date"
+
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease

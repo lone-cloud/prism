@@ -1,0 +1,19 @@
+{
+  "name": "sup-server",
+  "version": "0.1.0",
+  "description": "Privacy-preserving push notifications using Signal as transport",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "chalk": "^5.6.2"
+  },
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "build": "bun build --compile src/server.ts --outfile sup-server",
+    "check": "tsc --noEmit",
+    "postinstall": "bun run ../scripts/install-signal-cli.ts"
+  }
+}

@@ -147,26 +147,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         notificationDao.removeAll(subscriptionId)
     }
 
-    fun getDeleteWorkerVersion(): Int {
-        return sharedPrefs.getInt(SHARED_PREFS_DELETE_WORKER_VERSION, 0)
-    }
-
-    fun setDeleteWorkerVersion(version: Int) {
-        sharedPrefs.edit {
-            putInt(SHARED_PREFS_DELETE_WORKER_VERSION, version)
-        }
-    }
-
-    fun getAutoRestartWorkerVersion(): Int {
-        return sharedPrefs.getInt(SHARED_PREFS_AUTO_RESTART_WORKER_VERSION, 0)
-    }
-
-    fun setAutoRestartWorkerVersion(version: Int) {
-        sharedPrefs.edit {
-            putInt(SHARED_PREFS_AUTO_RESTART_WORKER_VERSION, version)
-        }
-    }
-
     fun setMinPriority(minPriority: Int) {
         if (minPriority <= MIN_PRIORITY_ANY) {
             sharedPrefs.edit {
@@ -432,8 +412,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     companion object {
         const val SHARED_PREFS_ID = "MainPreferences"
-        const val SHARED_PREFS_DELETE_WORKER_VERSION = "DeleteWorkerVersion"
-        const val SHARED_PREFS_AUTO_RESTART_WORKER_VERSION = "AutoRestartWorkerVersion"
         const val SHARED_PREFS_MUTED_UNTIL_TIMESTAMP = "MutedUntil"
         const val SHARED_PREFS_MIN_PRIORITY = "MinPriority"
         const val SHARED_PREFS_AUTO_DOWNLOAD_MAX_SIZE = "AutoDownload"

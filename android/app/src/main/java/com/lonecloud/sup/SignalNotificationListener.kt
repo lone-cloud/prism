@@ -51,156 +51,38 @@ class SignalNotificationListener : NotificationListenerService() {
 
         Log.d(TAG, "Signal notification: title=$title, text=$text")
 
-        when {
-            title.startsWith("SUP - ") && !title.contains("(UP)") -> {
-                // Direct notification channel
-                val topic = title.removePrefix("SUP - ")
-                parseAndDisplayNotification(topic, text)
-            }
-            title.startsWith("SUP - ") && title.contains("(UP)") -> {
-                // UnifiedPush notification
-                val appName = title.removePrefix("SUP - ").substringBefore(" (UP)")
-                parseAndDeliverUnifiedPush(appName, text)
-            }
+        if (text.startsWith("[UP:")) {
+            parseAndDeliverUnifiedPush(text)
         }
     }
 
-    private fun parseAndDisplayNotification(topic: String, message: String) {
-        serviceScope.launch {
-            try {
-                val subscription = db.subscriptionDao().get(
-                    prefs.getString("server_url", "") ?: "",
-                    topic
-                ) ?: return@launch
-
-                if (subscription.mutedUntil > System.currentTimeMillis() / 1000) {
-                    Log.d(TAG, "Subscription $topic is muted")
-                    return@launch
-                }
-
-                val lines = message.lines()
-                val (title, body, priority, clickUrl) = parseNotificationMessage(lines)
-
-                val notif = Notification(
-                    id = "${System.currentTimeMillis()}-${Random.nextInt()}",
-                    subscriptionId = subscription.id,
-                    timestamp = System.currentTimeMillis() / 1000,
-                    title = title ?: topic,
-                    message = body,
-                    notificationId = Random.nextInt(Int.MAX_VALUE),
-                    priority = priority,
-                    tags = "",
-                    deleted = false
-                )
-
-                db.notificationDao().add(notif)
-                displayNotification(subscription.displayName ?: topic, notif)
-
-                Log.d(TAG, "Displayed notification for topic: $topic")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to display notification", e)
-            }
-        }
-    }
-
-    private fun parseAndDeliverUnifiedPush(appName: String, message: String) {
+    private fun parseAndDeliverUnifiedPush(message: String) {
         try {
-            val endpoint = prefs.getString("endpoint_$appName", null)
-            val token = prefs.getString("token_$appName", null)
-
-            if (endpoint == null || token == null) {
-                Log.w(TAG, "No mapping found for app: $appName")
+            val endpointMatch = Regex("""\[UP:([^\]]+)\]""").find(message)
+            val endpointId = endpointMatch?.groupValues?.get(1) ?: run {
+                Log.w(TAG, "No endpoint ID found in message")
                 return
             }
 
-            val lines = message.lines()
-            val body = lines.drop(1).joinToString("\n").trim()
+            val subscription = runBlocking {
+                db.subscriptionDao().getByUpAppId(endpointId)
+            } ?: run {
+                Log.w(TAG, "No subscription found for upAppId: $endpointId")
+                return
+            }
+
+            val payload = message.substringAfter("]").trim()
 
             val intent = Intent("org.unifiedpush.android.connector.MESSAGE").apply {
-                putExtra("token", token)
-                putExtra("message", body)
-                `package` = getAppPackageFromToken(token)
+                putExtra("token", subscription.upConnectorToken)  // UnifiedPush connector token
+                putExtra("message", payload)
+                `package` = subscription.upAppId  // Target app package
             }
             sendBroadcast(intent)
 
-            Log.d(TAG, "Delivered UnifiedPush notification to $appName")
+            Log.d(TAG, "Delivered UnifiedPush notification to app: ${subscription.upAppId}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse/deliver UnifiedPush notification", e)
-        }
-    }
-
-    private fun parseNotificationMessage(lines: List<String>): NotificationData {
-        var title: String? = null
-        var body = ""
-        var priority = 3 // default
-        var clickUrl: String? = null
-
-        for (line in lines) {
-            when {
-                line.startsWith("🚨") || line.startsWith("⚠️") || line.startsWith("🔔") || 
-                line.startsWith("🔉") || line.startsWith("🔕") -> {
-                    // Parse priority from emoji
-                    priority = when {
-                        line.startsWith("🚨") -> 5 // urgent
-                        line.startsWith("⚠️") -> 4 // high
-                        line.startsWith("🔔") -> 3 // default
-                        line.startsWith("🔉") -> 2 // low
-                        line.startsWith("🔕") -> 1 // min
-                        else -> 3
-                    }
-                    // Extract title (remove emoji and **markdown**)
-                    title = line.substring(2).trim()
-                        .removePrefix("**").removeSuffix("**").trim()
-                }
-                line.startsWith("🔗") -> {
-                    clickUrl = line.removePrefix("🔗").trim()
-                }
-                line.startsWith("_Tags:") -> {
-                    // Ignore tags line for now
-                }
-                line.isNotBlank() && title != null -> {
-                    // Body content
-                    if (body.isNotEmpty()) body += "\n"
-                    body += line
-                }
-            }
-        }
-
-        return NotificationData(title, body.ifBlank { lines.joinToString("\n") }, priority, clickUrl)
-    }
-
-    private fun displayNotification(topicName: String, notification: Notification) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val intent = Intent(this, MainActivity::class.java)
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            notification.notificationId,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(notification.title)
-            .setContentText(notification.message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(notification.message))
-            .setPriority(mapPriorityToAndroid(notification.priority))
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        notificationManager.notify(notification.notificationId, builder.build())
-    }
-
-    private fun mapPriorityToAndroid(priority: Int): Int {
-        return when (priority) {
-            1 -> NotificationCompat.PRIORITY_MIN
-            2 -> NotificationCompat.PRIORITY_LOW
-            3 -> NotificationCompat.PRIORITY_DEFAULT
-            4 -> NotificationCompat.PRIORITY_HIGH
-            5 -> NotificationCompat.PRIORITY_MAX
-            else -> NotificationCompat.PRIORITY_DEFAULT
         }
     }
 
@@ -216,15 +98,4 @@ class SignalNotificationListener : NotificationListenerService() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
-
-    private fun getAppPackageFromToken(token: String): String {
-        return token.split(":").firstOrNull() ?: ""
-    }
-
-    private data class NotificationData(
-        val title: String?,
-        val body: String,
-        val priority: Int,
-        val clickUrl: String?
-    )
 }

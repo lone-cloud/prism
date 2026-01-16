@@ -5,6 +5,8 @@ export interface UnifiedPushMessage {
   data?: Record<string, unknown>;
 }
 
+const formatUpPrefix = (endpoint: string) => `[UP:${endpoint}]`;
+
 export const parseUnifiedPushRequest = async (req: Request) => {
   const url = new URL(req.url);
   const endpointId = url.pathname.split('/').pop() ?? '';
@@ -36,6 +38,8 @@ export const parseUnifiedPushRequest = async (req: Request) => {
 export const formatAsSignalMessage = (msg: UnifiedPushMessage) => {
   const parts: string[] = [];
 
+  parts.push(formatUpPrefix(msg.endpoint));
+
   if (msg.title) {
     parts.push(`**${msg.title}**`);
   }
@@ -48,5 +52,5 @@ export const formatAsSignalMessage = (msg: UnifiedPushMessage) => {
     parts.push(JSON.stringify(msg.data, null, 2));
   }
 
-  return parts.join('\n\n') || 'Empty notification';
+  return parts.join('\n\n') || `${formatUpPrefix(msg.endpoint)}\nEmpty notification`;
 };
