@@ -1,5 +1,5 @@
-import Imap from 'imap';
 import chalk from 'chalk';
+import Imap from 'imap';
 
 const PROTON_BRIDGE_HOST = process.env.PROTON_BRIDGE_HOST || 'protonmail-bridge';
 const PROTON_BRIDGE_PORT = Number.parseInt(process.env.PROTON_BRIDGE_PORT || '143', 10);
@@ -14,15 +14,21 @@ const VERBOSE = process.env.VERBOSE === 'true';
 const log = (...args: unknown[]) => VERBOSE && console.log(...args);
 
 if (!BRIDGE_IMAP_USERNAME || !BRIDGE_IMAP_PASSWORD) {
-  console.error(chalk.red('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD'));
   console.error(
-    chalk.yellow('Run: docker run --rm -it -v proton-bridge-data:/root shenxn/protonmail-bridge init'),
+    chalk.red('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD'),
+  );
+  console.error(
+    chalk.yellow(
+      'Run: docker run --rm -it -v proton-bridge-data:/root shenxn/protonmail-bridge init',
+    ),
   );
   console.error(chalk.yellow('Then use `login` and `info` commands to get IMAP credentials'));
   process.exit(1);
 }
 
-console.log(chalk.blue(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`));
+console.log(
+  chalk.blue(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`),
+);
 console.log(chalk.blue(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`));
 console.log(chalk.blue(`🔔 Sending notifications to: ${SUP_SERVER_URL}/notify/${SUP_TOPIC}`));
 
