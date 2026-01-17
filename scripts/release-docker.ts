@@ -16,7 +16,6 @@ const config =
     : { name: 'sup-proton-bridge', path: './proton-bridge' };
 
 try {
-  // Read version from package.json
   const packageJson = await Bun.file(`${config.path}/package.json`).json();
   const version = `v${packageJson.version}`;
 

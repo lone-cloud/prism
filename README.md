@@ -112,10 +112,22 @@ Your phone will now receive Signal notifications when ProtonMail receives new em
 
 ### Development
 
-For local development, use the dev compose file to build from source:
+For local development, install Bun and signal-cli:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+# Install Bun (use your package manager and this is a backup)
+curl -fsSL https://bun.sh/install | bash
+
+git clone https://github.com/lone-cloud/sup.git
+cd sup
+
+bun install
+```
+
+Then build and run with docker-compose.dev.yml:
+
+```bash
+docker compose -f docker-compose.dev.yml --profile protonmail up -d
 ```
 
 Or run services directly with Bun:
