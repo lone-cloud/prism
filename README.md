@@ -12,7 +12,7 @@ SUP consists of three services that **MUST run together on the same machine**:
 
 - **sup-server** (Bun/TypeScript): Receives webhooks, sends Signal messages via signal-cli
 - **protonmail-bridge** (Official Proton): Decrypts ProtonMail emails, runs local IMAP server
-- **proton-bridge** (Custom): Monitors IMAP, forwards to sup-server
+- **sup-proton-bridge** (Custom): Monitors IMAP, forwards to sup-server
 
 All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
 
@@ -124,7 +124,7 @@ docker compose --profile protonmail logs -f
 
 # View specific service
 docker compose logs -f sup-server
-docker compose --profile protonmail logs -f proton-bridge
+docker compose --profile protonmail logs -f email-monitor
 docker compose --profile protonmail logs -f protonmail-bridge
 ```
 
