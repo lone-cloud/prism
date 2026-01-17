@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   sup-server:
     build: ./server
@@ -14,14 +12,15 @@ services:
     restart: unless-stopped
 
   protonmail-bridge:
-    image: shenxn/protonmail-bridge:latest
+    image: shenxn/protonmail-bridge:build
     container_name: protonmail-bridge
     profiles: ['protonmail']
     volumes:
       - proton-bridge-data:/root
+      - /tmp/bridge-updates:/root/.local/share/protonmail/bridge-v3/updates:ro # Disable auto-updates
     restart: unless-stopped
 
-  proton-bridge:
+  sup-proton-bridge:
     build: ./proton-bridge
     container_name: sup-proton-bridge
     profiles: ['protonmail']
