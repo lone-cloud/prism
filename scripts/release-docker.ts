@@ -10,19 +10,20 @@ if (!service || !['server', 'bridge'].includes(service)) {
 }
 
 const registry = 'ghcr.io/lone-cloud';
-const config = service === 'server'
-  ? { name: 'sup-server', path: './server' }
-  : { name: 'sup-proton-bridge', path: './proton-bridge' };
+const config =
+  service === 'server'
+    ? { name: 'sup-server', path: './server' }
+    : { name: 'sup-proton-bridge', path: './proton-bridge' };
 
 try {
   // Read version from package.json
   const packageJson = await Bun.file(`${config.path}/package.json`).json();
   const version = `v${packageJson.version}`;
-  
+
   console.log(`🚀 Releasing ${config.name} ${version}...`);
-  
+
   const fullName = `${registry}/${config.name}`;
-  
+
   console.log(`\n📦 Building ${config.name}...`);
   await $`docker build -t ${fullName}:${version} -t ${fullName}:latest ${config.path}`;
   console.log(`✓ Built ${config.name}`);
