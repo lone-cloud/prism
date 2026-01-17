@@ -23,7 +23,8 @@
     "android:build": "bun run scripts/test-android-build.ts",
     "android:release": "bun run scripts/release-android.ts",
     "android:deps": "bun run scripts/check-android-deps.ts",
-    "android:lockfile": "bun run scripts/update-android-lockfile.ts"
+    "android:lockfile": "bun run scripts/update-android-lockfile.ts",
+    "docker:release": "bun run scripts/release-docker.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",

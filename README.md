@@ -49,31 +49,27 @@ After adding yourself to the docker group, **logout and login** for it to take e
 **Without ProtonMail** (just UnifiedPush):
 
 ```bash
-# Clone the repo
-git clone https://github.com/lone-cloud/sup.git
-cd sup
+# Download docker-compose.yml
+curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/docker-compose.yml
 
 # Create .env file
 cat > .env << 'EOF'
-# Required: API key for securing your server
+# Optional: API key for remote access
+# Set this to protect your server when accessing it from outside your home network
+# (e.g., registering UnifiedPush apps while away from home)
+# Default: unset (no authentication required)
 API_KEY=your-random-secret-key-here
 
 # Optional: Enable verbose logging
+# Default: false
 VERBOSE=false
 EOF
 
-# Build and start SUP server only
+# Start SUP server
 docker compose up -d
 
 # Link your Signal account (one-time setup)
 # Visit http://localhost:8080/link and scan QR code with Signal app
-```
-
-**With ProtonMail** (UnifiedPush + email notifications):
-
-```bash
-# Same setup as above, then start with protonmail profile
-docker compose --profile protonmail up -d
 ```
 
 ### ProtonMail Integration (Optional)
@@ -91,6 +87,7 @@ To receive ProtonMail notifications via Signal:
    - Enter your ProtonMail email
    - Enter your ProtonMail password
    - Enter your 2FA code
+   - Wait (potentially a long time) for ProtonMail Bridge to sync emails
 
 3. **Get IMAP credentials**:
    - Run: `info`
@@ -113,56 +110,20 @@ To receive ProtonMail notifications via Signal:
 
 Your phone will now receive Signal notifications when ProtonMail receives new emails.
 
-### Checking Logs
-
-```bash
-# Without ProtonMail
-docker compose logs -f
-
-# With ProtonMail
-docker compose --profile protonmail logs -f
-
-# View specific service
-docker compose logs -f sup-server
-docker compose --profile protonmail logs -f email-monitor
-docker compose --profile protonmail logs -f protonmail-bridge
-```
-
-### Stopping Services
-
-```bash
-# Without ProtonMail
-docker compose down
-
-# With ProtonMail
-docker compose --profile protonmail down
-
-# Stop and remove volumes (warning: deletes Signal/ProtonMail data)
-docker compose --profile protonmail down -v
-```
-
 ### Development
+
+For local development, use the dev compose file to build from source:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Or run services directly with Bun:
 
 ```bash
 bun install
-bun dev
+bun --filter sup-server dev
 ```
-
-Visit `http://localhost:8080/link` to link your Signal account.
-
-## API Endpoints
-
-### UnifiedPush Protocol
-
-- `POST /up/{app_id}` - Register new endpoint
-- `DELETE /up/{app_id}` - Unregister endpoint
-- `GET /up` - Discovery endpoint
-- `POST /_matrix/push/v1/notify/{endpoint_id}` - Push notification
-
-### Management
-
-- `GET /health` - Health check
-- `GET /endpoints` - List registered endpoints
 
 ## How It Works
 
@@ -180,10 +141,8 @@ Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup
 
 **Install via Obtainium:** [obtainium://add/https://github.com/lone-cloud/sup](obtainium://add/https://github.com/lone-cloud/sup)
 
-**Certificate Fingerprint for Obtainium verification:**
+**Certificate Fingerprint:**
 
 ```text
 0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
 ```
-
-Verify this fingerprint when installing via Obtainium to ensure authenticity.

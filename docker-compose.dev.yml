@@ -1,6 +1,6 @@
 services:
   sup-server:
-    image: ghcr.io/lone-cloud/sup-server:latest
+    build: ./server
     ports:
       - '8080:8080'
     environment:
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
   sup-proton-bridge:
-    image: ghcr.io/lone-cloud/sup-proton-bridge:latest
+    build: ./proton-bridge
     container_name: sup-proton-bridge
     profiles: ['protonmail']
     depends_on:
