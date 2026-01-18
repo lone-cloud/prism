@@ -1,4 +1,4 @@
-FROM oven/bun:1.1.42-alpine AS builder
+FROM oven/bun:1.3.6-alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY server .
 
 RUN bun build --compile index.ts --outfile sup-server
 
-FROM alpine:3.21
+FROM alpine:3.23
 
 ARG SIGNAL_CLI_VERSION=0.13.22
 

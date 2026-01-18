@@ -1,11 +1,12 @@
 import { rm } from 'node:fs/promises';
 import chalk from 'chalk';
 import { DAEMON_START_MAX_ATTEMPTS, DEVICE_NAME, VERBOSE } from '../constants/config';
-import { SIGNAL_CLI_BIN, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
+import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
+import { log } from '../utils/log';
 
-// Local development uses relative path, Docker uses PATH
-const SIGNAL_CLI_PATH = (await Bun.file(SIGNAL_CLI_BIN).exists()) ? SIGNAL_CLI_BIN : 'signal-cli';
+log(`Running signal-cli from ${SIGNAL_CLI}`);
+
 const MESSAGE_DELIMITER = '\n';
 let account: string | null = null;
 let currentLinkUri: string | null = null;
@@ -152,7 +153,7 @@ export async function startDaemon() {
   let authError = false;
   let cleaned = false;
 
-  const proc = Bun.spawn([SIGNAL_CLI_PATH, 'daemon', '--socket', SIGNAL_CLI_SOCKET], {
+  const proc = Bun.spawn([SIGNAL_CLI, 'daemon', '--socket', SIGNAL_CLI_SOCKET], {
     stdout: 'pipe',
     stderr: 'pipe',
   });

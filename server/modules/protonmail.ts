@@ -8,12 +8,10 @@ import {
   PROTON_BRIDGE_HOST,
   PROTON_BRIDGE_PORT,
   SUP_TOPIC,
-  VERBOSE,
 } from '../constants/config';
+import { log } from '../utils/log';
 import { createGroup, sendGroupMessage } from './signal';
 import { getGroupId, register } from './store';
-
-const log = (...args: unknown[]) => VERBOSE && console.log(...args);
 
 export async function startProtonMonitor() {
   if (!BRIDGE_IMAP_USERNAME || !BRIDGE_IMAP_PASSWORD) {
@@ -25,10 +23,8 @@ export async function startProtonMonitor() {
     return;
   }
 
-  console.log(
-    chalk.blue(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`),
-  );
-  console.log(chalk.blue(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`));
+  log(chalk.blue(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`));
+  log(chalk.blue(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`));
 
   const imap = new Imap({
     user: BRIDGE_IMAP_USERNAME,

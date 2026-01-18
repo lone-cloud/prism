@@ -1,5 +1,5 @@
 services:
-  sup-server:
+  server:
     image: ghcr.io/lone-cloud/sup-server:latest
     ports:
       - '8080:8080'
@@ -19,7 +19,6 @@ services:
 
   protonmail-bridge:
     image: shenxn/protonmail-bridge:build
-    container_name: protonmail-bridge
     profiles: ['protonmail']
     volumes:
       - proton-bridge-data:/root
