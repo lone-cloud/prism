@@ -28,6 +28,7 @@ export const handleLink = async () => {
 
 export const handleLinkQR = async () => {
   const qrDataUrl = await generateLinkQR();
+
   return new Response(qrDataUrl, {
     headers: { 'content-type': 'text/plain' },
   });

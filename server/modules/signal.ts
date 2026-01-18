@@ -4,13 +4,12 @@ import { DAEMON_START_MAX_ATTEMPTS, DEVICE_NAME, VERBOSE } from '../constants/co
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
 import { log } from '../utils/log';
+import { call } from '../utils/rpc';
 
 log(`Running signal-cli from ${SIGNAL_CLI}`);
 
-const MESSAGE_DELIMITER = '\n';
 let account: string | null = null;
 let currentLinkUri: string | null = null;
-let rpcId = 1;
 
 export async function initSignal({ accountOverride }: { accountOverride?: string }) {
   if (accountOverride) {
@@ -18,7 +17,7 @@ export async function initSignal({ accountOverride }: { accountOverride?: string
     return true;
   }
 
-  const result = (await rpcCall('listAccounts', {})) as ListAccountsResult;
+  const result = (await call('listAccounts', {}, account)) as ListAccountsResult;
   const [firstAccount] = result;
   if (firstAccount) {
     account = firstAccount;
@@ -28,57 +27,14 @@ export async function initSignal({ accountOverride }: { accountOverride?: string
   return false;
 }
 
-async function rpcCall(method: string, params: Record<string, unknown>) {
-  return new Promise((resolve, reject) => {
-    let response = '';
-
-    Bun.connect({
-      unix: SIGNAL_CLI_SOCKET,
-      socket: {
-        data(socket, data) {
-          response += new TextDecoder().decode(data);
-
-          const isComplete = response.includes(MESSAGE_DELIMITER);
-          if (isComplete) {
-            socket.end();
-
-            const parsed = JSON.parse(response.trim());
-
-            if (parsed.error) {
-              reject(new Error(`signal-cli RPC error: ${parsed.error.message}`));
-            } else {
-              resolve(parsed.result);
-            }
-          }
-        },
-        error(_socket, error) {
-          reject(error);
-        },
-        close() {
-          const isComplete = response.includes(MESSAGE_DELIMITER);
-          if (!isComplete) {
-            reject(new Error('Connection closed before response received'));
-          }
-        },
-        open(socket) {
-          const request = JSON.stringify({
-            jsonrpc: '2.0',
-            id: rpcId++,
-            method,
-            params: account ? { account, ...params } : params,
-          });
-
-          socket.write(`${request}${MESSAGE_DELIMITER}`);
-        },
-      },
-    });
-  });
-}
-
 export async function generateLinkQR() {
-  const result = (await rpcCall('startLink', {
-    deviceName: DEVICE_NAME,
-  })) as StartLinkResult;
+  const result = (await call(
+    'startLink',
+    {
+      deviceName: DEVICE_NAME,
+    },
+    account,
+  )) as StartLinkResult;
   const uri = result.deviceLinkUri;
 
   if (!uri) {
@@ -94,10 +50,14 @@ export async function finishLink() {
     throw new Error('No link in progress');
   }
 
-  const result = await rpcCall('finishLink', {
-    deviceLinkUri: currentLinkUri,
-    deviceName: DEVICE_NAME,
-  });
+  const result = await call(
+    'finishLink',
+    {
+      deviceLinkUri: currentLinkUri,
+      deviceName: DEVICE_NAME,
+    },
+    account,
+  );
   currentLinkUri = null;
   return result;
 }
@@ -112,10 +72,14 @@ export async function unlinkDevice() {
 }
 
 export async function createGroup(name: string, members: string[] = []) {
-  const result = (await rpcCall('updateGroup', {
-    name,
-    member: members,
-  })) as UpdateGroupResult;
+  const result = (await call(
+    'updateGroup',
+    {
+      name,
+      member: members,
+    },
+    account,
+  )) as UpdateGroupResult;
 
   if (!result?.groupId) {
     throw new Error('Failed to create group');
@@ -125,15 +89,19 @@ export async function createGroup(name: string, members: string[] = []) {
 }
 
 export async function sendGroupMessage(groupId: string, message: string) {
-  await rpcCall('send', {
-    groupId,
-    message,
-  });
+  await call(
+    'send',
+    {
+      groupId,
+      message,
+    },
+    account,
+  );
 }
 
 export async function checkSignalCli() {
   try {
-    await rpcCall('listAccounts', {});
+    await call('listAccounts', {}, account);
     return true;
   } catch {
     return false;
@@ -142,7 +110,7 @@ export async function checkSignalCli() {
 
 export async function hasValidAccount() {
   try {
-    const result = (await rpcCall('listAccounts', {})) as ListAccountsResult;
+    const result = (await call('listAccounts', {}, account)) as ListAccountsResult;
     return result.length > 0;
   } catch {
     return false;

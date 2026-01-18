@@ -16,16 +16,20 @@ import { withAuth, withFormAuth } from './utils/auth';
 
 let daemon: ReturnType<typeof Bun.spawn> | null = null;
 
-daemon = await startDaemon();
+try {
+  daemon = await startDaemon();
+  const isLinked = await checkSignalCli();
+  const hasAccount = isLinked && (await initSignal({}));
 
-const isLinked = await checkSignalCli();
-const hasAccount = isLinked && (await initSignal({}));
-
-if (hasAccount) {
-  console.log(chalk.green('✓ Signal account linked'));
-} else {
-  console.log(chalk.yellow('⚠ No Signal account linked'));
-  console.log(chalk.dim(`  Visit http://localhost:${PORT}/link to link your device`));
+  if (hasAccount) {
+    console.log(chalk.green('✓ Signal account linked'));
+  } else {
+    console.log(chalk.yellow('⚠ No Signal account linked'));
+    console.log(chalk.dim(`  Visit http://localhost:${PORT}/link to link your device`));
+  }
+} catch (error) {
+  console.error(chalk.red('✗ Failed to start signal-cli daemon'));
+  console.error(chalk.dim(`  ${error instanceof Error ? error.message : String(error)}`));
 }
 
 if (!API_KEY) {
