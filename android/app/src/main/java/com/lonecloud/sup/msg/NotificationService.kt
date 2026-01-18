@@ -102,7 +102,7 @@ class NotificationService(val context: Context) {
         val intent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             context,
-            Random.nextInt(),
+            kotlin.random.Random.nextInt(),
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )

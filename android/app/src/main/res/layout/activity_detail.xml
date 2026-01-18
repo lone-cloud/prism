@@ -21,7 +21,7 @@
         android:background="@color/detail_activity_background"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    <androidx.recyclerview.widget.RecyclerView
             style="@style/CardViewBackground"
             android:id="@+id/detail_notification_list_container"
             android:layout_width="match_parent"
@@ -30,19 +30,14 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toTopOf="@id/detail_message_bar"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-        <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/detail_notification_list"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clickable="true"
-                android:focusable="true"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:clipToPadding="false"
-                android:background="?android:attr/selectableItemBackground"
-                app:layoutManager="LinearLayoutManager"/>
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            app:layout_constraintEnd_toEndOf="parent"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:clipToPadding="false"
+            android:background="?android:attr/selectableItemBackground"
+            app:layoutManager="LinearLayoutManager"/>
 
     <LinearLayout
             android:orientation="vertical"
