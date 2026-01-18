@@ -28,11 +28,20 @@ class SignalNotificationListener : NotificationListenerService() {
     companion object {
         private const val CHANNEL_ID = "sup_notifications"
         private const val CHANNEL_NAME = "SUP Notifications"
+        private const val CHANNEL_ID_PROTON = "sup_email"
+        private const val CHANNEL_NAME_PROTON = "Email Notifications"
+        private const val SUP_ENDPOINT_PREFIX = "[SUP:"
+        private const val LAUNCH_PREFIX = "[LAUNCH:"
+        
+        private val SIGNAL_PACKAGES = setOf(
+            "org.thoughtcrime.securesms",  // Signal
+            "im.molly.app"                 // Molly
+        )
     }
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
     override fun onDestroy() {
@@ -41,7 +50,7 @@ class SignalNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        if (sbn?.packageName != "org.thoughtcrime.securesms") return
+        if (sbn?.packageName !in SIGNAL_PACKAGES) return
         
         val notification = sbn.notification
         val extras = notification.extras
@@ -51,14 +60,21 @@ class SignalNotificationListener : NotificationListenerService() {
 
         Log.d(TAG, "Signal notification: title=$title, text=$text")
 
-        if (text.startsWith("[UP:")) {
-            parseAndDeliverUnifiedPush(text)
+        when {
+            text.startsWith(SUP_ENDPOINT_PREFIX) -> {
+                parseAndDeliverUnifiedPush(text)
+                cancelNotification(sbn.key)
+            }
+            text.startsWith(LAUNCH_PREFIX) -> {
+                parseAndShowLaunchNotification(text)
+                cancelNotification(sbn.key)
+            }
         }
     }
 
     private fun parseAndDeliverUnifiedPush(message: String) {
         try {
-            val endpointMatch = Regex("""\[UP:([^\]]+)\]""").find(message)
+            val endpointMatch = Regex("""\[SUP:([^\]]+)\]""").find(message)
             val endpointId = endpointMatch?.groupValues?.get(1) ?: run {
                 Log.w(TAG, "No endpoint ID found in message")
                 return
@@ -74,9 +90,9 @@ class SignalNotificationListener : NotificationListenerService() {
             val payload = message.substringAfter("]").trim()
 
             val intent = Intent("org.unifiedpush.android.connector.MESSAGE").apply {
-                putExtra("token", subscription.upConnectorToken)  // UnifiedPush connector token
+                putExtra("token", subscription.upConnectorToken)
                 putExtra("message", payload)
-                `package` = subscription.upAppId  // Target app package
+                `package` = subscription.upAppId
             }
             sendBroadcast(intent)
 
@@ -86,7 +102,70 @@ class SignalNotificationListener : NotificationListenerService() {
         }
     }
 
-    private fun createNotificationChannel() {
+    private fun parseAndShowLaunchNotification(message: String) {
+        try {
+            val packageMatch = Regex("""\[LAUNCH:([^\]]+)\]""").find(message)
+            val packageName = packageMatch?.groupValues?.get(1) ?: run {
+                Log.w(TAG, "No package name found in LAUNCH message")
+                return
+            }
+
+            val content = message.substringAfter("]").trim()
+            
+            // Parse title and body (format: **Title**\nBody)
+            val titleMatch = Regex("""\*\*([^*]+)\*\*""").find(content)
+            val title = titleMatch?.groupValues?.get(1) ?: "Email"
+            val body = content.substringAfter("**", "").substringAfter("**", "").trim()
+
+            // Check if target app is installed
+            val isInstalled = try {
+                packageManager.getPackageInfo(packageName, 0)
+                true
+            } catch (e: Exception) {
+                false
+            }
+
+            val clickIntent = if (isInstalled) {
+                packageManager.getLaunchIntentForPackage(packageName)?.let { intent ->
+                    PendingIntent.getActivity(
+                        this,
+                        Random.nextInt(),
+                        intent.apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        },
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                }
+            } else {
+                null
+            }
+
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID_PROTON)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .apply {
+                    if (clickIntent != null) {
+                        setContentIntent(clickIntent)
+                    }
+                }
+                .build()
+
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(Random.nextInt(), notification)
+
+            Log.d(TAG, "Showed app launch notification")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse/show app launch notification", e)
+        }
+    }
+
+    private fun createNotificationChannels() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
         val channel = NotificationChannel(
             CHANNEL_ID,
             CHANNEL_NAME,
@@ -94,8 +173,15 @@ class SignalNotificationListener : NotificationListenerService() {
         ).apply {
             description = "Notifications from SUP topics"
         }
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
+
+        val protonChannel = NotificationChannel(
+            CHANNEL_ID_PROTON,
+            CHANNEL_NAME_PROTON,
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Email notifications"
+        }
+        notificationManager.createNotificationChannel(protonChannel)
     }
 }

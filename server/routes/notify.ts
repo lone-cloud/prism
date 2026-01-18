@@ -1,5 +1,5 @@
-import { createGroup, sendGroupMessage } from '../signal';
-import { addNotification, getAllMappings, getGroupId, getNotifications, register } from '../store';
+import { createGroup, sendGroupMessage } from '../modules/signal';
+import { getAllMappings, getGroupId, register } from '../modules/store';
 
 interface NotificationMessage {
   topic: string;
@@ -18,12 +18,6 @@ const formatNotification = (notification: NotificationMessage) => {
 };
 
 export const handleNotify = async (req: Request, url: URL) => {
-  const API_KEY = Bun.env.API_KEY;
-
-  if (API_KEY && req.headers.get('authorization') !== `Bearer ${API_KEY}`) {
-    return new Response(null, { status: 401 });
-  }
-
   const topic = url.pathname.split('/')[2];
   if (!topic) {
     return new Response('Topic required', { status: 400 });
@@ -52,12 +46,6 @@ export const handleNotify = async (req: Request, url: URL) => {
   const signalMessage = formatNotification(notification);
   await sendGroupMessage(groupId, signalMessage);
 
-  addNotification({
-    topic,
-    title,
-    message: body,
-  });
-
   return Response.json({ success: true, topic, groupId });
 };
 
@@ -71,13 +59,4 @@ export const handleTopics = () => {
     }));
 
   return Response.json({ topics });
-};
-
-export const handleGetNotifications = (_req: Request, url: URL) => {
-  const topic = url.searchParams.get('topic') || undefined;
-  const endpoint = url.searchParams.get('endpoint') || undefined;
-
-  const notifications = getNotifications({ topic, endpoint });
-
-  return Response.json({ notifications });
 };

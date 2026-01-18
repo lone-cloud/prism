@@ -1,5 +1,5 @@
 {
-  "name": "sup-monorepo",
+  "name": "sup",
   "version": "0.1.0",
   "description": "Privacy-preserving push notifications using Signal as transport",
   "private": true,
@@ -13,10 +13,6 @@
     "type": "git",
     "url": "https://github.com/lone-cloud/sup"
   },
-  "workspaces": [
-    "server",
-    "proton-bridge"
-  ],
   "scripts": {
     "check": "tsc --noEmit && biome check .",
     "fix": "biome check --write .",

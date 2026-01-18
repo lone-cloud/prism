@@ -1,4 +1,4 @@
-import { checkSignalCli, hasValidAccount } from '../signal';
+import { checkSignalCli, hasValidAccount } from '../modules/signal';
 
 export const handleHealth = async () => {
   const signalOk = await checkSignalCli();

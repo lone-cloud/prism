@@ -6,18 +6,6 @@ Privacy-preserving push notifications using Signal as transport.
 
 SUP is a UnifiedPush distributor that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to your ISP or network observers. All notification traffic appears as regular Signal messages.
 
-## Architecture
-
-SUP consists of three services that **MUST run together on the same machine**:
-
-- **sup-server** (Bun/TypeScript): Receives webhooks, sends Signal messages via signal-cli
-- **protonmail-bridge** (Official Proton): Decrypts ProtonMail emails, runs local IMAP server
-- **sup-proton-bridge** (Custom): Monitors IMAP, forwards to sup-server
-
-All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
-
-**Android App** (Kotlin): Monitors Signal notifications, extracts UnifiedPush payloads, delivers to apps
-
 ## Why?
 
 Traditional push notification systems (ntfy, FCM) require persistent WebSocket connections or polling to specific servers, creating unique network fingerprints. SUP blends your notification traffic with regular Signal usage for better privacy.
@@ -25,24 +13,6 @@ Traditional push notification systems (ntfy, FCM) require persistent WebSocket c
 ## Setup
 
 **⚠️ DOCKER COMPOSE REQUIRED**: The services must be deployed together using `docker compose`. Running individual Dockerfiles separately is not supported and will compromise security.
-
-### Prerequisites
-
-#### Installing Docker on Arch Linux
-
-```bash
-# Install Docker and Compose plugin
-sudo pacman -S docker docker-buildx
-
-# Start Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add your user to docker group (logout/login required)
-sudo usermod -aG docker $USER
-```
-
-After adding yourself to the docker group, **logout and login** for it to take effect.
 
 ### Quick Start with Docker Compose
 
@@ -110,6 +80,17 @@ To receive ProtonMail notifications via Signal:
 
 Your phone will now receive Signal notifications when ProtonMail receives new emails.
 
+#### ProtonMail Android App Integration (Optional)
+
+If you have the ProtonMail Android app installed, you can enable integration so that clicking on email notifications opens the ProtonMail app directly:
+
+```bash
+# Add this to your .env file
+ENABLE_PROTON_ANDROID=true
+```
+
+When enabled, the SUP Android app will intercept email notifications and show them as custom notifications that launch the ProtonMail app on click. When disabled, email notifications appear as regular Signal messages.
+
 ### Development
 
 For local development, install Bun and signal-cli:
@@ -137,16 +118,6 @@ bun install
 bun --filter sup-server dev
 ```
 
-## How It Works
-
-1. Android app registers with server via `/up/{app_id}`
-2. Server creates a Signal group for the app
-3. Server returns UnifiedPush endpoint URL
-4. App shares endpoint with notification provider
-5. Provider sends notifications to endpoint
-6. Server forwards to Signal group
-7. Android app monitors Signal, extracts payloads, wakes apps
-
 ## Android App
 
 Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup/releases).
@@ -158,3 +129,16 @@ Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup
 ```text
 0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
 ```
+
+## Architecture
+
+![SUP Architecture](assets/SUP%20Architecture.webp)
+
+SUP consists of two services that **MUST run together on the same machine**:
+
+- **sup-server** (Bun): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors ProtonMail IMAP
+- **protonmail-bridge** (Official Proton, optional): Decrypts ProtonMail emails, runs local IMAP server
+
+All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
+
+**Android App** (Kotlin): Monitors Signal notifications, extracts UnifiedPush payloads, delivers to apps

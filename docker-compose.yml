@@ -7,8 +7,14 @@ services:
       - PORT=8080
       - API_KEY=${API_KEY:-}
       - VERBOSE=${VERBOSE:-false}
+      # ProtonMail integration (optional)
+      - BRIDGE_IMAP_USERNAME=${BRIDGE_IMAP_USERNAME:-}
+      - BRIDGE_IMAP_PASSWORD=${BRIDGE_IMAP_PASSWORD:-}
+      - PROTON_BRIDGE_HOST=protonmail-bridge
+      - SUP_TOPIC=${SUP_TOPIC:-Proton Mail}
     volumes:
       - signal-data:/root/.local/share/signal-cli
+      - sup-data:/root/.local/share/sup
     restart: unless-stopped
 
   protonmail-bridge:
@@ -17,24 +23,10 @@ services:
     profiles: ['protonmail']
     volumes:
       - proton-bridge-data:/root
-      - /tmp/bridge-updates:/root/.local/share/protonmail/bridge-v3/updates:ro # Disable auto-updates
-    restart: unless-stopped
-
-  sup-proton-bridge:
-    image: ghcr.io/lone-cloud/sup-proton-bridge:latest
-    container_name: sup-proton-bridge
-    profiles: ['protonmail']
-    depends_on:
-      - sup-server
-      - protonmail-bridge
-    environment:
-      - BRIDGE_IMAP_USERNAME=${BRIDGE_IMAP_USERNAME}
-      - BRIDGE_IMAP_PASSWORD=${BRIDGE_IMAP_PASSWORD}
-      - SUP_API_KEY=${API_KEY}
-      - SUP_TOPIC=${SUP_TOPIC:-Proton Mail}
-      - VERBOSE=${VERBOSE:-false}
+      - /tmp/bridge-updates:/root/.local/share/protonmail/bridge-v3/updates:ro
     restart: unless-stopped
 
 volumes:
   signal-data:
+  sup-data:
   proton-bridge-data:

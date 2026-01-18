@@ -1,10 +1,12 @@
+import { rm } from 'node:fs/promises';
 import chalk from 'chalk';
-import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from './types/signal';
+import { DAEMON_START_MAX_ATTEMPTS, DEVICE_NAME, VERBOSE } from '../constants/config';
+import { SIGNAL_CLI_BIN, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
+import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
 
-const SIGNAL_CLI_PATH = 'signal-cli/bin/signal-cli';
-const SOCKET_PATH = '/tmp/signal-cli.sock';
+// Local development uses relative path, Docker uses PATH
+const SIGNAL_CLI_PATH = (await Bun.file(SIGNAL_CLI_BIN).exists()) ? SIGNAL_CLI_BIN : 'signal-cli';
 const MESSAGE_DELIMITER = '\n';
-const DEVICE_NAME = 'SUP';
 let account: string | null = null;
 let currentLinkUri: string | null = null;
 let rpcId = 1;
@@ -30,7 +32,7 @@ async function rpcCall(method: string, params: Record<string, unknown>) {
     let response = '';
 
     Bun.connect({
-      unix: SOCKET_PATH,
+      unix: SIGNAL_CLI_SOCKET,
       socket: {
         data(socket, data) {
           response += new TextDecoder().decode(data);
@@ -73,7 +75,9 @@ async function rpcCall(method: string, params: Record<string, unknown>) {
 }
 
 export async function generateLinkQR() {
-  const result = (await rpcCall('startLink', { deviceName: DEVICE_NAME })) as StartLinkResult;
+  const result = (await rpcCall('startLink', {
+    deviceName: DEVICE_NAME,
+  })) as StartLinkResult;
   const uri = result.deviceLinkUri;
 
   if (!uri) {
@@ -101,9 +105,8 @@ export async function unlinkDevice() {
   account = null;
   currentLinkUri = null;
 
-  const dataPath = `${process.env.HOME}/.local/share/signal-cli/data`;
   try {
-    await Bun.spawn(['rm', '-rf', dataPath], { stdout: 'pipe' });
+    await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
   } catch {}
 }
 
@@ -146,12 +149,13 @@ export async function hasValidAccount() {
 }
 
 export async function startDaemon() {
-  const proc = Bun.spawn([SIGNAL_CLI_PATH, 'daemon', '--socket', SOCKET_PATH], {
+  let authError = false;
+  let cleaned = false;
+
+  const proc = Bun.spawn([SIGNAL_CLI_PATH, 'daemon', '--socket', SIGNAL_CLI_SOCKET], {
     stdout: 'pipe',
     stderr: 'pipe',
   });
-
-  const verbose = Bun.env.VERBOSE === 'true';
 
   (async () => {
     for await (const chunk of proc.stderr) {
@@ -160,9 +164,13 @@ export async function startDaemon() {
 
       if (!trimmed) continue;
 
+      if (trimmed.includes('Authorization failed') || trimmed.includes('AccountCheckException')) {
+        authError = true;
+      }
+
       if (trimmed.includes('ConcurrentModificationException')) continue;
 
-      if (verbose) {
+      if (VERBOSE) {
         if (trimmed.includes('ERROR')) {
           console.error(chalk.red('[signal-cli]'), trimmed);
         } else if (trimmed.includes('WARN')) {
@@ -182,10 +190,10 @@ export async function startDaemon() {
   })();
 
   let attempts = 0;
-  while (attempts < 30) {
+  while (attempts < DAEMON_START_MAX_ATTEMPTS) {
     try {
       const socket = await Bun.connect({
-        unix: SOCKET_PATH,
+        unix: SIGNAL_CLI_SOCKET,
         socket: {
           data() {},
           error() {},
@@ -195,6 +203,14 @@ export async function startDaemon() {
       console.log(chalk.green('✓ signal-cli daemon started'));
       return proc;
     } catch (_error) {
+      if (authError && attempts > 5 && !cleaned) {
+        console.log(chalk.yellow('⚠ Detected stale account data, cleaning up and retrying...'));
+        proc.kill();
+        await unlinkDevice();
+        cleaned = true;
+        return startDaemon();
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 100));
       attempts++;
     }
