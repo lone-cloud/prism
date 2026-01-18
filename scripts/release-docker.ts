@@ -1,19 +1,7 @@
 import { $ } from 'bun';
 
-const service = process.argv[2];
-
-if (!service || !['server', 'bridge'].includes(service)) {
-  console.error('Usage: bun run docker:release <service>');
-  console.error('Example: bun run docker:release server');
-  console.error('         bun run docker:release bridge');
-  process.exit(1);
-}
-
 const registry = 'ghcr.io/lone-cloud';
-const config =
-  service === 'server'
-    ? { name: 'sup-server', path: './server' }
-    : { name: 'sup-proton-bridge', path: './proton-bridge' };
+const config = { name: 'sup-server', path: './server' };
 
 try {
   const packageJson = await Bun.file(`${config.path}/package.json`).json();
