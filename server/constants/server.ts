@@ -7,11 +7,10 @@ export const ROUTES = {
   FAVICON: '/favicon.png',
   MATRIX_NOTIFY: '/_matrix/push/v1/notify',
   UP: '/up',
-  UP_PREFIX: '/up/',
+  UP_INSTANCE: '/up/:instance',
   ENDPOINTS: '/endpoints',
-  NOTIFY_PREFIX: '/notify/',
+  NOTIFY_TOPIC: '/notify/:topic',
   TOPICS: '/topics',
-  NOTIFICATIONS: '/notifications',
 } as const;
 
 export const CONTENT_TYPE = {
@@ -21,7 +20,7 @@ export const CONTENT_TYPE = {
 } as const;
 
 export const TEMPLATES = {
-  LINKED: 'server/templates/linked.html',
-  LINK: 'server/templates/link.html',
-  SETUP: 'server/templates/setup.html',
+  LINKED: 'templates/linked.html',
+  LINK: 'templates/link.html',
+  SETUP: 'templates/setup.html',
 } as const;

@@ -1,12 +1,19 @@
+import { API_KEY } from '../constants/config';
 import { CONTENT_TYPE, ROUTES, TEMPLATES } from '../constants/server';
-import { finishLink, generateLinkQR, hasValidAccount, initSignal, unlinkDevice } from '../signal';
+import {
+  finishLink,
+  generateLinkQR,
+  hasValidAccount,
+  initSignal,
+  unlinkDevice,
+} from '../modules/signal';
 
 export const handleLink = async () => {
   const linked = await hasValidAccount();
   const template = linked ? TEMPLATES.LINKED : TEMPLATES.LINK;
   let html = await Bun.file(template).text();
 
-  if (linked && Bun.env.API_KEY) {
+  if (linked && API_KEY) {
     const passwordField =
       '<input type="password" name="password" placeholder="Enter API_KEY" required style="padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px;" />';
     html = html.replace('{{PASSWORD_FIELD}}', passwordField);
@@ -41,11 +48,10 @@ export const handleLinkStatus = async () => {
 };
 
 export const handleUnlink = async (req: Request, daemon: ReturnType<typeof Bun.spawn> | null) => {
-  const API_KEY = Bun.env.API_KEY;
-
   if (API_KEY) {
-    const formData = await req.formData();
-    const password = formData.get('password');
+    const body = await req.text();
+    const params = new URLSearchParams(body);
+    const password = params.get('password');
 
     if (password !== API_KEY) {
       return new Response(null, { status: 403 });

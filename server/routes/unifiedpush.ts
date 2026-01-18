@@ -1,7 +1,7 @@
 import { ROUTES } from '../constants/server';
-import { createGroup, sendGroupMessage } from '../signal';
-import { getAllMappings, getGroupId, register, remove } from '../store';
-import { formatAsSignalMessage, parseUnifiedPushRequest } from '../unifiedpush';
+import { createGroup, sendGroupMessage } from '../modules/signal';
+import { getAllMappings, getGroupId, register, remove } from '../modules/store';
+import { formatAsSignalMessage, parseUnifiedPushRequest } from '../modules/unifiedpush';
 
 export const handleMatrixNotify = async (req: Request) => {
   const message = await parseUnifiedPushRequest(req);
@@ -18,12 +18,6 @@ export const handleMatrixNotify = async (req: Request) => {
 };
 
 export const handleRegister = async (req: Request, url: URL) => {
-  const API_KEY = Bun.env.API_KEY;
-
-  if (API_KEY && req.headers.get('authorization') !== `Bearer ${API_KEY}`) {
-    return new Response(null, { status: 401 });
-  }
-
   const endpointId = url.pathname.split('/')[2] ?? '';
   const { appName } = (await req.json()) as {
     appName: string;

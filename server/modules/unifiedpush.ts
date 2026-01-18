@@ -1,11 +1,11 @@
+import { SUP_ENDPOINT_PREFIX } from '../constants/config';
+
 export interface UnifiedPushMessage {
   endpoint: string;
   title?: string;
   body?: string;
   data?: Record<string, unknown>;
 }
-
-const formatUpPrefix = (endpoint: string) => `[UP:${endpoint}]`;
 
 export const parseUnifiedPushRequest = async (req: Request) => {
   const url = new URL(req.url);
@@ -36,9 +36,7 @@ export const parseUnifiedPushRequest = async (req: Request) => {
 };
 
 export const formatAsSignalMessage = (msg: UnifiedPushMessage) => {
-  const parts: string[] = [];
-
-  parts.push(formatUpPrefix(msg.endpoint));
+  const parts: string[] = [`${SUP_ENDPOINT_PREFIX}${msg.endpoint}]`];
 
   if (msg.title) {
     parts.push(`**${msg.title}**`);
@@ -52,5 +50,5 @@ export const formatAsSignalMessage = (msg: UnifiedPushMessage) => {
     parts.push(JSON.stringify(msg.data, null, 2));
   }
 
-  return parts.join('\n\n') || `${formatUpPrefix(msg.endpoint)}\nEmpty notification`;
+  return parts.join('\n');
 };
