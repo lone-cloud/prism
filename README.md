@@ -55,6 +55,8 @@ docker compose up -d
 
 ### 3. ProtonMail Integration (Optional)
 
+> **Note:** The default ProtonMail Bridge image uses `shenxn/protonmail-bridge:build` which compiles from source and supports multiple architectures. For x86_64 systems, you can use `shenxn/protonmail-bridge:latest` (pre-built binary, smaller and faster). For ARM devices (Raspberry Pi), stick with `:build`.
+
 To receive ProtonMail notifications via Signal:
 
 1. **Initialize ProtonMail Bridge** (one-time setup):

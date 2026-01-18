@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import Imap from 'imap';
 import {
   BRIDGE_IMAP_PASSWORD,
@@ -9,32 +8,37 @@ import {
   PROTON_BRIDGE_PORT,
   SUP_TOPIC,
 } from '../constants/config';
-import { log } from '../utils/log';
+import { logError, logInfo, logSuccess, logVerbose, logWarn } from '../utils/log';
 import { createGroup, sendGroupMessage } from './signal';
 import { getGroupId, register } from './store';
 
 export async function startProtonMonitor() {
   if (!BRIDGE_IMAP_USERNAME || !BRIDGE_IMAP_PASSWORD) {
-    console.error(
-      chalk.red('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD'),
-    );
-    console.error(chalk.yellow('Run: docker compose run --rm protonmail-bridge init'));
-    console.error(chalk.yellow('Then use `login` and `info` commands to get IMAP credentials'));
+    logError('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD');
+    logWarn('Run: docker compose run --rm protonmail-bridge init');
+    logWarn('Then use `login` and `info` commands to get IMAP credentials');
     return;
   }
 
-  log(chalk.blue(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`));
-  log(chalk.blue(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`));
+  logInfo(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
+  logInfo(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`);
 
-  const imap = new Imap({
-    user: BRIDGE_IMAP_USERNAME,
-    password: BRIDGE_IMAP_PASSWORD,
-    host: PROTON_BRIDGE_HOST,
-    port: PROTON_BRIDGE_PORT,
-    tls: true,
-    tlsOptions: { rejectUnauthorized: false },
-    keepalive: true,
-  });
+  let imap: Imap;
+  try {
+    imap = new Imap({
+      user: BRIDGE_IMAP_USERNAME,
+      password: BRIDGE_IMAP_PASSWORD,
+      host: PROTON_BRIDGE_HOST,
+      port: PROTON_BRIDGE_PORT,
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false },
+      keepalive: true,
+    });
+  } catch (err) {
+    logError('❌ Failed to initialize IMAP client:', err);
+    logWarn('⚠️  ProtonMail integration disabled (bridge not reachable)');
+    return;
+  }
 
   async function sendNotification(title: string, message: string) {
     try {
@@ -50,23 +54,23 @@ export async function startProtonMonitor() {
         : '';
       await sendGroupMessage(groupId, `${prefix}**${title}**\n${message}`);
 
-      console.log(chalk.green(`✅ Notification sent: ${title}`));
+      logSuccess(`✅ Notification sent: ${title}`);
     } catch (error) {
-      console.error(chalk.red('❌ Failed to send notification:'), error);
+      logError('❌ Failed to send notification:', error);
     }
   }
 
   function openInbox() {
     imap.openBox('INBOX', false, (err, box) => {
       if (err) {
-        console.error(chalk.red('Failed to open inbox:'), err);
+        logError('Failed to open inbox:', err);
         return;
       }
 
-      log(`✅ Connected to inbox (${box.messages.total} messages)`);
+      logVerbose(`✅ Connected to inbox (${box.messages.total} messages)`);
 
       imap.on('mail', async (numNewMsgs: number) => {
-        log(`📬 ${numNewMsgs} new message(s) received`);
+        logVerbose(`📬 ${numNewMsgs} new message(s) received`);
 
         const fetch = imap.seq.fetch(`${box.messages.total}:*`, {
           bodies: 'HEADER.FIELDS (FROM SUBJECT)',
@@ -91,26 +95,38 @@ export async function startProtonMonitor() {
       });
 
       imap.on('update', () => {
-        log('📊 Mailbox updated');
+        logVerbose('📊 Mailbox updated');
       });
     });
   }
 
   imap.once('ready', () => {
-    log('✅ IMAP connection ready');
+    logVerbose('✅ IMAP connection ready');
     openInbox();
   });
 
   imap.once('error', (err: Error) => {
-    console.error(chalk.red('❌ IMAP error:'), err);
+    logError('❌ IMAP error:', err);
+    logWarn('⚠️  ProtonMail integration disabled due to connection error');
   });
 
   imap.once('end', () => {
-    log('⚠️ IMAP connection ended, reconnecting...');
-    setTimeout(() => imap.connect(), 5000);
+    logVerbose('⚠️ IMAP connection ended, reconnecting...');
+    setTimeout(() => {
+      try {
+        imap.connect();
+      } catch (err) {
+        logError('❌ Failed to reconnect:', err);
+      }
+    }, 5000);
   });
 
-  imap.connect();
+  try {
+    imap.connect();
+  } catch (err) {
+    logError('❌ Failed to connect to Proton Bridge:', err);
+    logWarn('⚠️  ProtonMail integration disabled');
+  }
 
   process.on('SIGTERM', () => {
     imap.end();

@@ -1,12 +1,11 @@
 import { rm } from 'node:fs/promises';
-import chalk from 'chalk';
 import { DAEMON_START_MAX_ATTEMPTS, DEVICE_NAME, VERBOSE } from '../constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
-import { log } from '../utils/log';
+import { logError, logInfo, logSuccess, logVerbose, logWarn } from '../utils/log';
 import { call } from '../utils/rpc';
 
-log(`Running signal-cli from ${SIGNAL_CLI}`);
+logVerbose(`Running signal-cli from ${SIGNAL_CLI}`);
 
 let account: string | null = null;
 let currentLinkUri: string | null = null;
@@ -141,19 +140,19 @@ export async function startDaemon() {
 
       if (VERBOSE) {
         if (trimmed.includes('ERROR')) {
-          console.error(chalk.red('[signal-cli]'), trimmed);
+          logError('[signal-cli]', trimmed);
         } else if (trimmed.includes('WARN')) {
-          console.warn(chalk.yellow('[signal-cli]'), trimmed);
+          logWarn('[signal-cli]', trimmed);
         } else {
-          console.log(chalk.dim('[signal-cli]'), trimmed);
+          logInfo('[signal-cli]', trimmed);
         }
         continue;
       }
 
       if (trimmed.includes('WARN')) {
-        console.warn(chalk.yellow('[signal-cli]'), trimmed);
+        logWarn('[signal-cli]', trimmed);
       } else if (trimmed.includes('ERROR') || !trimmed.includes('INFO')) {
-        console.error(chalk.red('[signal-cli]'), trimmed);
+        logError('[signal-cli]', trimmed);
       }
     }
   })();
@@ -169,11 +168,11 @@ export async function startDaemon() {
         },
       });
       socket.end();
-      console.log(chalk.green('✓ signal-cli daemon started'));
+      logSuccess('✓ signal-cli daemon started');
       return proc;
     } catch (_error) {
       if (authError && attempts > 5 && !cleaned) {
-        console.log(chalk.yellow('⚠ Detected stale account data, cleaning up and retrying...'));
+        logWarn('⚠ Detected stale account data, cleaning up and retrying...');
         proc.kill();
         await unlinkDevice();
         cleaned = true;

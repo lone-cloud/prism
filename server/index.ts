@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from './constants/config';
 import { ROUTES } from './constants/server';
 import { checkSignalCli, initSignal, startDaemon } from './modules/signal';
@@ -13,6 +12,7 @@ import {
   handleUnregister,
 } from './routes/unifiedpush';
 import { withAuth, withFormAuth } from './utils/auth';
+import { logError, logInfo, logSuccess, logWarn } from './utils/log';
 
 let daemon: ReturnType<typeof Bun.spawn> | null = null;
 
@@ -22,24 +22,28 @@ try {
   const hasAccount = isLinked && (await initSignal({}));
 
   if (hasAccount) {
-    console.log(chalk.green('✓ Signal account linked'));
+    logSuccess('✓ Signal account linked');
   } else {
-    console.log(chalk.yellow('⚠ No Signal account linked'));
-    console.log(chalk.dim(`  Visit http://localhost:${PORT}/link to link your device`));
+    logWarn('⚠ No Signal account linked');
+    logInfo(`  Visit http://localhost:${PORT}/link to link your device`);
   }
 } catch (error) {
-  console.error(chalk.red('✗ Failed to start signal-cli daemon'));
-  console.error(chalk.dim(`  ${error instanceof Error ? error.message : String(error)}`));
+  logError(`  ${error instanceof Error ? error.message : String(error)}`);
 }
 
 if (!API_KEY) {
-  console.warn(chalk.yellow('⚠️  Server running without API_KEY'));
-  console.warn(chalk.dim('   Set API_KEY env var for production deployments.'));
+  logWarn('⚠️  Server running without API_KEY');
+  console.warn('   Set API_KEY env var for production deployments.');
 }
 
 if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
-  const { startProtonMonitor } = await import('./modules/protonmail');
-  await startProtonMonitor();
+  try {
+    const { startProtonMonitor } = await import('./modules/protonmail');
+    await startProtonMonitor();
+  } catch (err) {
+    logError('❌ Failed to start ProtonMail monitor:', err);
+    logWarn('⚠️  Continuing without ProtonMail integration');
+  }
 }
 
 const server = Bun.serve({
@@ -99,4 +103,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(chalk.cyan.bold(`\n🚀 SUP running on http://localhost:${server.port}`));
+logInfo(`\n🚀 SUP running on http://localhost:${server.port}`);
