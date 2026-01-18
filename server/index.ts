@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from './constants/config';
-import { CONTENT_TYPE, ROUTES, TEMPLATES } from './constants/server';
-import { checkSignalCli, hasValidAccount, initSignal, startDaemon } from './modules/signal';
+import { ROUTES } from './constants/server';
+import { checkSignalCli, initSignal, startDaemon } from './modules/signal';
 import { handleHealth } from './routes/health';
 import { handleLink, handleLinkQR, handleLinkStatus, handleUnlink } from './routes/link';
 import { handleNotify, handleTopics } from './routes/notify';
@@ -12,7 +12,7 @@ import {
   handleRegister,
   handleUnregister,
 } from './routes/unifiedpush';
-import { checkAuth } from './utils/auth';
+import { withAuth, withFormAuth } from './utils/auth';
 
 let daemon: ReturnType<typeof Bun.spawn> | null = null;
 
@@ -60,13 +60,12 @@ const server = Bun.serve({
     },
 
     [ROUTES.LINK_UNLINK]: {
-      POST: async (req) => {
-        const response = await handleUnlink(req, daemon);
-        if (response.status === 303) {
+      POST: withFormAuth(() =>
+        handleUnlink(async () => {
+          daemon?.kill();
           daemon = await startDaemon();
-        }
-        return response;
-      },
+        }),
+      ),
     },
 
     [ROUTES.UP]: {
@@ -74,19 +73,11 @@ const server = Bun.serve({
     },
 
     [ROUTES.ENDPOINTS]: {
-      GET: (req) => {
-        const auth = checkAuth(req);
-        if (auth) return auth;
-        return handleEndpoints();
-      },
+      GET: withAuth(handleEndpoints),
     },
 
     [ROUTES.TOPICS]: {
-      GET: (req) => {
-        const auth = checkAuth(req);
-        if (auth) return auth;
-        return handleTopics();
-      },
+      GET: withAuth(handleTopics),
     },
 
     [ROUTES.MATRIX_NOTIFY]: {
@@ -94,34 +85,13 @@ const server = Bun.serve({
     },
 
     [ROUTES.UP_INSTANCE]: {
-      POST: (req) => {
-        const auth = checkAuth(req);
-        if (auth) return auth;
-        return handleRegister(req, new URL(req.url));
-      },
-      DELETE: (req) => {
-        const auth = checkAuth(req);
-        if (auth) return auth;
-        return handleUnregister(new URL(req.url));
-      },
+      POST: withAuth((req) => handleRegister(req, new URL(req.url))),
+      DELETE: withAuth((req) => handleUnregister(new URL(req.url))),
     },
 
     [ROUTES.NOTIFY_TOPIC]: {
-      POST: (req) => {
-        const auth = checkAuth(req);
-        if (auth) return auth;
-        return handleNotify(req, new URL(req.url));
-      },
+      POST: withAuth((req) => handleNotify(req, new URL(req.url))),
     },
-  },
-
-  async fetch(_req) {
-    if (!(await hasValidAccount())) {
-      const html = await Bun.file(TEMPLATES.SETUP).text();
-      return new Response(html, { headers: { 'content-type': CONTENT_TYPE.HTML } });
-    }
-
-    return new Response(null, { status: 404 });
   },
 });
 

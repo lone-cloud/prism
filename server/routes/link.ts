@@ -1,5 +1,5 @@
 import { API_KEY } from '../constants/config';
-import { CONTENT_TYPE, ROUTES, TEMPLATES } from '../constants/server';
+import { ROUTES, TEMPLATES } from '../constants/server';
 import {
   finishLink,
   generateLinkQR,
@@ -22,14 +22,14 @@ export const handleLink = async () => {
   }
 
   return new Response(html, {
-    headers: { 'content-type': CONTENT_TYPE.HTML },
+    headers: { 'content-type': 'text/html' },
   });
 };
 
 export const handleLinkQR = async () => {
   const qrDataUrl = await generateLinkQR();
   return new Response(qrDataUrl, {
-    headers: { 'content-type': CONTENT_TYPE.TEXT },
+    headers: { 'content-type': 'text/plain' },
   });
 };
 
@@ -47,24 +47,9 @@ export const handleLinkStatus = async () => {
   return Response.json({ linked });
 };
 
-export const handleUnlink = async (req: Request, daemon: ReturnType<typeof Bun.spawn> | null) => {
-  if (API_KEY) {
-    const body = await req.text();
-    const params = new URLSearchParams(body);
-    const password = params.get('password');
-
-    if (password !== API_KEY) {
-      return new Response(null, { status: 403 });
-    }
-  }
-
+export const handleUnlink = async (killAndRestart: () => Promise<void>) => {
   await unlinkDevice();
-
-  if (daemon) {
-    daemon.kill();
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await killAndRestart();
 
   return new Response('', {
     status: 303,

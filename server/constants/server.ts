@@ -13,12 +13,6 @@ export const ROUTES = {
   TOPICS: '/topics',
 } as const;
 
-export const CONTENT_TYPE = {
-  HTML: 'text/html',
-  JSON: 'application/json',
-  TEXT: 'text/plain',
-} as const;
-
 export const TEMPLATES = {
   LINKED: 'templates/linked.html',
   LINK: 'templates/link.html',

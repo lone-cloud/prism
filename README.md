@@ -1,8 +1,17 @@
-# SUP (Signal Unified Push)
+<div align="center">
 
-Privacy-preserving push notifications using Signal as transport.
+<img src="assets/sup.webp" alt="SUP Icon" width="80" height="80" />
 
-## What is SUP?
+# SUP
+
+**SUP (Signal Unified Push) is a privacy-preserving push notifications using Signal as transport**
+
+
+[Setup](#setup) • [Architecture](#architecture)
+
+</div>
+
+<!-- markdownlint-enable MD033 -->
 
 SUP is a UnifiedPush distributor that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to your ISP or network observers. All notification traffic appears as regular Signal messages.
 
@@ -12,9 +21,17 @@ Traditional push notification systems (ntfy, FCM) require persistent WebSocket c
 
 ## Setup
 
-**⚠️ DOCKER COMPOSE REQUIRED**: The services must be deployed together using `docker compose`. Running individual Dockerfiles separately is not supported and will compromise security.
+### 1. Install Android App
 
-### Quick Start with Docker Compose
+Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup/releases).
+
+**Certificate Fingerprint:**
+
+```text
+0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
+```
+
+### 2. Start SUP Server with Docker Compose on a self-hosted server
 
 **Without ProtonMail** (just UnifiedPush):
 
@@ -22,18 +39,12 @@ Traditional push notification systems (ntfy, FCM) require persistent WebSocket c
 # Download docker-compose.yml
 curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/docker-compose.yml
 
-# Create .env file
-cat > .env << 'EOF'
-# Optional: API key for remote access
-# Set this to protect your server when accessing it from outside your home network
-# (e.g., registering UnifiedPush apps while away from home)
-# Default: unset (no authentication required)
-API_KEY=your-random-secret-key-here
+# Download .env.example (optional)
+curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/.env.example
 
-# Optional: Enable verbose logging
-# Default: false
-VERBOSE=false
-EOF
+# Configure (optional)
+cp .env.example .env
+nano .env
 
 # Start SUP server
 docker compose up -d
@@ -42,7 +53,7 @@ docker compose up -d
 # Visit http://localhost:8080/link and scan QR code with Signal app
 ```
 
-### ProtonMail Integration (Optional)
+### 3. ProtonMail Integration (Optional)
 
 To receive ProtonMail notifications via Signal:
 
@@ -68,7 +79,7 @@ To receive ProtonMail notifications via Signal:
 
    ```bash
    # Add these to your .env file
-   BRIDGE_IMAP_USERNAME=your-email@proton.me
+   BRIDGE_IMAP_USERNAME=bridge-username-from-info-command
    BRIDGE_IMAP_PASSWORD=bridge-generated-password-from-info-command
    ```
 
@@ -79,17 +90,6 @@ To receive ProtonMail notifications via Signal:
    ```
 
 Your phone will now receive Signal notifications when ProtonMail receives new emails.
-
-#### ProtonMail Android App Integration (Optional)
-
-If you have the ProtonMail Android app installed, you can enable integration so that clicking on email notifications opens the ProtonMail app directly:
-
-```bash
-# Add this to your .env file
-ENABLE_PROTON_ANDROID=true
-```
-
-When enabled, the SUP Android app will intercept email notifications and show them as custom notifications that launch the ProtonMail app on click. When disabled, email notifications appear as regular Signal messages.
 
 ### Development
 
@@ -116,18 +116,6 @@ Or run services directly with Bun:
 ```bash
 bun install
 bun --filter sup-server dev
-```
-
-## Android App
-
-Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup/releases).
-
-**Install via Obtainium:** [obtainium://add/https://github.com/lone-cloud/sup](obtainium://add/https://github.com/lone-cloud/sup)
-
-**Certificate Fingerprint:**
-
-```text
-0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
 ```
 
 ## Architecture

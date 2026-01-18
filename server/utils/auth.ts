@@ -1,6 +1,6 @@
 import { API_KEY } from '../constants/config';
 
-export const checkAuth = (req: Request) => {
+const checkAuth = (req: Request) => {
   if (!API_KEY) return null;
 
   const proto = req.headers.get('x-forwarded-proto') || 'http';
@@ -17,3 +17,33 @@ export const checkAuth = (req: Request) => {
 
   return null;
 };
+
+export const checkFormAuth = async (req: Request) => {
+  const bearerAuth = checkAuth(req);
+  if (!bearerAuth) return null;
+
+  // Fall back to form password
+  const body = await req.text();
+  const params = new URLSearchParams(body);
+  if (params.get('password') === API_KEY) {
+    return null;
+  }
+
+  return new Response(null, { status: 403 });
+};
+
+export const withAuth =
+  <T extends unknown[]>(handler: (req: Request, ...args: T) => Response | Promise<Response>) =>
+  (req: Request, ...args: T) => {
+    const auth = checkAuth(req);
+    if (auth) return auth;
+    return handler(req, ...args);
+  };
+
+export const withFormAuth =
+  <T extends unknown[]>(handler: (req: Request, ...args: T) => Response | Promise<Response>) =>
+  async (req: Request, ...args: T) => {
+    const auth = await checkFormAuth(req);
+    if (auth) return auth;
+    return handler(req, ...args);
+  };
