@@ -110,7 +110,7 @@ bun install
 Then build and run with docker-compose.dev.yml:
 
 ```bash
-docker compose -f docker-compose.dev.yml --profile protonmail up -d
+docker compose --profile protonmail -f docker-compose.dev.yml up -d
 ```
 
 Or run services directly with Bun:

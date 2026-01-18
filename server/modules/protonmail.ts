@@ -23,22 +23,15 @@ export async function startProtonMonitor() {
   logInfo(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
   logInfo(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`);
 
-  let imap: Imap;
-  try {
-    imap = new Imap({
-      user: BRIDGE_IMAP_USERNAME,
-      password: BRIDGE_IMAP_PASSWORD,
-      host: PROTON_BRIDGE_HOST,
-      port: PROTON_BRIDGE_PORT,
-      tls: true,
-      tlsOptions: { rejectUnauthorized: false },
-      keepalive: true,
-    });
-  } catch (err) {
-    logError('❌ Failed to initialize IMAP client:', err);
-    logWarn('⚠️  ProtonMail integration disabled (bridge not reachable)');
-    return;
-  }
+  const imap = new Imap({
+    user: BRIDGE_IMAP_USERNAME,
+    password: BRIDGE_IMAP_PASSWORD,
+    host: PROTON_BRIDGE_HOST,
+    port: PROTON_BRIDGE_PORT,
+    tls: true,
+    tlsOptions: { rejectUnauthorized: false },
+    keepalive: true,
+  });
 
   async function sendNotification(title: string, message: string) {
     try {
@@ -112,21 +105,10 @@ export async function startProtonMonitor() {
 
   imap.once('end', () => {
     logVerbose('⚠️ IMAP connection ended, reconnecting...');
-    setTimeout(() => {
-      try {
-        imap.connect();
-      } catch (err) {
-        logError('❌ Failed to reconnect:', err);
-      }
-    }, 5000);
+    setTimeout(() => imap.connect(), 5000);
   });
 
-  try {
-    imap.connect();
-  } catch (err) {
-    logError('❌ Failed to connect to Proton Bridge:', err);
-    logWarn('⚠️  ProtonMail integration disabled');
-  }
+  imap.connect();
 
   process.on('SIGTERM', () => {
     imap.end();

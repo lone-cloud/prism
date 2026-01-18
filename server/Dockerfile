@@ -13,10 +13,11 @@ FROM alpine:3.23
 
 ARG SIGNAL_CLI_VERSION=0.13.22
 
-RUN apk add --no-cache openjdk21-jre curl libstdc++ libgcc
+RUN apk add --no-cache openjdk21-jre curl libstdc++ libgcc gcompat
 
 RUN curl -L https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}.tar.gz | tar xz -C /tmp \
-    && mv /tmp/signal-cli-${SIGNAL_CLI_VERSION} /usr/local/signal-cli
+    && mv /tmp/signal-cli-${SIGNAL_CLI_VERSION} /usr/local/signal-cli \
+    && chmod +x /usr/local/signal-cli/bin/signal-cli
 
 COPY --from=builder /app/sup-server /usr/local/bin/sup-server
 
