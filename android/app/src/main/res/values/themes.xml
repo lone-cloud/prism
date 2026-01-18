@@ -47,7 +47,6 @@
         <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
 
-        <item name="switchPreferenceCompatStyle">@style/MaterialSwitch</item>
         <item name="windowActionModeOverlay">true</item>
 
         <item name="actionModeStyle">@style/ActionMode</item>
@@ -74,11 +73,6 @@
     <style name="roundedCornersImageView" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">5dp</item>
-    </style>
-
-    <!-- Material Design 3 switches in the preferences -->
-    <style name="MaterialSwitch" parent="@style/Preference.SwitchPreferenceCompat.Material">
-        <item name="widgetLayout">@layout/view_preference_switch</item>
     </style>
 
     <!-- Action mode colors -->

@@ -96,7 +96,7 @@ class ApiService(private val context: Context) {
                 throw EntityTooLargeException()
             } else if (!response.isSuccessful) {
                 // Try to parse error response from server
-                val errorBody = response.body.string()
+                val errorBody = response.body?.string() ?: ""
                 val apiError = try {
                     gson.fromJson(errorBody, ErrorResponse::class.java)
                 } catch (e: Exception) {
@@ -121,7 +121,7 @@ class ApiService(private val context: Context) {
             if (!response.isSuccessful) {
                 throw Exception("Unexpected response ${response.code} when polling topic $url")
             }
-            val body = response.body.string().trim()
+            val body = response.body?.string()?.trim() ?: ""
             if (body.isEmpty()) return emptyList()
             val notifications = body.lines().mapNotNull { line ->
                 parser.parse(line, subscriptionId = subscriptionId, notificationId = 0) // No notification when we poll
@@ -152,7 +152,7 @@ class ApiService(private val context: Context) {
             }
             throw IOException("Unexpected response $code when subscribing to $url")
         }
-        return Pair(call, response.body.source())
+        return Pair(call, response.body?.source() ?: throw IOException("Empty response body"))
     }
 
     suspend fun checkAuth(baseUrl: String, topic: String): Boolean {

@@ -52,7 +52,7 @@ class SignalNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn?.packageName !in SIGNAL_PACKAGES) return
         
-        val notification = sbn.notification
+        val notification = sbn?.notification ?: return
         val extras = notification.extras
 
         val title = extras.getString("android.title") ?: ""
@@ -63,11 +63,11 @@ class SignalNotificationListener : NotificationListenerService() {
         when {
             text.startsWith(SUP_ENDPOINT_PREFIX) -> {
                 parseAndDeliverUnifiedPush(text)
-                cancelNotification(sbn.key)
+                cancelNotification(sbn?.key ?: return)
             }
             text.startsWith(LAUNCH_PREFIX) -> {
                 parseAndShowLaunchNotification(text)
-                cancelNotification(sbn.key)
+                cancelNotification(sbn?.key ?: return)
             }
         }
     }

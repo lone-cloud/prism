@@ -7,8 +7,16 @@ subprojects {
     configurations.all {
         resolutionStrategy {
             activateDependencyLocking()
-            failOnDynamicVersions()
-            failOnChangingVersions()
+            
+            // Fix Room 2.8.x kotlinx-serialization mismatch
+            // https://issuetracker.google.com/issues/447154195
+            eachDependency {
+                if (requested.group == "org.jetbrains.kotlinx" &&
+                    requested.name.startsWith("kotlinx-serialization-")
+                ) {
+                    useVersion("1.8.0")
+                }
+            }
         }
     }
     
