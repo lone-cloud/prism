@@ -1,4 +1,5 @@
 import { API_KEY } from '../constants/config';
+import { SIGNAL_CLI_DATA } from '../constants/paths';
 import { ROUTES, TEMPLATES } from '../constants/server';
 import {
   finishLink,
@@ -29,7 +30,7 @@ export const handleLink = async () => {
 
 export const handleLinkQR = async (restartDaemon: () => Promise<void>) => {
   const linked = await hasValidAccount();
-  if (!linked) {
+  if (!linked && (await Bun.file(SIGNAL_CLI_DATA).exists())) {
     await unlinkDevice();
     await restartDaemon();
   }

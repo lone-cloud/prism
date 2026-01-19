@@ -1,5 +1,4 @@
-import { existsSync, unlinkSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { rm, unlink } from 'node:fs/promises';
 import { DEVICE_NAME, VERBOSE } from '../constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
@@ -71,7 +70,7 @@ export async function unlinkDevice() {
   account = null;
   currentLinkUri = null;
 
-  if (existsSync(SIGNAL_CLI_DATA)) {
+  if (await Bun.file(SIGNAL_CLI_DATA).exists()) {
     logWarn('⚠ Unlinking device and removing account data...');
 
     try {
@@ -132,9 +131,9 @@ export async function startDaemon() {
   let authError = false;
   let cleaned = false;
 
-  if (existsSync(SIGNAL_CLI_SOCKET)) {
+  if (await Bun.file(SIGNAL_CLI_SOCKET).exists()) {
     try {
-      unlinkSync(SIGNAL_CLI_SOCKET);
+      await unlink(SIGNAL_CLI_SOCKET);
       logVerbose('Removed stale socket file');
     } catch (error) {
       logError('Failed to remove stale socket file:', error);
