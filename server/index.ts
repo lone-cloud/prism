@@ -60,7 +60,11 @@ const server = Bun.serve({
     },
 
     [ROUTES.LINK_QR]: {
-      GET: handleLinkQR,
+      GET: () =>
+        handleLinkQR(async () => {
+          daemon?.kill();
+          daemon = await startDaemon();
+        }),
     },
 
     [ROUTES.LINK_STATUS]: {

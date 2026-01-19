@@ -29,6 +29,9 @@ export const call = (method: string, params: Record<string, unknown>, account: s
         error(_socket, error) {
           reject(error);
         },
+        connectError(_socket, error) {
+          reject(error);
+        },
         close() {
           const isComplete = response.includes(MESSAGE_DELIMITER);
           if (!isComplete) {

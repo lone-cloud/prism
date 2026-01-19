@@ -1,3 +1,4 @@
+import { existsSync, unlinkSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { DEVICE_NAME, VERBOSE } from '../constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
@@ -9,6 +10,8 @@ logVerbose(`Running signal-cli from ${SIGNAL_CLI}`);
 
 let account: string | null = null;
 let currentLinkUri: string | null = null;
+
+export const hasLinkUri = () => currentLinkUri !== null;
 
 export async function initSignal({ accountOverride }: { accountOverride?: string }) {
   if (accountOverride) {
@@ -49,15 +52,18 @@ export async function finishLink() {
     throw new Error('No link in progress');
   }
 
+  const uri = currentLinkUri;
+  currentLinkUri = null;
+
   const result = await call(
     'finishLink',
     {
-      deviceLinkUri: currentLinkUri,
+      deviceLinkUri: uri,
       deviceName: DEVICE_NAME,
     },
     account,
   );
-  currentLinkUri = null;
+  logSuccess('✓ Device linked successfully');
   return result;
 }
 
@@ -65,9 +71,15 @@ export async function unlinkDevice() {
   account = null;
   currentLinkUri = null;
 
-  try {
-    await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
-  } catch {}
+  if (existsSync(SIGNAL_CLI_DATA)) {
+    logWarn('⚠ Unlinking device and removing account data...');
+
+    try {
+      await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
+    } catch (error) {
+      logWarn('❌ Failed to remove account data directory:', error);
+    }
+  }
 }
 
 export async function createGroup(name: string, members: string[] = []) {
@@ -119,6 +131,15 @@ export async function hasValidAccount() {
 export async function startDaemon() {
   let authError = false;
   let cleaned = false;
+
+  if (existsSync(SIGNAL_CLI_SOCKET)) {
+    try {
+      unlinkSync(SIGNAL_CLI_SOCKET);
+      logVerbose('Removed stale socket file');
+    } catch (error) {
+      logError('Failed to remove stale socket file:', error);
+    }
+  }
 
   const proc = Bun.spawn([SIGNAL_CLI, 'daemon', '--socket', SIGNAL_CLI_SOCKET], {
     stdout: 'pipe',
