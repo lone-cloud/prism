@@ -40,7 +40,7 @@ Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup
 curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/docker-compose.yml
 
 # Download .env.example (optional)
-curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/.env.example
+curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/server/.env.example
 
 # Configure (optional)
 cp .env.example .env

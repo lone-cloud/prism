@@ -3,6 +3,7 @@ import { ROUTES, TEMPLATES } from '../constants/server';
 import {
   finishLink,
   generateLinkQR,
+  hasLinkUri,
   hasValidAccount,
   initSignal,
   unlinkDevice,
@@ -26,7 +27,13 @@ export const handleLink = async () => {
   });
 };
 
-export const handleLinkQR = async () => {
+export const handleLinkQR = async (restartDaemon: () => Promise<void>) => {
+  const linked = await hasValidAccount();
+  if (!linked) {
+    await unlinkDevice();
+    await restartDaemon();
+  }
+
   const qrDataUrl = await generateLinkQR();
 
   return new Response(qrDataUrl, {
@@ -37,7 +44,7 @@ export const handleLinkQR = async () => {
 export const handleLinkStatus = async () => {
   let linked = await hasValidAccount();
 
-  if (!linked) {
+  if (!linked && hasLinkUri()) {
     try {
       await finishLink();
       await initSignal({});
