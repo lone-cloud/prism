@@ -3,7 +3,6 @@ export const API_KEY = Bun.env.API_KEY;
 export const VERBOSE = Bun.env.VERBOSE === 'true';
 
 export const DEVICE_NAME = 'SUP';
-export const DAEMON_START_MAX_ATTEMPTS = 10;
 
 export const SUP_ENDPOINT_PREFIX = `[${DEVICE_NAME}:`;
 export const LAUNCH_ENDPOINT_PREFIX = '[LAUNCH:';
