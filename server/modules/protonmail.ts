@@ -47,9 +47,9 @@ export async function startProtonMonitor() {
         : '';
       await sendGroupMessage(groupId, `${prefix}**${title}**\n${message}`);
 
-      logSuccess(`✅ Notification sent: ${title}`);
+      logSuccess(`Notification sent: ${title}`);
     } catch (error) {
-      logError('❌ Failed to send notification:', error);
+      logError('Failed to send notification:', error);
     }
   }
 
@@ -60,7 +60,7 @@ export async function startProtonMonitor() {
         return;
       }
 
-      logVerbose(`✅ Connected to inbox (${box.messages.total} messages)`);
+      logVerbose(`Connected to inbox (${box.messages.total} messages)`);
 
       imap.on('mail', async (numNewMsgs: number) => {
         logVerbose(`📬 ${numNewMsgs} new message(s) received`);
@@ -94,17 +94,17 @@ export async function startProtonMonitor() {
   }
 
   imap.once('ready', () => {
-    logVerbose('✅ IMAP connection ready');
+    logVerbose('IMAP connection ready');
     openInbox();
   });
 
   imap.once('error', (err: Error) => {
-    logError('❌ IMAP error:', err);
-    logWarn('⚠️  ProtonMail integration disabled due to connection error');
+    logError('IMAP error:', err);
+    logWarn('ProtonMail integration disabled due to connection error');
   });
 
   imap.once('end', () => {
-    logVerbose('⚠️ IMAP connection ended, reconnecting...');
+    logVerbose('IMAP connection ended, reconnecting...');
     setTimeout(() => imap.connect(), 5000);
   });
 

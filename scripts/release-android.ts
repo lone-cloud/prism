@@ -9,35 +9,33 @@ if (!version) {
 }
 
 if (!version.startsWith('v')) {
-  console.error('❌ Version must start with "v" (e.g., v0.1.0)');
+  console.error('Version must start with "v" (e.g., v0.1.0)');
   process.exit(1);
 }
 
 try {
   const status = await $`git status --porcelain`.text();
   if (status.trim()) {
-    console.error('❌ You have uncommitted changes. Commit or stash them first.');
+    console.error('You have uncommitted changes. Commit or stash them first.');
     process.exit(1);
   }
 
   try {
     await $`git rev-parse ${version}`.quiet();
-    console.error(`❌ Tag ${version} already exists`);
+    console.error(`Tag ${version} already exists`);
     process.exit(1);
-  } catch {
-    // Tag doesn't exist, good
-  }
+  } catch {}
 
-  console.log(`🚀 Creating release ${version}...`);
+  console.log(`Creating release ${version}...`);
 
   await $`git tag ${version}`;
-  console.log(`✓ Created tag ${version}`);
+  console.log(`Created tag ${version}`);
 
   await $`git push origin ${version}`;
-  console.log(`✓ Pushed tag to GitHub`);
+  console.log(`Pushed tag to GitHub`);
 
   console.log(`
-✓ Release ${version} triggered!
+Release ${version} triggered!
 
 GitHub Actions will now:
 1. Build signed Android APK

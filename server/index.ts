@@ -22,18 +22,18 @@ try {
   const hasAccount = isLinked && (await initSignal({}));
 
   if (hasAccount) {
-    logSuccess('✓ Signal account linked');
+    logSuccess('Signal account linked');
   } else {
-    logWarn('⚠ No Signal account linked');
-    logInfo(`  Visit http://localhost:${PORT}/link to link your device`);
+    logWarn('No Signal account linked');
+    logInfo(`Visit http://localhost:${PORT}/link to link your device`);
   }
 } catch (error) {
   logError(`  ${error instanceof Error ? error.message : String(error)}`);
 }
 
 if (!API_KEY) {
-  logWarn('⚠️  Server running without API_KEY');
-  console.warn('   Set API_KEY env var for production deployments.');
+  logWarn('Server running without API_KEY');
+  console.warn('Set API_KEY env var for production deployments.');
 }
 
 if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
@@ -41,8 +41,8 @@ if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
     const { startProtonMonitor } = await import('./modules/protonmail');
     await startProtonMonitor();
   } catch (err) {
-    logError('❌ Failed to start ProtonMail monitor:', err);
-    logWarn('⚠️  Continuing without ProtonMail integration');
+    logError('Failed to start ProtonMail monitor:', err);
+    logWarn('Continuing without ProtonMail integration');
   }
 }
 
@@ -107,4 +107,4 @@ const server = Bun.serve({
   },
 });
 
-logInfo(`\n🚀 SUP running on http://localhost:${server.port}`);
+logInfo(`\nSUP running on http://localhost:${server.port} 🚀`);

@@ -141,14 +141,14 @@ async function main() {
     }
 
     if (!latestVersion) {
-      console.log(`❌ ${dep}: Could not check`);
+      console.log(`${dep}: Could not check`);
       continue;
     }
 
     if (latestVersion === currentVersion) {
-      console.log(`✓ ${dep}: ${currentVersion} (latest)`);
+      console.log(`${dep}: ${currentVersion} (latest)`);
     } else if (compareVersions(currentVersion, latestVersion) < 0) {
-      console.log(`⚠ ${dep}: ${currentVersion} → ${latestVersion}`);
+      console.log(` ${dep}: ${currentVersion} → ${latestVersion}`);
       hasUpdates = true;
     } else {
       console.log(`ℹ ${dep}: ${currentVersion} (newer than Maven: ${latestVersion})`);

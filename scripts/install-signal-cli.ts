@@ -26,7 +26,7 @@ async function installSignalCli() {
 
   await chmod(`${SIGNAL_CLI_DIR}/bin/signal-cli`, 0o755);
 
-  console.log('✓ signal-cli installed successfully');
+  console.log('signal-cli installed successfully');
 }
 
 await installSignalCli();

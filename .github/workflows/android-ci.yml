@@ -33,10 +33,10 @@ jobs:
           chmod +x gradlew
           ./gradlew dependencies --write-locks
           if ! git diff --exit-code app/gradle.lockfile; then
-            echo "❌ Lockfile is out of date. Run: cd android && ./gradlew dependencies --write-locks"
+            echo "Lockfile is out of date. Run: cd android && ./gradlew dependencies --write-locks"
             exit 1
           fi
-          echo "✅ Lockfile is up-to-date"
+          echo "Lockfile is up-to-date"
 
       - name: Decode keystore
         env:

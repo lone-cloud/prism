@@ -62,7 +62,7 @@ export async function finishLink() {
     },
     account,
   );
-  logSuccess('✓ Device linked successfully');
+  logSuccess('Device linked successfully');
   return result;
 }
 
@@ -71,12 +71,12 @@ export async function unlinkDevice() {
   currentLinkUri = null;
 
   if (await Bun.file(SIGNAL_CLI_DATA).exists()) {
-    logWarn('⚠ Unlinking device and removing account data...');
+    logWarn('Unlinking device and removing account data...');
 
     try {
       await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
     } catch (error) {
-      logWarn('❌ Failed to remove account data directory:', error);
+      logWarn('Failed to remove account data directory:', error);
     }
   }
 }
@@ -131,11 +131,11 @@ export async function startDaemon() {
   let authError = false;
   let cleaned = false;
 
-  if (await Bun.file(SIGNAL_CLI_SOCKET).exists()) {
-    try {
-      await unlink(SIGNAL_CLI_SOCKET);
-      logVerbose('Removed stale socket file');
-    } catch (error) {
+  try {
+    await unlink(SIGNAL_CLI_SOCKET);
+    logVerbose('Removed stale socket file');
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') {
       logError('Failed to remove stale socket file:', error);
     }
   }
@@ -157,6 +157,12 @@ export async function startDaemon() {
       }
 
       if (trimmed.includes('ConcurrentModificationException')) continue;
+
+      if (
+        trimmed.includes('Accepted new client connection') ||
+        (trimmed.includes('Connection') && trimmed.includes('closed'))
+      )
+        continue;
 
       if (VERBOSE) {
         if (trimmed.includes('ERROR')) {
@@ -187,11 +193,11 @@ export async function startDaemon() {
       },
     });
     socket.end();
-    logSuccess('✓ signal-cli daemon started');
+    logSuccess('signal-cli daemon started');
     return proc;
   } catch (error) {
     if (authError && !cleaned) {
-      logWarn('⚠ Detected stale account data, cleaning up and retrying...');
+      logWarn(' Detected stale account data, cleaning up and retrying...');
       proc.kill();
       await unlinkDevice();
       cleaned = true;

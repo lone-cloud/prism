@@ -7,21 +7,21 @@ try {
   const packageJson = await Bun.file(`${config.path}/package.json`).json();
   const version = `v${packageJson.version}`;
 
-  console.log(`🚀 Releasing ${config.name} ${version}...`);
+  console.log(`Releasing ${config.name} ${version}...`);
 
   const fullName = `${registry}/${config.name}`;
 
-  console.log(`\n📦 Building ${config.name}...`);
+  console.log(`\nBuilding ${config.name}...`);
   await $`docker build -t ${fullName}:${version} -t ${fullName}:latest ${config.path}`;
-  console.log(`✓ Built ${config.name}`);
+  console.log(`Built ${config.name}`);
 
-  console.log(`📤 Pushing ${fullName}:${version}...`);
+  console.log(`Pushing ${fullName}:${version}...`);
   await $`docker push ${fullName}:${version}`;
-  console.log(`✓ Pushed ${fullName}:${version}`);
+  console.log(`Pushed ${fullName}:${version}`);
 
-  console.log(`📤 Pushing ${fullName}:latest...`);
+  console.log(`Pushing ${fullName}:latest...`);
   await $`docker push ${fullName}:latest`;
-  console.log(`✓ Pushed ${fullName}:latest`);
+  console.log(`Pushed ${fullName}:latest`);
 
   console.log(`
 ✨ ${config.name} ${version} released successfully!
@@ -34,6 +34,6 @@ Users can now pull with:
   docker compose pull
 `);
 } catch (error) {
-  console.error('❌ Release failed:', error);
+  console.error('Release failed:', error);
   process.exit(1);
 }
