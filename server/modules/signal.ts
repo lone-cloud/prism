@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises';
-import { DAEMON_START_MAX_ATTEMPTS, DEVICE_NAME, VERBOSE } from '../constants/config';
+import { DEVICE_NAME, VERBOSE } from '../constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '../utils/log';
@@ -157,32 +157,31 @@ export async function startDaemon() {
     }
   })();
 
-  let attempts = 0;
-  while (attempts < DAEMON_START_MAX_ATTEMPTS) {
-    try {
-      const socket = await Bun.connect({
-        unix: SIGNAL_CLI_SOCKET,
-        socket: {
-          data() {},
-          error() {},
-        },
-      });
-      socket.end();
-      logSuccess('✓ signal-cli daemon started');
-      return proc;
-    } catch (_error) {
-      if (authError && attempts > 5 && !cleaned) {
-        logWarn('⚠ Detected stale account data, cleaning up and retrying...');
-        proc.kill();
-        await unlinkDevice();
-        cleaned = true;
-        return startDaemon();
-      }
+  await Bun.sleep(3000);
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      attempts++;
+  try {
+    const socket = await Bun.connect({
+      unix: SIGNAL_CLI_SOCKET,
+      socket: {
+        data() {},
+      },
+    });
+    socket.end();
+    logSuccess('✓ signal-cli daemon started');
+    return proc;
+  } catch (error) {
+    if (authError && !cleaned) {
+      logWarn('⚠ Detected stale account data, cleaning up and retrying...');
+      proc.kill();
+      await unlinkDevice();
+      cleaned = true;
+      return startDaemon();
     }
-  }
 
-  throw new Error('Failed to start signal-cli daemon');
+    logError('Failed to connect to signal-cli socket:', error);
+    if (proc.exitCode !== null) {
+      logError('signal-cli process exited with code:', proc.exitCode);
+    }
+    throw new Error('Failed to start signal-cli daemon');
+  }
 }

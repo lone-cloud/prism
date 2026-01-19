@@ -22,6 +22,7 @@ RUN curl -L https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_
 COPY --from=builder /app/sup-server /usr/local/bin/sup-server
 
 ENV PATH="/usr/local/signal-cli/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/signal-cli/lib:${LD_LIBRARY_PATH}"
 
 EXPOSE 8080
 
