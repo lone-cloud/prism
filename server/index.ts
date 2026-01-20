@@ -1,7 +1,7 @@
 import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from '@/constants/config';
-import { ROUTES } from '@/constants/server';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
 import { adminRoutes } from '@/routes/admin/index';
+import { ntfyRoutes } from '@/routes/ntfy';
 import { unifiedPushRoutes } from '@/routes/unifiedpush';
 import { logError, logInfo, logWarn } from '@/utils/log';
 
@@ -30,12 +30,18 @@ const server = Bun.serve({
   idleTimeout: 60,
 
   routes: {
-    [ROUTES.FAVICON]: Bun.file('public/favicon.png'),
-    [ROUTES.HTMX]: Bun.file('node_modules/htmx.org/dist/htmx.min.js'),
+    '/favicon.png': {
+      GET: () => new Response(Bun.file('public/favicon.png')),
+    },
+    '/htmx.js': {
+      GET: () => new Response(Bun.file('node_modules/htmx.org/dist/htmx.min.js')),
+    },
 
     ...adminRoutes,
 
     ...unifiedPushRoutes,
+
+    ...ntfyRoutes,
   },
 });
 

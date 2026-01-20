@@ -153,6 +153,11 @@ export async function startDaemon() {
   let authError = false;
   let cleaned = false;
 
+  if (daemon && !daemon.killed) {
+    daemon.kill();
+    await Bun.sleep(500);
+  }
+
   try {
     await unlink(SIGNAL_CLI_SOCKET);
     logVerbose('Removed stale socket file');

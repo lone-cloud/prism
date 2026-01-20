@@ -1,4 +1,3 @@
-import { ROUTES } from '@/constants/server';
 import { createGroup, sendGroupMessage } from '@/modules/signal';
 import { getGroupId, register, remove } from '@/modules/store';
 import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unifiedpush';
@@ -34,7 +33,7 @@ const handleRegister = async (req: Request) => {
   const proto = req.headers.get('x-forwarded-proto') || 'http';
   const host = req.headers.get('host') || 'localhost:8080';
   const baseUrl = `${proto}://${host}`;
-  const endpoint = `${baseUrl}${ROUTES.MATRIX_NOTIFY}/${endpointId}`;
+  const endpoint = `${baseUrl}/_matrix/push/v1/notify/${endpointId}`;
 
   return Response.json({ endpoint, gateway: 'matrix' });
 };
@@ -53,15 +52,15 @@ const handleDiscovery = () =>
   });
 
 export const unifiedPushRoutes = {
-  [ROUTES.UP]: {
+  '/up': {
     GET: handleDiscovery,
   },
 
-  [ROUTES.MATRIX_NOTIFY]: {
+  '/_matrix/push/v1/notify': {
     POST: handleMatrixNotify,
   },
 
-  [ROUTES.UP_INSTANCE]: {
+  '/up/:instance': {
     POST: handleRegister,
     DELETE: handleUnregister,
   },

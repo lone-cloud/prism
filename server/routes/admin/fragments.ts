@@ -12,8 +12,9 @@ import {
   unlinkDevice,
 } from '@/modules/signal';
 import { getAllMappings } from '@/modules/store';
+import { withAuth } from '@/utils/auth';
 
-export const handleHealthFragment = async () => {
+const handleHealthFragment = async () => {
   const signalOk = await checkSignalCli();
   const linked = signalOk && (await hasValidAccount());
   const imap = isImapConnected();
@@ -27,7 +28,7 @@ export const handleHealthFragment = async () => {
         Account: ${linked ? 'Linked' : 'Unlinked'}
       </div>
       <div class="status-item ${imap ? 'status-ok' : 'status-error'}">
-        IMAP: ${imap ? 'Connected' : 'Disconnected'}
+        ProtonMail: ${imap ? 'Connected' : 'Disconnected'}
       </div>
     </div>
   `;
@@ -37,7 +38,7 @@ export const handleHealthFragment = async () => {
   });
 };
 
-export const handleSignalInfoFragment = async () => {
+const handleSignalInfoFragment = async () => {
   const linked = await hasValidAccount();
 
   const html = linked
@@ -63,7 +64,7 @@ export const handleSignalInfoFragment = async () => {
   });
 };
 
-export const handleEndpointsFragment = async () => {
+const handleEndpointsFragment = async () => {
   const endpoints = getAllMappings();
 
   if (endpoints.length === 0) {
@@ -83,7 +84,7 @@ export const handleEndpointsFragment = async () => {
   });
 };
 
-export const handleQRSection = async () => {
+const handleQRSection = async () => {
   const html = `
     <p>Scan this QR code with your Signal app:</p>
     <p style="font-size: 1.05em;"><strong>Settings → Linked Devices → Link New Device</strong></p>
@@ -103,7 +104,7 @@ export const handleQRSection = async () => {
   });
 };
 
-export const handleQRImage = async () => {
+const handleQRImage = async () => {
   const linked = await hasValidAccount();
   if (!linked && (await Bun.file(SIGNAL_CLI_DATA).exists())) {
     await unlinkDevice();
@@ -118,7 +119,7 @@ export const handleQRImage = async () => {
   });
 };
 
-export const handleLinkStatusCheck = async () => {
+const handleLinkStatusCheck = async () => {
   let linked = await hasValidAccount();
 
   if (!linked && hasLinkUri()) {
@@ -143,4 +144,30 @@ export const handleLinkStatusCheck = async () => {
   return new Response('', {
     headers: { 'content-type': 'text/html' },
   });
+};
+
+export const fragmentRoutes = {
+  '/health/fragment': {
+    GET: withAuth(handleHealthFragment),
+  },
+
+  '/signal-info/fragment': {
+    GET: withAuth(handleSignalInfoFragment),
+  },
+
+  '/endpoints/fragment': {
+    GET: withAuth(handleEndpointsFragment),
+  },
+
+  '/link/qr-section': {
+    GET: withAuth(handleQRSection),
+  },
+
+  '/link/qr-image': {
+    GET: withAuth(handleQRImage),
+  },
+
+  '/link/status-check': {
+    GET: withAuth(handleLinkStatusCheck),
+  },
 };
