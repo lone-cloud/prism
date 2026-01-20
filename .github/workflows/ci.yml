@@ -27,7 +27,7 @@ jobs:
         run: bun install && cd server && bun install
 
       - name: Lint and type check
-        run: bun run check
+        run: cd server && bun run check
 
       - name: Build server
         run: cd server && bun run build
