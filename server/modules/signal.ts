@@ -1,31 +1,47 @@
 import { rm, unlink } from 'node:fs/promises';
-import { DEVICE_NAME, VERBOSE } from '../constants/config';
-import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '../constants/paths';
-import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '../types';
-import { logError, logInfo, logSuccess, logVerbose, logWarn } from '../utils/log';
-import { call } from '../utils/rpc';
-
-logVerbose(`Running signal-cli from ${SIGNAL_CLI}`);
+import { DEVICE_NAME, PORT, VERBOSE } from '@/constants/config';
+import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
+import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '@/types';
+import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
+import { call } from '@/utils/rpc';
 
 let account: string | null = null;
 let currentLinkUri: string | null = null;
+let daemon: ReturnType<typeof Bun.spawn> | null = null;
 
 export const hasLinkUri = () => currentLinkUri !== null;
 
-export async function initSignal({ accountOverride }: { accountOverride?: string }) {
+export async function initSignal({ accountOverride }: { accountOverride?: string } = {}) {
+  await startDaemon();
+
+  const isLinked = await checkSignalCli();
+
+  if (!isLinked) {
+    logWarn('No Signal account linked');
+    logInfo(`Visit http://localhost:${PORT} to link your device`);
+    return { linked: false, account: null };
+  }
+
   if (accountOverride) {
     account = accountOverride;
-    return true;
+    logVerbose(`Signal account set: ${account}`);
+    logSuccess('Signal account linked');
+    return { linked: true, account };
   }
 
-  const result = (await call('listAccounts', {}, account)) as ListAccountsResult;
+  const result = (await call('listAccounts', {}, null)) as ListAccountsResult;
   const [firstAccount] = result;
   if (firstAccount) {
-    account = firstAccount;
-    return true;
+    account = firstAccount.number;
+    logVerbose(`Signal account initialized: ${account}`);
+    logSuccess('Signal account linked');
+    return { linked: true, account };
   }
 
-  return false;
+  logVerbose('No Signal accounts found');
+  logWarn('No Signal account linked');
+  logInfo(`Visit http://localhost:${PORT} to link your device`);
+  return { linked: false, account: null };
 }
 
 export async function generateLinkQR() {
@@ -71,12 +87,13 @@ export async function unlinkDevice() {
   currentLinkUri = null;
 
   if (await Bun.file(SIGNAL_CLI_DATA).exists()) {
-    logWarn('Unlinking device and removing account data...');
+    logWarn('Removing local account data...');
 
     try {
       await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
+      logSuccess('Account data removed');
     } catch (error) {
-      logWarn('Failed to remove account data directory:', error);
+      logError('Failed to remove account data directory:', error);
     }
   }
 }
@@ -98,12 +115,17 @@ export async function createGroup(name: string, members: string[] = []) {
   return result.groupId;
 }
 
-export async function sendGroupMessage(groupId: string, message: string) {
+export async function sendGroupMessage(
+  groupId: string,
+  message: string,
+  { notifySelf = true }: { notifySelf?: boolean } = {},
+) {
   await call(
     'send',
     {
       groupId,
       message,
+      'notify-self': notifySelf,
     },
     account,
   );
@@ -134,8 +156,8 @@ export async function startDaemon() {
   try {
     await unlink(SIGNAL_CLI_SOCKET);
     logVerbose('Removed stale socket file');
-  } catch (error: any) {
-    if (error.code !== 'ENOENT') {
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
       logError('Failed to remove stale socket file:', error);
     }
   }
@@ -194,6 +216,7 @@ export async function startDaemon() {
     });
     socket.end();
     logSuccess('signal-cli daemon started');
+    daemon = proc;
     return proc;
   } catch (error) {
     if (authError && !cleaned) {
@@ -211,3 +234,13 @@ export async function startDaemon() {
     throw new Error('Failed to start signal-cli daemon');
   }
 }
+
+export async function restartDaemon() {
+  if (daemon) {
+    daemon.kill();
+    await Bun.sleep(500);
+  }
+  daemon = await startDaemon();
+}
+
+export const cleanupDaemon = () => daemon?.kill();

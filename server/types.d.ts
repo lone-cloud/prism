@@ -27,4 +27,10 @@ export interface UpdateGroupResult {
   groupId: string;
 }
 
-export type ListAccountsResult = string[];
+export interface AccountInfo {
+  number: string;
+  name?: string;
+  uuid?: string;
+}
+
+export type ListAccountsResult = AccountInfo[];

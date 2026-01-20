@@ -22,6 +22,8 @@ services:
   protonmail-bridge:
     image: shenxn/protonmail-bridge:build
     profiles: ['protonmail']
+    ports:
+      - '127.0.0.1:143:143'
     volumes:
       - proton-bridge-data:/root
       - /tmp/bridge-updates:/root/.local/share/protonmail/bridge-v3/updates:ro

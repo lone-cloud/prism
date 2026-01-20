@@ -7,5 +7,4 @@ export const SIGNAL_CLI_SOCKET = '/tmp/signal-cli.sock';
 export const SIGNAL_CLI_DATA_DIR = `${HOME}/.local/share/signal-cli`;
 export const SIGNAL_CLI_DATA = `${HOME}/.local/share/signal-cli/data`;
 
-export const SUP_DATA_DIR = `${HOME}/.local/share/sup`;
 export const SUP_DB = `${HOME}/.local/share/sup/store.db`;

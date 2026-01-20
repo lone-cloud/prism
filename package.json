@@ -14,8 +14,6 @@
     "url": "https://github.com/lone-cloud/sup"
   },
   "scripts": {
-    "check": "tsc --noEmit && biome check .",
-    "fix": "biome check --write .",
     "android:build": "bun run scripts/test-android-build.ts",
     "android:release": "bun run scripts/release-android.ts",
     "android:deps": "bun run scripts/check-android-deps.ts",

@@ -1,9 +1,9 @@
-import { ROUTES } from '../constants/server';
-import { createGroup, sendGroupMessage } from '../modules/signal';
-import { getAllMappings, getGroupId, register, remove } from '../modules/store';
-import { formatAsSignalMessage, parseUnifiedPushRequest } from '../modules/unifiedpush';
+import { ROUTES } from '@/constants/server';
+import { createGroup, sendGroupMessage } from '@/modules/signal';
+import { getGroupId, register, remove } from '@/modules/store';
+import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unifiedpush';
 
-export const handleMatrixNotify = async (req: Request) => {
+const handleMatrixNotify = async (req: Request) => {
   const message = await parseUnifiedPushRequest(req);
   const groupId = getGroupId(message.endpoint);
 
@@ -17,7 +17,8 @@ export const handleMatrixNotify = async (req: Request) => {
   return Response.json({ success: true });
 };
 
-export const handleRegister = async (req: Request, url: URL) => {
+const handleRegister = async (req: Request) => {
+  const url = new URL(req.url);
   const endpointId = url.pathname.split('/')[2] ?? '';
   const { appName } = (await req.json()) as {
     appName: string;
@@ -38,16 +39,30 @@ export const handleRegister = async (req: Request, url: URL) => {
   return Response.json({ endpoint, gateway: 'matrix' });
 };
 
-export const handleUnregister = async (url: URL) => {
+const handleUnregister = async (req: Request) => {
+  const url = new URL(req.url);
   const endpointId = url.pathname.split('/')[2] ?? '';
   remove(endpointId);
   return new Response(null, { status: 204 });
 };
 
-export const handleDiscovery = () =>
+const handleDiscovery = () =>
   Response.json({
     unifiedpush: { version: 1 },
     gateway: 'matrix',
   });
 
-export const handleEndpoints = () => Response.json(getAllMappings());
+export const unifiedPushRoutes = {
+  [ROUTES.UP]: {
+    GET: handleDiscovery,
+  },
+
+  [ROUTES.MATRIX_NOTIFY]: {
+    POST: handleMatrixNotify,
+  },
+
+  [ROUTES.UP_INSTANCE]: {
+    POST: handleRegister,
+    DELETE: handleUnregister,
+  },
+};

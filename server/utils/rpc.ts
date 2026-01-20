@@ -1,4 +1,4 @@
-import { SIGNAL_CLI_SOCKET } from '../constants/paths';
+import { SIGNAL_CLI_SOCKET } from '@/constants/paths';
 
 const MESSAGE_DELIMITER = '\n';
 let rpcId = 1;

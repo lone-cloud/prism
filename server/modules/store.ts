@@ -1,13 +1,11 @@
 import { Database } from 'bun:sqlite';
-import { SUP_DATA_DIR, SUP_DB } from '../constants/paths';
+import { SUP_DB } from '@/constants/paths';
 
 interface EndpointMapping {
   endpoint: string;
   groupId: string;
   appName: string;
 }
-
-await Bun.write(`${SUP_DATA_DIR}/.keep`, '');
 
 const db = new Database(SUP_DB);
 
@@ -41,9 +39,8 @@ export const getAppName = (endpoint: string) => {
   return row?.appName;
 };
 
-export const getAllMappings = () => {
-  return db.query('SELECT endpoint, groupId, appName FROM mappings').all() as EndpointMapping[];
-};
+export const getAllMappings = () =>
+  db.query('SELECT endpoint, groupId, appName FROM mappings').all() as EndpointMapping[];
 
 export const remove = (endpoint: string) => {
   db.run('DELETE FROM mappings WHERE endpoint = ?', [endpoint]);

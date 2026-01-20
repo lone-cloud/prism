@@ -7,10 +7,14 @@ import {
   PROTON_BRIDGE_HOST,
   PROTON_BRIDGE_PORT,
   SUP_TOPIC,
-} from '../constants/config';
-import { logError, logInfo, logSuccess, logVerbose, logWarn } from '../utils/log';
-import { createGroup, sendGroupMessage } from './signal';
-import { getGroupId, register } from './store';
+} from '@/constants/config';
+import { createGroup, hasValidAccount, sendGroupMessage } from '@/modules/signal';
+import { getGroupId, register } from '@/modules/store';
+import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
+
+let imapConnected = false;
+
+export const isImapConnected = () => imapConnected;
 
 export async function startProtonMonitor() {
   if (!BRIDGE_IMAP_USERNAME || !BRIDGE_IMAP_PASSWORD) {
@@ -20,20 +24,31 @@ export async function startProtonMonitor() {
     return;
   }
 
-  logInfo(`🔗 Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
-  logInfo(`📨 Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`);
+  const linked = await hasValidAccount();
+  if (!linked) {
+    logWarn('Signal account not linked. ProtonMail notifications will be skipped.');
+    logWarn('Link your Signal account at /link to enable email notifications.');
+  }
+
+  logInfo(`Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
+  logInfo(`Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`);
 
   const imap = new Imap({
     user: BRIDGE_IMAP_USERNAME,
     password: BRIDGE_IMAP_PASSWORD,
     host: PROTON_BRIDGE_HOST,
     port: PROTON_BRIDGE_PORT,
-    tls: true,
+    tls: false,
     tlsOptions: { rejectUnauthorized: false },
     keepalive: true,
   });
 
   async function sendNotification(title: string, message: string) {
+    if (!(await hasValidAccount())) {
+      logVerbose('Skipping notification (Signal not linked)');
+      return;
+    }
+
     try {
       const topicKey = `proton-${SUP_TOPIC}`;
       const groupId = getGroupId(topicKey) ?? (await createGroup(SUP_TOPIC));
@@ -42,12 +57,16 @@ export async function startProtonMonitor() {
         register(topicKey, groupId, SUP_TOPIC);
       }
 
-      const prefix = ENABLE_PROTON_ANDROID
-        ? `${LAUNCH_ENDPOINT_PREFIX}ch.protonmail.android]\n`
-        : '';
-      await sendGroupMessage(groupId, `${prefix}**${title}**\n${message}`);
+      if (ENABLE_PROTON_ANDROID) {
+        await sendGroupMessage(
+          groupId,
+          `${LAUNCH_ENDPOINT_PREFIX}ch.protonmail.android]\n**${title}**\n${message}`,
+        );
+      } else {
+        await sendGroupMessage(groupId, `${title}\n${message}`);
+      }
 
-      logSuccess(`Notification sent: ${title}`);
+      logVerbose(`Notification sent: ${title}`);
     } catch (error) {
       logError('Failed to send notification:', error);
     }
@@ -60,10 +79,8 @@ export async function startProtonMonitor() {
         return;
       }
 
-      logVerbose(`Connected to inbox (${box.messages.total} messages)`);
-
       imap.on('mail', async (numNewMsgs: number) => {
-        logVerbose(`📬 ${numNewMsgs} new message(s) received`);
+        logVerbose(`${numNewMsgs} new message(s) received`);
 
         const fetch = imap.seq.fetch(`${box.messages.total}:*`, {
           bodies: 'HEADER.FIELDS (FROM SUBJECT)',
@@ -78,34 +95,39 @@ export async function startProtonMonitor() {
             });
             stream.once('end', () => {
               const header = Imap.parseHeader(buffer);
-              const from = header.from?.[0] || 'Unknown sender';
+              const rawFrom = header.from?.[0] || 'Unknown sender';
               const subject = header.subject?.[0] || 'No subject';
 
-              sendNotification(`New Mail from ${from}`, subject);
+              const nameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<?/);
+              const from = nameMatch ? nameMatch[1]?.trim() : rawFrom;
+
+              sendNotification('New Email Received', `From: ${from} - ${subject}`);
             });
           });
         });
       });
-
-      imap.on('update', () => {
-        logVerbose('📊 Mailbox updated');
-      });
     });
   }
 
-  imap.once('ready', () => {
-    logVerbose('IMAP connection ready');
+  imap.on('ready', () => {
+    imapConnected = true;
+    logSuccess('IMAP is ready');
     openInbox();
   });
 
-  imap.once('error', (err: Error) => {
-    logError('IMAP error:', err);
-    logWarn('ProtonMail integration disabled due to connection error');
+  imap.on('error', (err: Error) => {
+    imapConnected = false;
+    logError('IMAP error:', err.message);
   });
 
-  imap.once('end', () => {
-    logVerbose('IMAP connection ended, reconnecting...');
-    setTimeout(() => imap.connect(), 5000);
+  imap.on('close', (hadError: boolean) => {
+    imapConnected = false;
+    logError(`IMAP connection closed (hadError: ${hadError})`);
+  });
+
+  imap.on('end', () => {
+    imapConnected = false;
+    logError('IMAP connection ended by server');
   });
 
   imap.connect();

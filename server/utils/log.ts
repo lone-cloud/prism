@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { VERBOSE } from '../constants/config';
+import { VERBOSE } from '@/constants/config';
 
 export const logVerbose = (...args: unknown[]) => VERBOSE && console.log(...args);
 

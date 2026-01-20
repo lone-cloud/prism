@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SUP Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/admin.css">
+  <script src="/htmx.js"></script>
+</head>
+<body hx-headers='{"Authorization": "Bearer __API_KEY__"}'>
+  <div class="card">
+    <div id="health-status" 
+         hx-get="/health/fragment" 
+         hx-trigger="load, every 10s"
+         class="loading">
+      Loading...
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Signal</h2>
+    <div id="signal-info" 
+         hx-get="/signal-info/fragment" 
+         hx-trigger="load">
+      Loading...
+    </div>
+    <div id="qr-section"></div>
+  </div>
+
+  <div class="card">
+    <h2>Endpoints</h2>
+    <div id="endpoints-list" 
+         hx-get="/endpoints/fragment" 
+         hx-trigger="load"
+         class="loading">
+      Loading...
+    </div>
+  </div>
+
+  <script>
+    let apiKey = sessionStorage.getItem('sup_api_key');
+    if (!apiKey) {
+      apiKey = prompt('Enter API_KEY:');
+      if (!apiKey) {
+        document.body.innerHTML = '<div class="card"><h1>Access Denied</h1><p>API_KEY required</p></div>';
+      } else {
+        sessionStorage.setItem('sup_api_key', apiKey);
+      }
+    }
+
+    if (apiKey) {
+      const authHeader = JSON.stringify({ 'Authorization': `Bearer ${apiKey}` });
+      document.body.setAttribute('hx-headers', authHeader);
+      
+      document.body.addEventListener('htmx:responseError', (e) => {
+        if (e.detail.xhr.status === 401) {
+          sessionStorage.removeItem('sup_api_key');
+          alert('Invalid API_KEY. Please refresh and try again.');
+          location.reload();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

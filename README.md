@@ -70,7 +70,6 @@ To receive ProtonMail notifications via Signal:
    - Enter your ProtonMail email
    - Enter your ProtonMail password
    - Enter your 2FA code
-   - Wait (potentially a long time) for ProtonMail Bridge to sync emails
 
 3. **Get IMAP credentials**:
    - Run: `info`
@@ -111,6 +110,12 @@ Then build and run with docker-compose.dev.yml:
 
 ```bash
 docker compose --profile protonmail -f docker-compose.dev.yml up -d
+```
+
+or just the proton-bridge:
+
+```bash
+docker compose -f docker-compose.dev.yml up protonmail-bridge
 ```
 
 Or run services directly with Bun:

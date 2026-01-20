@@ -35,7 +35,7 @@ RUN ARCH=$(uname -m) && \
     fi
 
 COPY --from=builder /app/sup-server /usr/local/bin/sup-server
-COPY --from=builder /app/templates /templates
+COPY --from=builder /app/public /public
 
 ENV PATH="/usr/local/signal-cli/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/signal-cli/lib:${LD_LIBRARY_PATH}"

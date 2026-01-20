@@ -8,6 +8,7 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "chalk": "^5.6.2",
+    "htmx.org": "^2.0.8",
     "imap": "^0.8.19"
   },
   "devDependencies": {
@@ -19,6 +20,6 @@
     "start": "bun run index.ts",
     "build": "bun build --compile index.ts --outfile sup-server",
     "check": "tsc --noEmit && biome check .",
-    "fix": "biome check --write ."
+    "fix": "biome check --write --unsafe ."
   }
 }

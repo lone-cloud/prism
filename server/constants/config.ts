@@ -7,7 +7,6 @@ export const DEVICE_NAME = 'SUP';
 export const SUP_ENDPOINT_PREFIX = `[${DEVICE_NAME}:`;
 export const LAUNCH_ENDPOINT_PREFIX = '[LAUNCH:';
 
-// ProtonMail Integration
 export const BRIDGE_IMAP_USERNAME = Bun.env.BRIDGE_IMAP_USERNAME;
 export const BRIDGE_IMAP_PASSWORD = Bun.env.BRIDGE_IMAP_PASSWORD;
 export const PROTON_BRIDGE_HOST = Bun.env.PROTON_BRIDGE_HOST || 'protonmail-bridge';

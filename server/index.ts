@@ -1,39 +1,18 @@
-import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from './constants/config';
-import { ROUTES } from './constants/server';
-import { checkSignalCli, initSignal, startDaemon } from './modules/signal';
-import { handleHealth } from './routes/health';
-import { handleLink, handleLinkQR, handleLinkStatus, handleUnlink } from './routes/link';
-import { handleNotify, handleTopics } from './routes/notify';
-import {
-  handleDiscovery,
-  handleEndpoints,
-  handleMatrixNotify,
-  handleRegister,
-  handleUnregister,
-} from './routes/unifiedpush';
-import { withAuth, withFormAuth } from './utils/auth';
-import { logError, logInfo, logSuccess, logWarn } from './utils/log';
-
-let daemon: ReturnType<typeof Bun.spawn> | null = null;
+import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from '@/constants/config';
+import { ROUTES } from '@/constants/server';
+import { cleanupDaemon, initSignal } from '@/modules/signal';
+import { adminRoutes } from '@/routes/admin/index';
+import { unifiedPushRoutes } from '@/routes/unifiedpush';
+import { logError, logInfo, logWarn } from '@/utils/log';
 
 try {
-  daemon = await startDaemon();
-  const isLinked = await checkSignalCli();
-  const hasAccount = isLinked && (await initSignal({}));
-
-  if (hasAccount) {
-    logSuccess('Signal account linked');
-  } else {
-    logWarn('No Signal account linked');
-    logInfo(`Visit http://localhost:${PORT}/link to link your device`);
-  }
+  await initSignal();
 } catch (error) {
-  logError(`  ${error instanceof Error ? error.message : String(error)}`);
+  logError(`${error instanceof Error ? error.message : String(error)}`);
 }
 
 if (!API_KEY) {
   logWarn('Server running without API_KEY');
-  console.warn('Set API_KEY env var for production deployments.');
 }
 
 if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
@@ -51,60 +30,23 @@ const server = Bun.serve({
   idleTimeout: 60,
 
   routes: {
-    [ROUTES.FAVICON]: Bun.file('assets/favicon.png'),
+    [ROUTES.FAVICON]: Bun.file('public/favicon.png'),
+    [ROUTES.HTMX]: Bun.file('node_modules/htmx.org/dist/htmx.min.js'),
 
-    [ROUTES.HEALTH]: handleHealth,
+    ...adminRoutes,
 
-    [ROUTES.LINK]: {
-      GET: handleLink,
-    },
-
-    [ROUTES.LINK_QR]: {
-      GET: () =>
-        handleLinkQR(async () => {
-          daemon?.kill();
-          daemon = await startDaemon();
-        }),
-    },
-
-    [ROUTES.LINK_STATUS]: {
-      GET: handleLinkStatus,
-    },
-
-    [ROUTES.LINK_UNLINK]: {
-      POST: withFormAuth(() =>
-        handleUnlink(async () => {
-          daemon?.kill();
-          daemon = await startDaemon();
-        }),
-      ),
-    },
-
-    [ROUTES.UP]: {
-      GET: handleDiscovery,
-    },
-
-    [ROUTES.ENDPOINTS]: {
-      GET: withAuth(handleEndpoints),
-    },
-
-    [ROUTES.TOPICS]: {
-      GET: withAuth(handleTopics),
-    },
-
-    [ROUTES.MATRIX_NOTIFY]: {
-      POST: handleMatrixNotify,
-    },
-
-    [ROUTES.UP_INSTANCE]: {
-      POST: withAuth((req) => handleRegister(req, new URL(req.url))),
-      DELETE: withAuth((req) => handleUnregister(new URL(req.url))),
-    },
-
-    [ROUTES.NOTIFY_TOPIC]: {
-      POST: withAuth((req) => handleNotify(req, new URL(req.url))),
-    },
+    ...unifiedPushRoutes,
   },
 });
 
 logInfo(`\nSUP running on http://localhost:${server.port} 🚀`);
+
+process.on('SIGINT', () => {
+  cleanupDaemon();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  cleanupDaemon();
+  process.exit(0);
+});
