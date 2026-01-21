@@ -1,5 +1,11 @@
 import { rm, unlink } from 'node:fs/promises';
-import { DEVICE_NAME, PORT, VERBOSE } from '@/constants/config';
+import {
+  DEVICE_NAME,
+  ENABLE_ANDROID_INTEGRATION,
+  LAUNCH_ENDPOINT_PREFIX,
+  PORT,
+  VERBOSE,
+} from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '@/types';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
@@ -118,14 +124,23 @@ export async function createGroup(name: string, members: string[] = []) {
 export async function sendGroupMessage(
   groupId: string,
   message: string,
-  { notifySelf = true }: { notifySelf?: boolean } = {},
+  options?: { androidPackage?: string; title?: string },
 ) {
+  let formattedMessage = message;
+
+  if (ENABLE_ANDROID_INTEGRATION && options?.androidPackage) {
+    const title = options.title ? `**${options.title}**\n` : '';
+    formattedMessage = `${LAUNCH_ENDPOINT_PREFIX}${options.androidPackage}]\n${title}${message}`;
+  } else if (options?.title) {
+    formattedMessage = `${options.title}\n${message}`;
+  }
+
   await call(
     'send',
     {
       groupId,
-      message,
-      'notify-self': notifySelf,
+      message: formattedMessage,
+      'notify-self': true,
     },
     account,
   );

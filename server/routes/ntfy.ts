@@ -6,18 +6,28 @@ import { logError, logVerbose } from '@/utils/log';
 const handleNtfyPublish = async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const topic = url.pathname.slice(1);
+    const topic = decodeURIComponent(url.pathname.slice(1));
 
     if (!topic || topic.includes('/')) {
       return new Response('Invalid topic', { status: 400 });
     }
 
-    const body = await req.text();
-    if (!body) {
+    let message = await req.text();
+    if (!message) {
       return new Response('Message required', { status: 400 });
     }
 
-    const title = req.headers.get('X-Title') || req.headers.get('Title') || req.headers.get('t');
+    const contentType = req.headers.get('content-type') || '';
+    let title = req.headers.get('X-Title') || req.headers.get('Title') || req.headers.get('t');
+    let androidPackage =
+      req.headers.get('X-Package') || req.headers.get('Package') || req.headers.get('p');
+
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      const params = new URLSearchParams(message);
+      message = params.get('message') || message;
+      title = title || params.get('title') || params.get('t');
+      androidPackage = androidPackage || params.get('package') || params.get('p');
+    }
 
     const topicKey = `ntfy-${topic}`;
     let groupId = getGroupId(topicKey);
@@ -28,11 +38,12 @@ const handleNtfyPublish = async (req: Request) => {
       logVerbose(`Created new group for ntfy topic: ${topic}`);
     }
 
-    const message = title ? `**${title}**\n${body}` : body;
+    await sendGroupMessage(groupId, message, {
+      androidPackage: androidPackage || undefined,
+      title: title || undefined,
+    });
 
-    await sendGroupMessage(groupId, message);
-
-    logVerbose(`Sent ntfy message to topic ${topic}: ${title || body.substring(0, 50)}`);
+    logVerbose(`Sent ntfy message to topic ${topic}: ${title || message.substring(0, 50)}`);
 
     return new Response(
       JSON.stringify({
@@ -40,7 +51,7 @@ const handleNtfyPublish = async (req: Request) => {
         time: Math.floor(Date.now() / 1000),
         event: 'message',
         topic,
-        message: body,
+        message,
       }),
       {
         status: 200,

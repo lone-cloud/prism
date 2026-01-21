@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { API_KEY } from '@/constants/config';
+import { ALLOW_INSECURE_HTTP, API_KEY } from '@/constants/config';
 import { logWarn } from '@/utils/log';
 
 // Rate limiing: track failed auth attempts per IP
@@ -57,21 +57,33 @@ const checkAuth = (req: Request) => {
   const host = req.headers.get('host') || '';
   const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
 
-  if (proto !== 'https' && !isLocalhost) {
-    return new Response('HTTPS required when API_KEY is configured', { status: 403 });
+  if (proto !== 'https' && !isLocalhost && !ALLOW_INSECURE_HTTP) {
+    return new Response('HTTPS required when API_KEY is configured', {
+      status: 426,
+      headers: { Upgrade: 'TLS/1.2, HTTP/1.1' },
+    });
   }
 
   const authHeader = req.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
     recordFailedAttempt(clientIP);
-    return new Response(null, { status: 401 });
+    return new Response(null, {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Basic realm="SUP Admin - Username: any, Password: API_KEY"' },
+    });
   }
 
-  const providedKey = authHeader.slice(7);
+  const base64Credentials = authHeader.slice(6);
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+  const [, password] = credentials.split(':');
+  const providedKey = password || '';
 
   if (providedKey.length !== API_KEY.length) {
     recordFailedAttempt(clientIP);
-    return new Response(null, { status: 401 });
+    return new Response(null, {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Basic realm="SUP Admin - Username: any, Password: API_KEY"' },
+    });
   }
 
   const providedBuffer = Buffer.from(providedKey);
@@ -79,7 +91,10 @@ const checkAuth = (req: Request) => {
 
   if (!timingSafeEqual(providedBuffer, keyBuffer)) {
     recordFailedAttempt(clientIP);
-    return new Response(null, { status: 401 });
+    return new Response(null, {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Basic realm="SUP Admin - Username: any, Password: API_KEY"' },
+    });
   }
 
   failedAttempts.delete(clientIP);
