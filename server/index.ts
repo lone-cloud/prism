@@ -42,6 +42,12 @@ const server = Bun.serve({
     '/favicon.webp': {
       GET: () => new Response(Bun.file(`${PUBLIC_DIR}/favicon.webp`)),
     },
+    '/icon-512.webp': {
+      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/icon-512.webp`)),
+    },
+    '/manifest.json': {
+      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/manifest.json`)),
+    },
     '/htmx.js': {
       GET: async (req) =>
         maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/htmx.min.js`).text(), 'text/javascript'),

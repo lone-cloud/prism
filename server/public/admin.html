@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>SUP Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#8159b8">
   <link rel="icon" type="image/webp" href="/favicon.webp">
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/admin.css">
   <script src="/htmx.js"></script>
 </head>
@@ -22,10 +24,13 @@
     <h2>Signal</h2>
     <div id="signal-info" 
          hx-get="/signal-info/fragment" 
-         hx-trigger="load">
+         hx-trigger="load, accountLinked from:body">
       Loading...
     </div>
-    <div id="qr-section"></div>
+    <div id="qr-section"
+         hx-get="/signal-info/fragment"
+         hx-trigger="accountLinked from:body"
+         hx-swap="none"></div>
   </div>
 
   <div class="card">
