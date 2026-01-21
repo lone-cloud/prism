@@ -6,8 +6,8 @@ import {
   PROTON_BRIDGE_PORT,
   SUP_TOPIC,
 } from '@/constants/config';
-import { createGroup, hasValidAccount, sendGroupMessage } from '@/modules/signal';
-import { getGroupId, register } from '@/modules/store';
+import { hasValidAccount, sendGroupMessage } from '@/modules/signal';
+import { getOrCreateGroup } from '@/modules/store';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 
 let imapConnected = false;
@@ -41,26 +41,21 @@ export async function startProtonMonitor() {
     keepalive: true,
   });
 
-  async function sendNotification(title: string, message: string) {
+  async function sendNotification(from: string, subject: string) {
     if (!(await hasValidAccount())) {
       logVerbose('Skipping notification (Signal not linked)');
       return;
     }
 
     try {
-      const topicKey = `proton-${SUP_TOPIC}`;
-      const groupId = getGroupId(topicKey) ?? (await createGroup(SUP_TOPIC));
+      const groupId = await getOrCreateGroup(`proton-${SUP_TOPIC}`, SUP_TOPIC);
 
-      if (!getGroupId(topicKey)) {
-        register(topicKey, groupId, SUP_TOPIC);
-      }
-
-      await sendGroupMessage(groupId, message, {
+      await sendGroupMessage(groupId, subject, {
         androidPackage: 'ch.protonmail.android',
-        title,
+        title: from,
       });
 
-      logVerbose(`Notification sent: ${title}`);
+      logVerbose(`Email from ${from}: ${subject}`);
     } catch (error) {
       logError('Failed to send notification:', error);
     }
@@ -93,9 +88,9 @@ export async function startProtonMonitor() {
               const subject = header.subject?.[0] || 'No subject';
 
               const nameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<?/);
-              const from = nameMatch ? nameMatch[1]?.trim() : rawFrom;
+              const from = nameMatch?.[1]?.trim() || rawFrom;
 
-              sendNotification(`From: ${from}`, subject);
+              sendNotification(from, subject);
             });
           });
         });

@@ -1,5 +1,5 @@
-import { createGroup, sendGroupMessage } from '@/modules/signal';
-import { getGroupId, register, remove } from '@/modules/store';
+import { sendGroupMessage } from '@/modules/signal';
+import { getGroupId, getOrCreateGroup, remove } from '@/modules/store';
 import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unifiedpush';
 
 const handleMatrixNotify = async (req: Request) => {
@@ -24,11 +24,7 @@ const handleRegister = async (req: Request) => {
     token?: string;
   };
 
-  const groupId: string = getGroupId(endpointId) ?? (await createGroup(appName));
-
-  if (!getGroupId(endpointId)) {
-    register(endpointId, groupId, appName);
-  }
+  await getOrCreateGroup(endpointId, appName);
 
   const proto = req.headers.get('x-forwarded-proto') || 'http';
   const host = req.headers.get('host') || 'localhost:8080';

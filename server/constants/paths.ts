@@ -8,3 +8,5 @@ export const SIGNAL_CLI_DATA_DIR = `${HOME}/.local/share/signal-cli`;
 export const SIGNAL_CLI_DATA = `${HOME}/.local/share/signal-cli/data`;
 
 export const SUP_DB = `${HOME}/.local/share/sup/store.db`;
+
+export const PUBLIC_DIR = (await Bun.file('public/favicon.webp').exists()) ? 'public' : '/public';

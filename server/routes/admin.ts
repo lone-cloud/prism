@@ -1,5 +1,5 @@
 import { DEVICE_NAME } from '@/constants/config';
-import { SIGNAL_CLI_DATA } from '@/constants/paths';
+import { PUBLIC_DIR, SIGNAL_CLI_DATA } from '@/constants/paths';
 import { isImapConnected } from '@/modules/protonmail';
 import {
   checkSignalCli,
@@ -13,6 +13,7 @@ import {
 } from '@/modules/signal';
 import { getAllMappings, remove } from '@/modules/store';
 import { withAuth } from '@/utils/auth';
+import { maybeCompress } from '@/utils/compress';
 
 export const handleHealthFragment = async () => {
   const signalOk = await checkSignalCli();
@@ -174,11 +175,15 @@ export const handleDeleteEndpoint = async (req: Request) => {
 
 export const adminRoutes = {
   '/': {
-    GET: () => new Response(Bun.file('public/admin.html')),
+    GET: withAuth(async (req: Request) =>
+      maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/admin.html`).text()),
+    ),
   },
 
   '/admin.css': {
-    GET: () => new Response(Bun.file('public/admin.css')),
+    GET: withAuth(async (req: Request) =>
+      maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/admin.css`).text(), 'text/css'),
+    ),
   },
 
   '/health/fragment': {

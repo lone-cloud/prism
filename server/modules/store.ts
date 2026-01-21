@@ -1,5 +1,6 @@
 import { Database } from 'bun:sqlite';
 import { SUP_DB } from '@/constants/paths';
+import { createGroup } from './signal';
 
 interface EndpointMapping {
   endpoint: string;
@@ -44,4 +45,13 @@ export const getAllMappings = () =>
 
 export const remove = (endpoint: string) => {
   db.run('DELETE FROM mappings WHERE endpoint = ?', [endpoint]);
+};
+
+export const getOrCreateGroup = async (key: string, name: string) => {
+  const existingGroupId = getGroupId(key);
+  if (existingGroupId) return existingGroupId;
+
+  const groupId = await createGroup(name);
+  register(key, groupId, name);
+  return groupId;
 };

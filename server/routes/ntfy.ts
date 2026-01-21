@@ -1,5 +1,5 @@
-import { createGroup, sendGroupMessage } from '@/modules/signal';
-import { getGroupId, register } from '@/modules/store';
+import { sendGroupMessage } from '@/modules/signal';
+import { getOrCreateGroup } from '@/modules/store';
 import { withAuth } from '@/utils/auth';
 import { logError, logVerbose } from '@/utils/log';
 
@@ -18,25 +18,24 @@ const handleNtfyPublish = async (req: Request) => {
     }
 
     const contentType = req.headers.get('content-type') || '';
-    let title = req.headers.get('X-Title') || req.headers.get('Title') || req.headers.get('t');
-    let androidPackage =
-      req.headers.get('X-Package') || req.headers.get('Package') || req.headers.get('p');
+    let title: string | undefined =
+      req.headers.get('X-Title') || req.headers.get('Title') || req.headers.get('t') || undefined;
+    let androidPackage: string | undefined =
+      req.headers.get('X-Package') ||
+      req.headers.get('Package') ||
+      req.headers.get('p') ||
+      undefined;
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const params = new URLSearchParams(message);
       message = params.get('message') || message;
-      title = title || params.get('title') || params.get('t');
-      androidPackage = androidPackage || params.get('package') || params.get('p');
+      title = title || params.get('title') || params.get('t') || undefined;
+      androidPackage = androidPackage || params.get('package') || params.get('p') || undefined;
     }
 
-    const topicKey = `ntfy-${topic}`;
-    let groupId = getGroupId(topicKey);
+    if (title === topic) title = undefined;
 
-    if (!groupId) {
-      groupId = await createGroup(topic);
-      register(topicKey, groupId, topic);
-      logVerbose(`Created new group for ntfy topic: ${topic}`);
-    }
+    const groupId = await getOrCreateGroup(`ntfy-${topic}`, topic);
 
     await sendGroupMessage(groupId, message, {
       androidPackage: androidPackage || undefined,

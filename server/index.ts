@@ -1,8 +1,10 @@
 import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from '@/constants/config';
+import { PUBLIC_DIR } from '@/constants/paths';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
 import { adminRoutes } from '@/routes/admin';
 import { ntfyRoutes } from '@/routes/ntfy';
 import { unifiedPushRoutes } from '@/routes/unifiedpush';
+import { maybeCompress } from '@/utils/compress';
 import { getLanIP } from '@/utils/ip';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
 
@@ -29,13 +31,20 @@ if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
 const server = Bun.serve({
   port: PORT,
   idleTimeout: 60,
+  maxRequestBodySize: 1024 * 1024, // 1MB limit
+
+  error(error) {
+    logError('Unhandled server error:', error);
+    return new Response('Internal Server Error', { status: 500 });
+  },
 
   routes: {
-    '/favicon.png': {
-      GET: () => new Response(Bun.file('public/favicon.png')),
+    '/favicon.webp': {
+      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/favicon.webp`)),
     },
     '/htmx.js': {
-      GET: () => new Response(Bun.file('public/htmx.min.js')),
+      GET: async (req) =>
+        maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/htmx.min.js`).text(), 'text/javascript'),
     },
 
     ...adminRoutes,

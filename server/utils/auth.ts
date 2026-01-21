@@ -1,20 +1,16 @@
 import { timingSafeEqual } from 'node:crypto';
 import { ALLOW_INSECURE_HTTP, API_KEY } from '@/constants/config';
+import { getClientIP, isLocalIP } from '@/utils/ip';
 import { logWarn } from '@/utils/log';
 
-// Rate limiing: track failed auth attempts per IP
+// Rate limiting: track failed auth attempts per IP
 const failedAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
-// Cloudflare Tunnel sends real IP in CF-Connecting-IP
-const getClientIP = (req: Request) =>
-  req.headers.get('cf-connecting-ip') ||
-  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-  req.headers.get('x-real-ip') ||
-  'unknown';
-
 const isRateLimited = (ip: string) => {
+  if (ALLOW_INSECURE_HTTP || isLocalIP(ip)) return false;
+
   const now = Date.now();
   const record = failedAttempts.get(ip);
 
@@ -29,6 +25,8 @@ const isRateLimited = (ip: string) => {
 };
 
 const recordFailedAttempt = (ip: string) => {
+  if (ALLOW_INSECURE_HTTP || isLocalIP(ip)) return;
+
   const now = Date.now();
   const record = failedAttempts.get(ip);
 
@@ -44,7 +42,7 @@ const recordFailedAttempt = (ip: string) => {
 
 const checkAuth = (req: Request) => {
   if (!API_KEY) {
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('API_KEY environment variable not configured', { status: 401 });
   }
 
   const clientIP = getClientIP(req);
@@ -53,15 +51,14 @@ const checkAuth = (req: Request) => {
     return new Response('Too many failed attempts. Try again later.', { status: 429 });
   }
 
-  const proto = req.headers.get('x-forwarded-proto') || 'http';
-  const host = req.headers.get('host') || '';
-  const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
-
-  if (proto !== 'https' && !isLocalhost && !ALLOW_INSECURE_HTTP) {
-    return new Response('HTTPS required when API_KEY is configured', {
-      status: 426,
-      headers: { Upgrade: 'TLS/1.2, HTTP/1.1' },
-    });
+  if (!ALLOW_INSECURE_HTTP) {
+    const proto = req.headers.get('x-forwarded-proto') || 'http';
+    if (proto !== 'https') {
+      return new Response('HTTPS required when API_KEY is configured', {
+        status: 426,
+        headers: { Upgrade: 'TLS/1.2, HTTP/1.1' },
+      });
+    }
   }
 
   const authHeader = req.headers.get('authorization');
