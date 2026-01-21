@@ -170,7 +170,7 @@ export async function startDaemon() {
 
   if (daemon && !daemon.killed) {
     daemon.kill();
-    await Bun.sleep(500);
+    await Bun.sleep(5000);
   }
 
   try {
@@ -225,7 +225,7 @@ export async function startDaemon() {
     }
   })();
 
-  await Bun.sleep(3000);
+  await Bun.sleep(5000);
 
   try {
     const socket = await Bun.connect({
@@ -240,7 +240,7 @@ export async function startDaemon() {
     return proc;
   } catch (error) {
     if (authError && !cleaned) {
-      logWarn(' Detected stale account data, cleaning up and retrying...');
+      logWarn('Detected stale account data, cleaning up and retrying...');
       proc.kill();
       await unlinkDevice();
       cleaned = true;
@@ -251,6 +251,11 @@ export async function startDaemon() {
     if (proc.exitCode !== null) {
       logError('signal-cli process exited with code:', proc.exitCode);
     }
+
+    if (authError) {
+      logError('Account authorization failed. You may need to unlink and re-link your device.');
+    }
+
     throw new Error('Failed to start signal-cli daemon');
   }
 }
@@ -258,7 +263,7 @@ export async function startDaemon() {
 export async function restartDaemon() {
   if (daemon) {
     daemon.kill();
-    await Bun.sleep(500);
+    await Bun.sleep(5000);
   }
   daemon = await startDaemon();
 }
