@@ -35,7 +35,7 @@ const server = Bun.serve({
       GET: () => new Response(Bun.file('public/favicon.png')),
     },
     '/htmx.js': {
-      GET: () => new Response(Bun.file('node_modules/htmx.org/dist/htmx.min.js')),
+      GET: () => new Response(Bun.file('public/htmx.min.js')),
     },
 
     ...adminRoutes,

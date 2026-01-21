@@ -41,6 +41,15 @@
   },
   "overrides": [
     {
+      "includes": ["server/public/htmx.min.js"],
+      "linter": {
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["scripts/**/*"],
       "linter": {
         "rules": {
