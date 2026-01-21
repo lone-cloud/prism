@@ -44,33 +44,33 @@ h6 {
 /* Styles */
 body {
   font-family: system-ui;
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
+  max-width: 50rem;
+  margin: 1.25rem auto;
+  padding: 1.25rem;
   background: #f5f5f5;
 }
 
 .card {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
 }
 
 h2 {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .status {
   display: flex;
-  gap: 15px;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .status-item {
-  padding: 10px 16px;
-  border-radius: 4px;
+  padding: 0.625rem 1rem;
+  border-radius: 0.25rem;
   font-weight: 500;
 }
 
@@ -87,26 +87,88 @@ h2 {
 .endpoint-list {
   list-style: none;
   padding: 0;
-  max-height: 300px;
+  max-height: 18.75rem;
   overflow-y: auto;
 }
 
-.endpoint-list li {
-  padding: 8px 12px;
+.endpoint-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
   background: #f8f9fa;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  font-size: 0.9em;
+  border-radius: 0.25rem;
+  margin-bottom: 0.375rem;
+}
+
+.endpoint-name {
+  font-size: 1.1em;
+  flex: 1;
+}
+
+.btn-delete {
+  padding: 0.375rem 0.75rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+}
+
+.btn-cancel {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+}
+
+.unlink-details {
+  margin-top: 1rem;
+}
+
+.unlink-summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.unlink-instructions {
+  margin-top: 1rem;
+}
+
+.unlink-instructions ol {
+  margin-left: 1.25rem;
+}
+
+.qr-instructions {
+  font-size: 1.05em;
+}
+
+.qr-container {
+  margin-top: 1rem;
+}
+
+.qr-image {
+  max-width: 18.75rem;
 }
 
 .link-button {
   display: inline-block;
-  padding: 10px 20px;
+  padding: 0.625rem 1.25rem;
   background: #007bff;
   color: white;
   text-decoration: none;
-  border-radius: 4px;
-  margin-top: 10px;
+  border-radius: 0.25rem;
+  margin-top: 0.625rem;
   border: none;
   cursor: pointer;
 }

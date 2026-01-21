@@ -1,9 +1,10 @@
 import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from '@/constants/config';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
-import { adminRoutes } from '@/routes/admin/index';
+import { adminRoutes } from '@/routes/admin';
 import { ntfyRoutes } from '@/routes/ntfy';
 import { unifiedPushRoutes } from '@/routes/unifiedpush';
-import { logError, logInfo, logWarn } from '@/utils/log';
+import { getLanIP } from '@/utils/ip';
+import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
 
 try {
   await initSignal();
@@ -20,8 +21,8 @@ if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
     const { startProtonMonitor } = await import('./modules/protonmail');
     await startProtonMonitor();
   } catch (err) {
-    logError('Failed to start ProtonMail monitor:', err);
-    logWarn('Continuing without ProtonMail integration');
+    logError('Failed to start Proton Mail monitor:', err);
+    logWarn('Continuing without Proton Mail integration');
   }
 }
 
@@ -45,7 +46,13 @@ const server = Bun.serve({
   },
 });
 
-logInfo(`\nSUP running on http://localhost:${server.port} 🚀`);
+logInfo(`\nSUP running on:`);
+logInfo(`  Local:   http://localhost:${server.port}`);
+
+const lanIP = getLanIP();
+if (lanIP) {
+  logVerbose(`  Network: http://${lanIP}:${server.port}\n`);
+}
 
 process.on('SIGINT', () => {
   cleanupDaemon();

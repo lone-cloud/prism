@@ -2,8 +2,6 @@ import Imap from 'imap';
 import {
   BRIDGE_IMAP_PASSWORD,
   BRIDGE_IMAP_USERNAME,
-  ENABLE_PROTON_ANDROID,
-  LAUNCH_ENDPOINT_PREFIX,
   PROTON_BRIDGE_HOST,
   PROTON_BRIDGE_PORT,
   SUP_TOPIC,
@@ -21,12 +19,12 @@ export async function startProtonMonitor() {
     logError('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD');
     logWarn('Run: docker compose run --rm protonmail-bridge init');
     logWarn('Then use `login` and `info` commands to get IMAP credentials');
+
     return;
   }
 
-  const linked = await hasValidAccount();
-  if (!linked) {
-    logWarn('Signal account not linked. ProtonMail notifications will be skipped.');
+  if (!(await hasValidAccount())) {
+    logWarn('Signal account not linked. Proton Mail notifications will be skipped.');
     logWarn('Link your Signal account at /link to enable email notifications.');
   }
 
@@ -57,14 +55,10 @@ export async function startProtonMonitor() {
         register(topicKey, groupId, SUP_TOPIC);
       }
 
-      if (ENABLE_PROTON_ANDROID) {
-        await sendGroupMessage(
-          groupId,
-          `${LAUNCH_ENDPOINT_PREFIX}ch.protonmail.android]\n**${title}**\n${message}`,
-        );
-      } else {
-        await sendGroupMessage(groupId, `${title}\n${message}`);
-      }
+      await sendGroupMessage(groupId, message, {
+        androidPackage: 'ch.protonmail.android',
+        title,
+      });
 
       logVerbose(`Notification sent: ${title}`);
     } catch (error) {
@@ -72,7 +66,7 @@ export async function startProtonMonitor() {
     }
   }
 
-  function openInbox() {
+  const openInbox = () =>
     imap.openBox('INBOX', false, (err, box) => {
       if (err) {
         logError('Failed to open inbox:', err);
@@ -101,13 +95,12 @@ export async function startProtonMonitor() {
               const nameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<?/);
               const from = nameMatch ? nameMatch[1]?.trim() : rawFrom;
 
-              sendNotification('New Email Received', `From: ${from} - ${subject}`);
+              sendNotification(`From: ${from}`, subject);
             });
           });
         });
       });
     });
-  }
 
   imap.on('ready', () => {
     imapConnected = true;
@@ -132,11 +125,7 @@ export async function startProtonMonitor() {
 
   imap.connect();
 
-  process.on('SIGTERM', () => {
-    imap.end();
-  });
+  process.on('SIGTERM', () => imap.end());
 
-  process.on('SIGINT', () => {
-    imap.end();
-  });
+  process.on('SIGINT', () => imap.end());
 }
