@@ -164,7 +164,7 @@ h2 {
 .link-button {
   display: inline-block;
   padding: 0.625rem 1.25rem;
-  background: #007bff;
+  background: #8159b8;
   color: white;
   text-decoration: none;
   border-radius: 0.25rem;
@@ -174,7 +174,7 @@ h2 {
 }
 
 .link-button:hover {
-  background: #0056b3;
+  background: #6b4a99;
 }
 
 .loading {

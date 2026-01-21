@@ -1,0 +1,23 @@
+{
+  "name": "SUP Admin",
+  "short_name": "SUP",
+  "description": "Signal Unified Push Admin Panel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#8159b8",
+  "icons": [
+    {
+      "src": "/favicon.webp",
+      "sizes": "32x32",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

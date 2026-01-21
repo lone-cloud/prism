@@ -35,7 +35,10 @@ export const handleHealthFragment = async () => {
   `;
 
   return new Response(html, {
-    headers: { 'content-type': 'text/html' },
+    headers: {
+      'content-type': 'text/html',
+      'HX-Trigger': linked ? 'accountLinked' : '',
+    },
   });
 };
 
