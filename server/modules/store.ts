@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite';
 import { SUP_DB } from '@/constants/paths';
-import { createGroup } from './signal';
+import { createGroup } from '@/modules/signal';
 
 interface EndpointMapping {
   endpoint: string;
@@ -18,18 +18,18 @@ db.run(`
   )
 `);
 
-export const register = (endpoint: string, groupId: string, appName: string) => {
+export const register = (endpoint: string, groupId: string, appName: string) =>
   db.run('INSERT OR REPLACE INTO mappings (endpoint, groupId, appName) VALUES (?, ?, ?)', [
     endpoint,
     groupId,
     appName,
   ]);
-};
 
 export const getGroupId = (endpoint: string) => {
   const row = db.query('SELECT groupId FROM mappings WHERE endpoint = ?').get(endpoint) as
     | { groupId: string }
     | undefined;
+
   return row?.groupId;
 };
 
@@ -37,15 +37,15 @@ export const getAppName = (endpoint: string) => {
   const row = db.query('SELECT appName FROM mappings WHERE endpoint = ?').get(endpoint) as
     | { appName: string }
     | undefined;
+
   return row?.appName;
 };
 
 export const getAllMappings = () =>
   db.query('SELECT endpoint, groupId, appName FROM mappings').all() as EndpointMapping[];
 
-export const remove = (endpoint: string) => {
+export const remove = (endpoint: string) =>
   db.run('DELETE FROM mappings WHERE endpoint = ?', [endpoint]);
-};
 
 export const getOrCreateGroup = async (key: string, name: string) => {
   const existingGroupId = getGroupId(key);
@@ -53,5 +53,6 @@ export const getOrCreateGroup = async (key: string, name: string) => {
 
   const groupId = await createGroup(name);
   register(key, groupId, name);
+
   return groupId;
 };

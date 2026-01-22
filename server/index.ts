@@ -17,7 +17,7 @@ import { PUBLIC_DIR } from '@/constants/paths';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
 import admin from '@/routes/admin';
 import ntfy from '@/routes/ntfy';
-import unifiedpush from '@/routes/unifiedpush';
+import unifiedpush from '@/routes/unified-push';
 import { isLocalIP } from '@/utils/auth';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
 
@@ -33,7 +33,7 @@ if (!API_KEY) {
 
 if (PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD) {
   try {
-    const { startProtonMonitor } = await import('./modules/protonmail');
+    const { startProtonMonitor } = await import('./modules/proton-mail');
     await startProtonMonitor();
   } catch (err) {
     logError('Failed to start Proton Mail monitor:', err);
