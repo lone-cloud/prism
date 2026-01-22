@@ -273,7 +273,7 @@ export async function startDaemon() {
 
   if (authError && !cleaned) {
     logWarn('Detected stale account data, cleaning up and retrying...');
-    
+
     proc.kill();
 
     await unlinkDevice();
