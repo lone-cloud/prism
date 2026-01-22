@@ -12,8 +12,17 @@ import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log'
 
 let imapConnected = false;
 let monitorStartTime = 0;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_DELAY = 300000; // 5 minutes
 
 export const isImapConnected = () => imapConnected;
+
+const getReconnectDelay = () => {
+  const baseDelay = 10000; // 10 seconds
+  const delay = Math.min(baseDelay * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY);
+  reconnectAttempts++;
+  return delay;
+};
 
 export async function startProtonMonitor() {
   if (!PROTON_IMAP_USERNAME || !PROTON_IMAP_PASSWORD) {
@@ -114,6 +123,7 @@ export async function startProtonMonitor() {
               const nameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<?/);
               const from = nameMatch?.[1]?.trim() || rawFrom;
 
+              reconnectAttempts = 0;
               sendNotification(from, subject);
             });
           });
@@ -123,6 +133,7 @@ export async function startProtonMonitor() {
 
   imap.on('ready', () => {
     imapConnected = true;
+    reconnectAttempts = 0;
     logSuccess('IMAP is ready');
     openInbox();
   });
@@ -132,14 +143,26 @@ export async function startProtonMonitor() {
     logError('IMAP error:', err.message);
   });
 
-  imap.on('close', (hadError: boolean) => {
+  const handleReconnect = (reason: string) => {
     imapConnected = false;
-    logError(`IMAP connection closed (hadError: ${hadError})`);
+    logError(reason);
+
+    const delay = getReconnectDelay();
+    logInfo(`Attempting to reconnect in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+    setTimeout(() => {
+      if (!imapConnected) {
+        logInfo('Reconnecting to Proton Bridge...');
+        imap.connect();
+      }
+    }, delay);
+  };
+
+  imap.on('close', (hadError: boolean) => {
+    handleReconnect(`IMAP connection closed (hadError: ${hadError})`);
   });
 
   imap.on('end', () => {
-    imapConnected = false;
-    logError('IMAP connection ended by server');
+    handleReconnect('IMAP connection ended by server');
   });
 
   imap.connect();
