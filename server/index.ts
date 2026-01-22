@@ -60,7 +60,7 @@ const cspConfig = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'"],
   styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", 'data:', 'https://api.qrserver.com'],
+  imgSrc: ["'self'", 'data:'],
   formAction: ["'self'"],
   frameAncestors: ["'none'"],
   objectSrc: ["'none'"],

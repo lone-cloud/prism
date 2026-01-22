@@ -161,27 +161,36 @@ const handleQRSection = async () => {
 
   if ((!cachedQR || now - qrCacheTime > QR_CACHE_TTL) && !generatingPromise) {
     generatingPromise = (async () => {
-      const qr = await generateLinkQR();
-      cachedQR = qr;
-      qrCacheTime = Date.now();
+      try {
+        const qr = await generateLinkQR();
+        cachedQR = qr;
+        qrCacheTime = Date.now();
 
-      finishLink()
-        .then(async () => {
-          await initSignal();
-        })
-        .catch(() => {})
-        .finally(() => {
-          generatingPromise = null;
-          cachedQR = null;
-          qrCacheTime = 0;
-        });
+        finishLink()
+          .then(async () => {
+            await initSignal();
+          })
+          .catch(() => {})
+          .finally(() => {
+            generatingPromise = null;
+            cachedQR = null;
+            qrCacheTime = 0;
+          });
 
-      return qr;
+        return qr;
+      } catch (error) {
+        generatingPromise = null;
+        throw error;
+      }
     })();
   }
 
   if (generatingPromise && !cachedQR) {
-    await generatingPromise;
+    try {
+      await generatingPromise;
+    } catch {
+      return '<p>Signal daemon is starting up, please refresh in a few seconds...</p>';
+    }
   }
 
   return `
