@@ -1,11 +1,24 @@
-import { API_KEY, BRIDGE_IMAP_PASSWORD, BRIDGE_IMAP_USERNAME, PORT } from '@/constants/config';
+import { networkInterfaces } from 'node:os';
+import { Hono } from 'hono';
+import { getConnInfo, serveStatic } from 'hono/bun';
+import { compress } from 'hono/compress';
+import { secureHeaders } from 'hono/secure-headers';
+import { timeout } from 'hono/timeout';
+import { rateLimiter } from 'hono-rate-limiter';
+import {
+  ALLOW_INSECURE_HTTP,
+  API_KEY,
+  PORT,
+  PROTON_IMAP_PASSWORD,
+  PROTON_IMAP_USERNAME,
+  RATE_LIMIT,
+} from '@/constants/config';
 import { PUBLIC_DIR } from '@/constants/paths';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
-import { adminRoutes } from '@/routes/admin';
-import { ntfyRoutes } from '@/routes/ntfy';
-import { unifiedPushRoutes } from '@/routes/unifiedpush';
-import { maybeCompress } from '@/utils/compress';
-import { getLanIP } from '@/utils/ip';
+import admin from '@/routes/admin';
+import ntfy from '@/routes/ntfy';
+import unifiedpush from '@/routes/unifiedpush';
+import { isLocalIP } from '@/utils/auth';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
 
 try {
@@ -18,7 +31,7 @@ if (!API_KEY) {
   logWarn('Server running without API_KEY');
 }
 
-if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
+if (PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD) {
   try {
     const { startProtonMonitor } = await import('./modules/protonmail');
     await startProtonMonitor();
@@ -28,37 +41,87 @@ if (BRIDGE_IMAP_USERNAME && BRIDGE_IMAP_PASSWORD) {
   }
 }
 
+const getLanIP = () => {
+  const nets = networkInterfaces();
+
+  for (const name of Object.keys(nets)) {
+    const interfaces = nets[name];
+
+    if (!interfaces) continue;
+
+    for (const iface of interfaces) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return null;
+};
+
+const app = new Hono();
+
+const cspConfig = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", 'data:', 'https://api.qrserver.com'],
+  formAction: ["'self'"],
+  frameAncestors: ["'none'"],
+  objectSrc: ["'none'"],
+};
+
+const cspString = Object.entries(cspConfig)
+  .map(([key, values]) => {
+    const directive = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+
+    return `${directive} ${values.join(' ')}`;
+  })
+  .join('; ');
+
+app.use('*', (c, next) => {
+  const proto = c.req.header('x-forwarded-proto') || 'http';
+  const addr = getConnInfo(c).remote.address;
+
+  if (proto === 'https' || isLocalIP(addr)) {
+    return secureHeaders({
+      contentSecurityPolicy: cspConfig,
+    })(c, next);
+  }
+
+  c.header('Content-Security-Policy', cspString);
+  return next();
+});
+
+app.use('*', (c, next) => {
+  if (c.req.path === '/link/status-check') {
+    return next();
+  }
+
+  return timeout(5000)(c, next);
+});
+app.use('*', compress());
+app.use(
+  '*',
+  rateLimiter({
+    limit: RATE_LIMIT,
+    keyGenerator: (c) => getConnInfo(c).remote.address || 'unknown',
+    skip: (c) => ALLOW_INSECURE_HTTP || isLocalIP(getConnInfo(c).remote.address),
+  }),
+);
+
+app.use('*', serveStatic({ root: PUBLIC_DIR }));
+
+app.route('/', unifiedpush);
+app.route('/', ntfy);
+app.route('/', admin);
+
+app.notFound((c) => c.text('Not Found', 404));
+
 const server = Bun.serve({
   port: PORT,
-  idleTimeout: 60,
-  maxRequestBodySize: 1024 * 1024, // 1MB limit
-
-  error(error) {
-    logError('Unhandled server error:', error);
-    return new Response('Internal Server Error', { status: 500 });
-  },
-
-  routes: {
-    '/favicon.webp': {
-      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/favicon.webp`)),
-    },
-    '/icon-512.webp': {
-      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/icon-512.webp`)),
-    },
-    '/manifest.json': {
-      GET: () => new Response(Bun.file(`${PUBLIC_DIR}/manifest.json`)),
-    },
-    '/htmx.js': {
-      GET: async (req) =>
-        maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/htmx.min.js`).text(), 'text/javascript'),
-    },
-
-    ...adminRoutes,
-
-    ...unifiedPushRoutes,
-
-    ...ntfyRoutes,
-  },
+  fetch: app.fetch,
+  maxRequestBodySize: 1024 * 1024,
+  idleTimeout: 30,
 });
 
 logInfo(`\nSUP running on:`);

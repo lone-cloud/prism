@@ -1,10 +1,9 @@
-import { rm, unlink } from 'node:fs/promises';
+import { rm } from 'node:fs/promises';
 import {
   DEVICE_NAME,
   ENABLE_ANDROID_INTEGRATION,
   LAUNCH_ENDPOINT_PREFIX,
-  PORT,
-  VERBOSE,
+  VERBOSE_LOGGING,
 } from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '@/types';
@@ -15,16 +14,12 @@ let account: string | null = null;
 let currentLinkUri: string | null = null;
 let daemon: ReturnType<typeof Bun.spawn> | null = null;
 
-export const hasLinkUri = () => currentLinkUri !== null;
-
 export async function initSignal({ accountOverride }: { accountOverride?: string } = {}) {
   await startDaemon();
 
   const isLinked = await checkSignalCli();
 
   if (!isLinked) {
-    logWarn('No Signal account linked');
-    logInfo(`Visit http://localhost:${PORT} to link your device`);
     return { linked: false, account: null };
   }
 
@@ -45,27 +40,37 @@ export async function initSignal({ accountOverride }: { accountOverride?: string
   }
 
   logVerbose('No Signal accounts found');
-  logWarn('No Signal account linked');
-  logInfo(`Visit http://localhost:${PORT} to link your device`);
   return { linked: false, account: null };
 }
 
 export async function generateLinkQR() {
-  const result = (await call(
-    'startLink',
-    {
-      deviceName: DEVICE_NAME,
-    },
-    account,
-  )) as StartLinkResult;
-  const uri = result.deviceLinkUri;
+  try {
+    const result = (await call(
+      'startLink',
+      {
+        deviceName: DEVICE_NAME,
+      },
+      account,
+    )) as StartLinkResult;
+    const uri = result.deviceLinkUri;
 
-  if (!uri) {
-    throw new Error('Failed to generate linking URI');
+    if (!uri) {
+      throw new Error('Failed to generate linking URI');
+    }
+
+    logVerbose(`Generated link URI: ${uri.substring(0, 30)}...`);
+    currentLinkUri = uri;
+
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uri)}`;
+    const response = await fetch(qrUrl);
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+
+    return `data:image/png;base64,${base64}`;
+  } catch (error) {
+    logError('Failed to generate link QR:', error);
+    throw error;
   }
-
-  currentLinkUri = uri;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uri)}`;
 }
 
 export async function finishLink() {
@@ -82,7 +87,7 @@ export async function finishLink() {
       deviceLinkUri: uri,
       deviceName: DEVICE_NAME,
     },
-    account,
+    null,
   );
   logSuccess('Device linked successfully');
   return result;
@@ -170,11 +175,11 @@ export async function startDaemon() {
 
   if (daemon && !daemon.killed) {
     daemon.kill();
-    await Bun.sleep(5000);
+    await Bun.sleep(2000);
   }
 
   try {
-    await unlink(SIGNAL_CLI_SOCKET);
+    await Bun.file(SIGNAL_CLI_SOCKET).delete();
     logVerbose('Removed stale socket file');
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
@@ -206,7 +211,7 @@ export async function startDaemon() {
       )
         continue;
 
-      if (VERBOSE) {
+      if (VERBOSE_LOGGING) {
         if (trimmed.includes('ERROR')) {
           logError('[signal-cli]', trimmed);
         } else if (trimmed.includes('WARN')) {
@@ -225,47 +230,40 @@ export async function startDaemon() {
     }
   })();
 
-  await Bun.sleep(5000);
-
-  try {
-    const socket = await Bun.connect({
-      unix: SIGNAL_CLI_SOCKET,
-      socket: {
-        data() {},
-      },
-    });
-    socket.end();
-    logSuccess('signal-cli daemon started');
-    daemon = proc;
-    return proc;
-  } catch (error) {
-    if (authError && !cleaned) {
-      logWarn('Detected stale account data, cleaning up and retrying...');
-      proc.kill();
-      await unlinkDevice();
-      cleaned = true;
-      return startDaemon();
-    }
-
-    logError('Failed to connect to signal-cli socket:', error);
-    if (proc.exitCode !== null) {
-      logError('signal-cli process exited with code:', proc.exitCode);
-    }
-
-    if (authError) {
-      logError('Account authorization failed. You may need to unlink and re-link your device.');
-    }
-
-    throw new Error('Failed to start signal-cli daemon');
+  for (let i = 0; i < 20; i++) {
+    await Bun.sleep(500);
+    try {
+      const socket = await Bun.connect({
+        unix: SIGNAL_CLI_SOCKET,
+        socket: {
+          data() {},
+        },
+      });
+      socket.end();
+      logSuccess(`signal-cli daemon started (${(i + 1) * 0.5}s)`);
+      daemon = proc;
+      return proc;
+    } catch {}
   }
-}
 
-export async function restartDaemon() {
-  if (daemon) {
-    daemon.kill();
-    await Bun.sleep(5000);
+  if (authError && !cleaned) {
+    logWarn('Detected stale account data, cleaning up and retrying...');
+    proc.kill();
+    await unlinkDevice();
+    cleaned = true;
+    return startDaemon();
   }
-  daemon = await startDaemon();
+
+  logError('Failed to connect to signal-cli socket: daemon did not start within 10 seconds');
+  if (proc.exitCode !== null) {
+    logError('signal-cli process exited with code:', proc.exitCode);
+  }
+
+  if (authError) {
+    logError('Account authorization failed. You may need to unlink and re-link your device.');
+  }
+
+  throw new Error('Failed to start signal-cli daemon');
 }
 
 export const cleanupDaemon = () => daemon?.kill();

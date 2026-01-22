@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SUP Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#8159b8">
+  <link rel="icon" type="image/webp" href="/favicon.webp">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/index.css">
+  <script src="/htmx.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <div id="health-status" 
+         hx-get="/health/fragment" 
+         hx-trigger="load, every 10s"
+         hx-indicator="#health-status"
+         class="loading">
+      Loading health status...
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Signal</h2>
+    <div id="signal-info" 
+         hx-get="/signal-info/fragment" 
+         hx-trigger="load, accountLinked from:body"
+         hx-indicator="#signal-info">
+      <div class="loading">Loading Signal status...</div>
+    </div>
+    <div id="qr-section"
+         hx-get="/signal-info/fragment"
+         hx-trigger="accountLinked from:body"
+         hx-swap="none"></div>
+  </div>
+
+  <div class="card">
+    <h2>Endpoints</h2>
+    <div id="endpoints-list" 
+         hx-get="/endpoints/fragment" 
+         hx-trigger="load"
+         hx-indicator="#endpoints-list"
+         class="loading">
+      Loading endpoints...
+    </div>
+  </div>
+</body>
+</html>

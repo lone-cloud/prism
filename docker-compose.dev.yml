@@ -8,15 +8,14 @@ services:
     environment:
       - PORT=8080
       - API_KEY=${API_KEY:-}
-      - VERBOSE=${VERBOSE:-false}
+      - VERBOSE_LOGGING=${VERBOSE_LOGGING:-false}
       - ALLOW_INSECURE_HTTP=${ALLOW_INSECURE_HTTP:-false}
       - ENABLE_ANDROID_INTEGRATION=${ENABLE_ANDROID_INTEGRATION:-false}
-      # ProtonMail integration (optional)
-      - BRIDGE_IMAP_USERNAME=${BRIDGE_IMAP_USERNAME:-}
-      - BRIDGE_IMAP_PASSWORD=${BRIDGE_IMAP_PASSWORD:-}
+      - PROTON_IMAP_USERNAME=${PROTON_IMAP_USERNAME:-}
+      - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_HOST=protonmail-bridge
       - PROTON_BRIDGE_PORT=${PROTON_BRIDGE_PORT:-143}
-      - SUP_TOPIC=${SUP_TOPIC:-Proton Mail}
+      - PROTON_SUP_TOPIC=${PROTON_SUP_TOPIC:-Proton Mail}
     volumes:
       - signal-data:/root/.local/share/signal-cli
       - sup-data:/root/.local/share/sup

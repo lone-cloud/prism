@@ -1,50 +1,56 @@
-import { DEVICE_NAME } from '@/constants/config';
-import { PUBLIC_DIR, SIGNAL_CLI_DATA } from '@/constants/paths';
+import { Hono } from 'hono';
+import { basicAuth } from 'hono/basic-auth';
+import { DEVICE_NAME, PROTON_IMAP_PASSWORD, PROTON_IMAP_USERNAME } from '@/constants/config';
 import { isImapConnected } from '@/modules/protonmail';
 import {
   checkSignalCli,
   finishLink,
   generateLinkQR,
-  hasLinkUri,
   hasValidAccount,
   initSignal,
-  restartDaemon,
-  unlinkDevice,
 } from '@/modules/signal';
 import { getAllMappings, remove } from '@/modules/store';
-import { withAuth } from '@/utils/auth';
-import { maybeCompress } from '@/utils/compress';
+import { verifyApiKey } from '@/utils/auth';
+
+let cachedQR: string | null = null;
+let qrCacheTime = 0;
+let generatingPromise: Promise<string> | null = null;
+const QR_CACHE_TTL = 10 * 60 * 1000;
 
 export const handleHealthFragment = async () => {
   const signalOk = await checkSignalCli();
   const linked = signalOk && (await hasValidAccount());
   const imap = isImapConnected();
+  const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
 
   const html = `
     <div class="status">
       <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
-        Signal: ${signalOk ? 'Connected' : 'Disconnected'}
+        Signal Daemon: ${signalOk ? 'Running' : 'Stopped'}
       </div>
       <div class="status-item ${linked ? 'status-ok' : 'status-error'}">
         Account: ${linked ? 'Linked' : 'Unlinked'}
       </div>
-      <div class="status-item ${imap ? 'status-ok' : 'status-error'}">
+      ${
+        hasProtonConfig
+          ? `<div class="status-item ${imap ? 'status-ok' : 'status-error'}">
         Proton Mail: ${imap ? 'Connected' : 'Disconnected'}
-      </div>
+      </div>`
+          : ''
+      }
+    </div>
+    <div id="signal-info" hx-swap-oob="true">
+      ${await handleSignalInfoFragment()}
     </div>
   `;
 
-  return new Response(html, {
-    headers: {
-      'content-type': 'text/html',
-      'HX-Trigger': linked ? 'accountLinked' : '',
-    },
-  });
+  return { html, linked };
 };
 
 export const handleSignalInfoFragment = async () => {
-  const html = (await hasValidAccount())
-    ? `<details class="unlink-details">
+  if (await hasValidAccount()) {
+    cachedQR = null;
+    return `<details class="unlink-details">
          <summary class="unlink-summary">Unlink and remove device</summary>
          <div class="unlink-instructions">
            <ol>
@@ -53,33 +59,24 @@ export const handleSignalInfoFragment = async () => {
              <li>Tap <strong>"Unlink Device"</strong></li>
            </ol>
          </div>
-       </details>`
-    : `<button onclick="document.getElementById('qr-section').style.display='block'; 
-                        this.parentElement.style.display='none';
-                        htmx.ajax('GET', '/link/qr-section', {target: '#qr-section', swap: 'innerHTML'})"
-               class="link-button">
-         Link Signal Device
-       </button>`;
+       </details>`;
+  }
 
-  return new Response(html, {
-    headers: { 'content-type': 'text/html' },
-  });
+  return handleQRSection();
 };
 
 export const handleEndpointsFragment = async () => {
   const endpoints = getAllMappings();
 
   if (endpoints.length === 0) {
-    return new Response('<p>No endpoints registered</p>', {
-      headers: { 'content-type': 'text/html' },
-    });
+    return '<p>No endpoints registered</p>';
   }
 
-  const html = `
+  return `
     <ul class="endpoint-list">
       ${endpoints
         .map(
-          (e) => `
+          (e: { appName: string; endpoint: string }) => `
         <li class="endpoint-item">
           <div class="endpoint-name">
             <strong>${e.appName}</strong>
@@ -96,124 +93,104 @@ export const handleEndpointsFragment = async () => {
         .join('')}
     </ul>
   `;
-
-  return new Response(html, {
-    headers: { 'content-type': 'text/html' },
-  });
 };
 
 export const handleQRSection = async () => {
-  const html = `
-    <p>Scan this QR code with your Signal app:</p>
-    <p class="qr-instructions"><strong>Settings → Linked Devices → Link New Device</strong></p>
-    <div hx-get="/link/qr-image" hx-trigger="load, every 30s" class="qr-container">
-      Generating QR code...
-    </div>
-    <div hx-get="/link/status-check" hx-trigger="every 2s" hx-swap="none"></div>
-    <button onclick="document.getElementById('qr-section').style.display='none'; 
-                     document.getElementById('signal-info').style.display='block'"
-            class="btn-cancel">
-      Cancel
-    </button>
-  `;
-
-  return new Response(html, {
-    headers: { 'content-type': 'text/html' },
-  });
-};
-
-export const handleQRImage = async () => {
-  if (!(await hasValidAccount()) && (await Bun.file(SIGNAL_CLI_DATA).exists())) {
-    await unlinkDevice();
-    await restartDaemon();
+  if (await hasValidAccount()) {
+    return '<p>Account already linked</p>';
   }
 
-  const qrDataUrl = await generateLinkQR();
-  const html = `<img src="${qrDataUrl}" class="qr-image" alt="QR Code" />`;
+  const now = Date.now();
 
-  return new Response(html, {
-    headers: { 'content-type': 'text/html' },
-  });
+  if ((!cachedQR || now - qrCacheTime > QR_CACHE_TTL) && !generatingPromise) {
+    generatingPromise = (async () => {
+      const qr = await generateLinkQR();
+      cachedQR = qr;
+      qrCacheTime = Date.now();
+
+      finishLink()
+        .then(async () => {
+          await initSignal();
+        })
+        .catch(() => {})
+        .finally(() => {
+          generatingPromise = null;
+          cachedQR = null;
+          qrCacheTime = 0;
+        });
+
+      return qr;
+    })();
+  }
+
+  if (generatingPromise && !cachedQR) {
+    await generatingPromise;
+  }
+
+  return `
+    <p>Scan this QR code with your Signal app:</p>
+    <p class="qr-instructions"><strong>Settings → Linked Devices → Link New Device</strong></p>
+    <div class="qr-container">
+      <img src="${cachedQR}" class="qr-image" alt="QR Code" />
+    </div>
+  `;
 };
 
 export const handleLinkStatusCheck = async () => {
-  let linked = await hasValidAccount();
-
-  if (!linked && hasLinkUri()) {
-    try {
-      await finishLink();
-      const result = await initSignal();
-      linked = result.linked;
-    } catch (error) {
-      console.error('Failed to finish link:', error);
-    }
-  }
-
-  if (linked) {
-    return new Response('', {
-      headers: {
-        'content-type': 'text/html',
-        'HX-Refresh': 'true',
-      },
-    });
-  }
-
-  return new Response('', {
-    headers: { 'content-type': 'text/html' },
-  });
+  const linked = await hasValidAccount();
+  return { linked };
 };
 
-export const handleDeleteEndpoint = async (req: Request) => {
-  const url = new URL(req.url);
-  const endpoint = decodeURIComponent(url.pathname.split('/').pop() || '');
+const admin = new Hono();
+
+admin.use(
+  '*',
+  basicAuth({
+    verifyUser: (_, password, c) => verifyApiKey(password, c),
+    realm: 'SUP Admin - Username: any, Password: API_KEY',
+  }),
+);
+
+admin.get('/api/health', async (c) => {
+  const signalOk = await checkSignalCli();
+  const linked = signalOk && (await hasValidAccount());
+  const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
+
+  const result: Record<string, unknown> = {
+    uptime: process.uptime(),
+    signal: {
+      daemon: signalOk ? 'running' : 'stopped',
+      linked,
+    },
+  };
+
+  if (hasProtonConfig) {
+    result.protonMail = isImapConnected() ? 'connected' : 'disconnected';
+  }
+
+  return c.json(result);
+});
+
+admin.get('/health/fragment', async (c) => {
+  const { html } = await handleHealthFragment();
+  return c.html(html);
+});
+
+admin.get('/signal-info/fragment', async (c) => c.html(await handleSignalInfoFragment()));
+
+admin.get('/endpoints/fragment', async (c) => c.html(await handleEndpointsFragment()));
+
+admin.get('/link/qr-section', async (c) => c.html(await handleQRSection()));
+
+admin.delete('/endpoint/delete/:endpoint', async (c) => {
+  const endpoint = decodeURIComponent(c.req.param('endpoint'));
 
   if (!endpoint) {
-    return new Response('Invalid endpoint', { status: 400 });
+    return c.text('Invalid endpoint', 400);
   }
 
   remove(endpoint);
+  return c.html(await handleEndpointsFragment());
+});
 
-  return handleEndpointsFragment();
-};
-
-export const adminRoutes = {
-  '/': {
-    GET: withAuth(async (req: Request) =>
-      maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/admin.html`).text()),
-    ),
-  },
-
-  '/admin.css': {
-    GET: withAuth(async (req: Request) =>
-      maybeCompress(req, await Bun.file(`${PUBLIC_DIR}/admin.css`).text(), 'text/css'),
-    ),
-  },
-
-  '/health/fragment': {
-    GET: withAuth(handleHealthFragment),
-  },
-
-  '/signal-info/fragment': {
-    GET: withAuth(handleSignalInfoFragment),
-  },
-
-  '/endpoints/fragment': {
-    GET: withAuth(handleEndpointsFragment),
-  },
-
-  '/link/qr-section': {
-    GET: withAuth(handleQRSection),
-  },
-
-  '/link/qr-image': {
-    GET: withAuth(handleQRImage),
-  },
-
-  '/link/status-check': {
-    GET: withAuth(handleLinkStatusCheck),
-  },
-
-  '/endpoint/delete/:endpoint': {
-    DELETE: withAuth(handleDeleteEndpoint),
-  },
-};
+export default admin;

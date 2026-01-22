@@ -1,7 +1,7 @@
 import chalk from 'chalk';
-import { VERBOSE } from '@/constants/config';
+import { VERBOSE_LOGGING } from '@/constants/config';
 
-export const logVerbose = (...args: unknown[]) => VERBOSE && console.log(...args);
+export const logVerbose = (...args: unknown[]) => VERBOSE_LOGGING && console.log(...args);
 
 export const logError = (...args: unknown[]) => console.error(chalk.red(...args));
 export const logWarn = (...args: unknown[]) => console.warn(chalk.yellow(...args));
