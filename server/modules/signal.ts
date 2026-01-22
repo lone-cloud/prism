@@ -231,7 +231,7 @@ export async function startDaemon() {
     }
   })();
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 60; i++) {
     await Bun.sleep(500);
     try {
       const socket = await Bun.connect({
@@ -255,7 +255,7 @@ export async function startDaemon() {
     return startDaemon();
   }
 
-  logError('Failed to connect to signal-cli socket: daemon did not start within 10 seconds');
+  logError('Failed to connect to signal-cli socket: daemon did not start within 30 seconds');
   if (proc.exitCode !== null) {
     logError('signal-cli process exited with code:', proc.exitCode);
   }

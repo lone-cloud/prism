@@ -26,7 +26,7 @@ export async function startProtonMonitor() {
 
   if (!(await hasValidAccount())) {
     logWarn('Signal account not linked. Proton Mail notifications will be skipped.');
-    logWarn('Link your Signal account at /link to enable email notifications.');
+    logWarn('Link your Signal account to enable email notifications.');
   }
 
   logInfo(`Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);

@@ -21,11 +21,7 @@ import unifiedpush from '@/routes/unified-push';
 import { isLocalIP } from '@/utils/auth';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
 
-try {
-  await initSignal();
-} catch (error) {
-  logError(`${error instanceof Error ? error.message : String(error)}`);
-}
+initSignal();
 
 if (!API_KEY) {
   logWarn('Server running without API_KEY');
