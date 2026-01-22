@@ -1,10 +1,10 @@
 import Imap from 'imap';
 import {
-  BRIDGE_IMAP_PASSWORD,
-  BRIDGE_IMAP_USERNAME,
   PROTON_BRIDGE_HOST,
   PROTON_BRIDGE_PORT,
-  SUP_TOPIC,
+  PROTON_IMAP_PASSWORD,
+  PROTON_IMAP_USERNAME,
+  PROTON_SUP_TOPIC,
 } from '@/constants/config';
 import { hasValidAccount, sendGroupMessage } from '@/modules/signal';
 import { getOrCreateGroup } from '@/modules/store';
@@ -15,8 +15,8 @@ let imapConnected = false;
 export const isImapConnected = () => imapConnected;
 
 export async function startProtonMonitor() {
-  if (!BRIDGE_IMAP_USERNAME || !BRIDGE_IMAP_PASSWORD) {
-    logError('Missing required env vars: BRIDGE_IMAP_USERNAME and BRIDGE_IMAP_PASSWORD');
+  if (!PROTON_IMAP_USERNAME || !PROTON_IMAP_PASSWORD) {
+    logError('Missing required env vars: PROTON_IMAP_USERNAME and PROTON_IMAP_PASSWORD');
     logWarn('Run: docker compose run --rm protonmail-bridge init');
     logWarn('Then use `login` and `info` commands to get IMAP credentials');
 
@@ -29,11 +29,11 @@ export async function startProtonMonitor() {
   }
 
   logInfo(`Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
-  logInfo(`Monitoring mailbox: ${BRIDGE_IMAP_USERNAME}`);
+  logInfo(`Monitoring mailbox: ${PROTON_IMAP_USERNAME}`);
 
   const imap = new Imap({
-    user: BRIDGE_IMAP_USERNAME,
-    password: BRIDGE_IMAP_PASSWORD,
+    user: PROTON_IMAP_USERNAME,
+    password: PROTON_IMAP_PASSWORD,
     host: PROTON_BRIDGE_HOST,
     port: PROTON_BRIDGE_PORT,
     tls: false,
@@ -48,7 +48,7 @@ export async function startProtonMonitor() {
     }
 
     try {
-      const groupId = await getOrCreateGroup(`proton-${SUP_TOPIC}`, SUP_TOPIC);
+      const groupId = await getOrCreateGroup(`proton-${PROTON_SUP_TOPIC}`, PROTON_SUP_TOPIC);
 
       await sendGroupMessage(groupId, subject, {
         androidPackage: 'ch.protonmail.android',

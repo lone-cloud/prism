@@ -155,10 +155,17 @@ h2 {
 
 .qr-container {
   margin-top: 1rem;
+  width: 18.75rem;
+  height: 18.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .qr-image {
-  max-width: 18.75rem;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .link-button {
@@ -179,4 +186,10 @@ h2 {
 
 .loading {
   color: #666;
+}
+
+.loading-subtitle {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 0.5rem;
 }
