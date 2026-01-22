@@ -7,6 +7,7 @@ import {
 } from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
 import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '@/types';
+import { formatPhoneNumber } from '@/utils/format';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 import { call } from '@/utils/rpc';
 
@@ -34,7 +35,7 @@ export async function initSignal({ accountOverride }: { accountOverride?: string
   const [firstAccount] = result;
   if (firstAccount) {
     account = firstAccount.number;
-    logVerbose(`Signal account initialized: ${account}`);
+    logVerbose(`Signal account initialized: ${formatPhoneNumber(account)}`);
     logSuccess('Signal account linked');
     return { linked: true, account };
   }
@@ -267,3 +268,5 @@ export async function startDaemon() {
 }
 
 export const cleanupDaemon = () => daemon?.kill();
+
+export const getAccount = () => account;

@@ -14,7 +14,7 @@
 
 > ⚠️ **Early Alpha**: SUP is under rapid development. The Android app is being actively developed and the current version is not thoroughly tested. There are no stable releases yet. Use at your own risk.
 
-SUP is a UnifiedPush distributor that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to any network observers. All notification traffic appears as regular Signal messages.
+SUP is a [UnifiedPush](https://unifiedpush.org/) server and distributor that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to any network observers. All notification traffic appears as regular Signal messages.
 
 ## Why?
 
@@ -23,6 +23,12 @@ Traditional push notification systems require persistent connections to specific
 SUP also includes an optional Proton Mail integration, allowing you to receive email notifications as Signal messages without exposing IMAP connections.
 
 Note that you'll need to run SUP on your own server (either at home or on a VPS) since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi, which is a small and affordable micro-computer, works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
+
+## How?
+
+SUP functions as a UnifiedPush server to proxy http-based requests to Signal groups via [signal-cli](https://github.com/AsamK/signal-cli).
+
+For the optional ProtonMail integration, SUP requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). SUP's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between SUP and proton-bridge will be over IMAP.
 
 ## Setup
 
@@ -55,20 +61,20 @@ curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/docker-compos
 docker compose run --rm protonmail-bridge init
 ```
   
-2. **Login to Proton Mail Bridge**:
+2.**Login to Proton Mail Bridge**:
 
 - At the `>>>` prompt, run: `login`
 - Enter your email
 - Enter your password
 - Enter your 2FA code
 
-3. **Get IMAP credentials**:
+3.**Get IMAP credentials**:
 
 - Run: `info`
 - Copy the Username and Password shown
 - Run: `exit` to quit
 
-4. **Add credentials to .env**:
+4.**Add credentials to .env**:
 
 ```bash
 # Add these to your .env file
@@ -76,7 +82,7 @@ PROTON_IMAP_USERNAME=bridge-username-from-info-command
 PROTON_IMAP_PASSWORD=bridge-generated-password-from-info-command
 ```
 
-5. **Start all services with Proton Mail**:
+5.**Start all services with Proton Mail**:
 
 ```bash
 docker compose --profile protonmail up -d
@@ -84,7 +90,7 @@ docker compose --profile protonmail up -d
 
 Your phone will now receive Signal notifications when Proton Mail receives new emails.
 
-Note that the bridge will first need to sync all of your old emails before you can start getting new email notifications.
+Note that the bridge will first need to sync all of your old emails before you can start getting new email notifications which may take a while, but this is a one-time setup.
 
 ### 3. SUP Server integration
 
@@ -102,9 +108,30 @@ nano .env
 # Start SUP server
 docker compose up -d
 
-# Link your Signal account (one-time setup)
-# Visit http://localhost:8080 and scan QR code with Signal app
 ```
+
+### 4. Configuration
+
+Link your Signal account (one-time setup)
+Visit localhost:8080 and scan QR code with Signal app
+
+#### Authenticate with the API_KEY
+
+<img src="assets/screenshots/1.webp" style="display: block" width="500" />
+
+#### Scan the QR code from your Signal app by linking SUP as a device
+
+<img src="assets/screenshots/2.webp" style="display: block" width="500" />
+
+#### A healthy setup with a linked account
+
+<img src="assets/screenshots/3.webp" style="display: block" width="500" />
+
+#### A healthy setup with a linked account and the optional Proton Mail integration
+
+<img src="assets/screenshots/4.webp" style="display: block" width="500" />
+
+
 
 ### Development
 
@@ -118,6 +145,8 @@ git clone https://github.com/lone-cloud/sup.git
 cd sup
 
 bun install
+cd server
+bun start
 ```
 
 Then build and run with docker-compose.dev.yml:
@@ -130,13 +159,6 @@ or just the proton-bridge:
 
 ```bash
 docker compose -f docker-compose.dev.yml up protonmail-bridge
-```
-
-Or run services directly with Bun:
-
-```bash
-bun install
-bun --filter sup-server dev
 ```
 
 ## Real-World Examples
@@ -173,7 +195,14 @@ Reboot your Home Assistant system and you'll then be able to send Signal notific
 
 ![SUP Architecture](assets/SUP%20Architecture.webp)
 
-SUP consists of two services that **MUST run together on the same machine**:
+SUP consists of two services that **MUST rSUP uses [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) for authentication. un together on the same machin`API_KEY` as a password and the username can be ignored.
+
+For API-based monitoring, you can call `/api/health` which will return JSON health output like:
+
+```JSON
+{"uptime":"3s","signal":{"daemon":"running","linked":true},"protonMail":"connected"}
+```
+**:
 
 - **sup-server** (Bun): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors Proton Mail IMAP
 - **protonmail-bridge** (Official Proton, optional): Decrypts Proton Mail emails, runs local IMAP server
