@@ -37,8 +37,6 @@ export async function startProtonMonitor() {
     password: PROTON_IMAP_PASSWORD,
     host: PROTON_BRIDGE_HOST,
     port: PROTON_BRIDGE_PORT,
-    tls: false,
-    tlsOptions: { rejectUnauthorized: false },
     keepalive: true,
   });
 
@@ -87,9 +85,11 @@ export async function startProtonMonitor() {
         fetch.on('message', (msg) => {
           msg.on('body', (stream) => {
             let buffer = '';
+
             stream.on('data', (chunk) => {
               buffer += chunk.toString('utf8');
             });
+
             stream.once('end', () => {
               const header = Imap.parseHeader(buffer);
               const rawFrom = header.from?.[0] || 'Unknown sender';
@@ -98,12 +98,15 @@ export async function startProtonMonitor() {
 
               if (dateStr) {
                 const messageDate = new Date(dateStr).getTime();
+
                 if (messageDate < monitorStartTime) {
                   const formattedDate = new Date(dateStr).toLocaleString('en-US', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   });
+
                   logVerbose(`Skipping old email: ${subject} (${formattedDate})`);
+
                   return;
                 }
               }

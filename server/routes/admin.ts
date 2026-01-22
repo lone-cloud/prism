@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { DEVICE_NAME, PROTON_IMAP_PASSWORD, PROTON_IMAP_USERNAME } from '@/constants/config';
-import { isImapConnected } from '@/modules/protonmail';
+import { isImapConnected } from '@/modules/proton-mail';
 import {
   checkSignalCli,
   finishLink,
@@ -18,133 +18,6 @@ let cachedQR: string | null = null;
 let qrCacheTime = 0;
 let generatingPromise: Promise<string> | null = null;
 const QR_CACHE_TTL = 10 * 60 * 1000;
-
-export const handleHealthFragment = async () => {
-  const signalOk = await checkSignalCli();
-  const linked = signalOk && (await hasValidAccount());
-  const imap = isImapConnected();
-  const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
-  const accountNumber = getAccount();
-
-  const html = `
-    <div class="status">
-      <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
-        Signal Network: ${signalOk ? 'Connected' : 'Disconnected'}
-      </div>
-      <div class="status-item ${linked ? 'status-ok' : 'status-error'}">
-        Account: ${linked ? 'Linked' : 'Unlinked'}
-        ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
-      </div>
-      ${
-        hasProtonConfig
-          ? `<div class="status-item ${imap ? 'status-ok' : 'status-error'}">
-        Proton Mail: ${imap ? 'Connected' : 'Disconnected'}
-        ${imap ? `<span class="tooltip">${PROTON_IMAP_USERNAME}</span>` : ''}
-      </div>`
-          : ''
-      }
-    </div>
-    <div id="signal-info" hx-swap-oob="true">
-      ${await handleSignalInfoFragment()}
-    </div>
-  `;
-
-  return { html, linked };
-};
-
-export const handleSignalInfoFragment = async () => {
-  if (await hasValidAccount()) {
-    cachedQR = null;
-    return `<details class="unlink-details">
-         <summary class="unlink-summary">Unlink and remove device</summary>
-         <div class="unlink-instructions">
-           <ol>
-             <li>Open Signal app → <strong>Settings → Linked Devices</strong></li>
-             <li>Find <strong>"${DEVICE_NAME}"</strong> and tap it</li>
-             <li>Tap <strong>"Unlink Device"</strong></li>
-           </ol>
-         </div>
-       </details>`;
-  }
-
-  return handleQRSection();
-};
-
-export const handleEndpointsFragment = async () => {
-  const endpoints = getAllMappings();
-
-  if (endpoints.length === 0) {
-    return '<p>No endpoints registered</p>';
-  }
-
-  return `
-    <ul class="endpoint-list">
-      ${endpoints
-        .map(
-          (e: { appName: string; endpoint: string }) => `
-        <li class="endpoint-item">
-          <div class="endpoint-name">
-            <strong>${e.appName}</strong>
-          </div>
-          <button 
-            class="btn-delete"
-            hx-delete="/action/delete-endpoint/${encodeURIComponent(e.endpoint)}"
-            hx-target="#endpoints-list"
-            hx-swap="innerHTML"
-          >Delete</button>
-        </li>
-      `,
-        )
-        .join('')}
-    </ul>
-  `;
-};
-
-export const handleQRSection = async () => {
-  if (await hasValidAccount()) {
-    return '<p>Account already linked</p>';
-  }
-
-  const now = Date.now();
-
-  if ((!cachedQR || now - qrCacheTime > QR_CACHE_TTL) && !generatingPromise) {
-    generatingPromise = (async () => {
-      const qr = await generateLinkQR();
-      cachedQR = qr;
-      qrCacheTime = Date.now();
-
-      finishLink()
-        .then(async () => {
-          await initSignal();
-        })
-        .catch(() => {})
-        .finally(() => {
-          generatingPromise = null;
-          cachedQR = null;
-          qrCacheTime = 0;
-        });
-
-      return qr;
-    })();
-  }
-
-  if (generatingPromise && !cachedQR) {
-    await generatingPromise;
-  }
-
-  return `
-    <p>Scan this QR code with your Signal app:</p>
-    <p class="qr-instructions"><strong>Settings → Linked Devices → Link New Device</strong></p>
-    <div class="qr-container">
-      <img src="${cachedQR}" class="qr-image" alt="QR Code" />
-    </div>
-  `;
-};
-
-export const handleLinkStatusCheck = async () => {
-  const linked = await hasValidAccount();
-  return { linked };
-};
 
 const admin = new Hono();
 
@@ -197,5 +70,127 @@ admin.delete('/action/delete-endpoint/:endpoint', async (c) => {
   remove(endpoint);
   return c.html(await handleEndpointsFragment());
 });
+
+const handleHealthFragment = async () => {
+  const signalOk = await checkSignalCli();
+  const linked = signalOk && (await hasValidAccount());
+  const imap = isImapConnected();
+  const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
+  const accountNumber = getAccount();
+
+  const html = `
+    <div class="status">
+      <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
+        Signal Network: ${signalOk ? 'Connected' : 'Disconnected'}
+      </div>
+      <div class="status-item ${linked ? 'status-ok' : 'status-error'}">
+        Account: ${linked ? 'Linked' : 'Unlinked'}
+        ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
+      </div>
+      ${
+        hasProtonConfig
+          ? `<div class="status-item ${imap ? 'status-ok' : 'status-error'}">
+        Proton Mail: ${imap ? 'Connected' : 'Disconnected'}
+        ${imap ? `<span class="tooltip">${PROTON_IMAP_USERNAME}</span>` : ''}
+      </div>`
+          : ''
+      }
+    </div>
+    <div id="signal-info" hx-swap-oob="true">
+      ${await handleSignalInfoFragment()}
+    </div>
+  `;
+
+  return { html, linked };
+};
+
+const handleSignalInfoFragment = async () => {
+  if (await hasValidAccount()) {
+    cachedQR = null;
+    return `<details class="unlink-details">
+         <summary class="unlink-summary">Unlink and remove device</summary>
+         <div class="unlink-instructions">
+           <ol>
+             <li>Open Signal app → <strong>Settings → Linked Devices</strong></li>
+             <li>Find <strong>"${DEVICE_NAME}"</strong> and tap it</li>
+             <li>Tap <strong>"Unlink Device"</strong></li>
+           </ol>
+         </div>
+       </details>`;
+  }
+
+  return handleQRSection();
+};
+
+const handleEndpointsFragment = async () => {
+  const endpoints = getAllMappings();
+
+  if (endpoints.length === 0) {
+    return '<p>No endpoints registered</p>';
+  }
+
+  return `
+    <ul class="endpoint-list">
+      ${endpoints
+        .map(
+          (e: { appName: string; endpoint: string }) => `
+        <li class="endpoint-item">
+          <div class="endpoint-name">
+            <strong>${e.appName}</strong>
+          </div>
+          <button 
+            class="btn-delete"
+            hx-delete="/action/delete-endpoint/${encodeURIComponent(e.endpoint)}"
+            hx-target="#endpoints-list"
+            hx-swap="innerHTML"
+          >Delete</button>
+        </li>
+      `,
+        )
+        .join('')}
+    </ul>
+  `;
+};
+
+const handleQRSection = async () => {
+  if (await hasValidAccount()) {
+    return '<p>Account already linked</p>';
+  }
+
+  const now = Date.now();
+
+  if ((!cachedQR || now - qrCacheTime > QR_CACHE_TTL) && !generatingPromise) {
+    generatingPromise = (async () => {
+      const qr = await generateLinkQR();
+      cachedQR = qr;
+      qrCacheTime = Date.now();
+
+      finishLink()
+        .then(async () => {
+          await initSignal();
+        })
+        .catch(() => {})
+        .finally(() => {
+          generatingPromise = null;
+          cachedQR = null;
+          qrCacheTime = 0;
+        });
+
+      return qr;
+    })();
+  }
+
+  if (generatingPromise && !cachedQR) {
+    await generatingPromise;
+  }
+
+  return `
+    <p>Scan this QR code with your Signal app:</p>
+    <p class="qr-instructions"><strong>Settings → Linked Devices → Link New Device</strong></p>
+    <div class="qr-container">
+      <img src="${cachedQR}" class="qr-image" alt="QR Code" />
+    </div>
+  `;
+};
 
 export default admin;

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { sendGroupMessage } from '@/modules/signal';
 import { getGroupId, getOrCreateGroup, remove } from '@/modules/store';
-import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unifiedpush';
+import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unified-push';
 
 const unifiedpush = new Hono();
 

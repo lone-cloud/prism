@@ -94,7 +94,7 @@ export async function finishLink() {
   return result;
 }
 
-export async function unlinkDevice() {
+async function unlinkDevice() {
   account = null;
   currentLinkUri = null;
 
