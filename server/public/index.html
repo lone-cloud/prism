@@ -42,7 +42,7 @@
     <h2>Endpoints</h2>
     <div id="endpoints-list" 
          hx-get="/fragment/endpoints" 
-         hx-trigger="load"
+         hx-trigger="load, every 10s"
          hx-indicator="#endpoints-list">
       <div class="loading">
         <div class="spinner"></div>

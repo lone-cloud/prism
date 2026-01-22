@@ -33,3 +33,8 @@ export const formatPhoneNumber = (phone: string): string => {
 
   return phone;
 };
+
+export const formatToCspString = (cspConfig: Record<string, string[]>) =>
+  Object.entries(cspConfig)
+    .map(([key, values]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()} ${values.join(' ')}`)
+    .join('; ');

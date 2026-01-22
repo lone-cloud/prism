@@ -3,7 +3,7 @@ import { sendGroupMessage } from '@/modules/signal';
 import { getGroupId, getOrCreateGroup, remove } from '@/modules/store';
 import { formatAsSignalMessage, parseUnifiedPushRequest } from '@/modules/unified-push';
 
-const unifiedpush = new Hono();
+export const unifiedpush = new Hono();
 
 unifiedpush.get('/up', (c) =>
   c.json({
@@ -45,5 +45,3 @@ unifiedpush.delete('/up/:instance', async (c) => {
   remove(endpointId);
   return c.body(null, 204);
 });
-
-export default unifiedpush;

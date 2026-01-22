@@ -6,10 +6,23 @@ import {
   VERBOSE_LOGGING,
 } from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
-import type { ListAccountsResult, StartLinkResult, UpdateGroupResult } from '@/types';
 import { formatPhoneNumber } from '@/utils/format';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 import { call } from '@/utils/rpc';
+
+interface StartLinkResult {
+  deviceLinkUri: string;
+}
+
+interface UpdateGroupResult {
+  groupId: string;
+}
+
+type ListAccountsResult = {
+  number: string;
+  name?: string;
+  uuid?: string;
+}[];
 
 let account: string | null = null;
 let currentLinkUri: string | null = null;
@@ -27,20 +40,21 @@ export async function initSignal({ accountOverride }: { accountOverride?: string
   if (accountOverride) {
     account = accountOverride;
     logVerbose(`Signal account set: ${account}`);
-    logSuccess('Signal account linked');
+
     return { linked: true, account };
   }
 
   const result = (await call('listAccounts', {}, null)) as ListAccountsResult;
   const [firstAccount] = result;
+
   if (firstAccount) {
     account = firstAccount.number;
     logVerbose(`Signal account initialized: ${formatPhoneNumber(account)}`);
-    logSuccess('Signal account linked');
     return { linked: true, account };
   }
 
   logVerbose('No Signal accounts found');
+
   return { linked: false, account: null };
 }
 
@@ -90,7 +104,9 @@ export async function finishLink() {
     },
     null,
   );
+
   logSuccess('Device linked successfully');
+
   return result;
 }
 
@@ -103,6 +119,7 @@ async function unlinkDevice() {
 
     try {
       await rm(SIGNAL_CLI_DATA, { recursive: true, force: true });
+
       logSuccess('Account data removed');
     } catch (error) {
       logError('Failed to remove account data directory:', error);
@@ -155,6 +172,7 @@ export async function sendGroupMessage(
 export async function checkSignalCli() {
   try {
     await call('listAccounts', {}, account);
+
     return true;
   } catch {
     return false;
@@ -164,6 +182,7 @@ export async function checkSignalCli() {
 export async function hasValidAccount() {
   try {
     const result = (await call('listAccounts', {}, account)) as ListAccountsResult;
+
     return result.length > 0;
   } catch {
     return false;
@@ -233,6 +252,7 @@ export async function startDaemon() {
 
   for (let i = 0; i < 60; i++) {
     await Bun.sleep(500);
+
     try {
       const socket = await Bun.connect({
         unix: SIGNAL_CLI_SOCKET,
@@ -240,22 +260,31 @@ export async function startDaemon() {
           data() {},
         },
       });
+
       socket.end();
+
       logSuccess(`signal-cli daemon started (${(i + 1) * 0.5}s)`);
+
       daemon = proc;
+
       return proc;
     } catch {}
   }
 
   if (authError && !cleaned) {
     logWarn('Detected stale account data, cleaning up and retrying...');
+    
     proc.kill();
+
     await unlinkDevice();
+
     cleaned = true;
+
     return startDaemon();
   }
 
   logError('Failed to connect to signal-cli socket: daemon did not start within 30 seconds');
+
   if (proc.exitCode !== null) {
     logError('signal-cli process exited with code:', proc.exitCode);
   }

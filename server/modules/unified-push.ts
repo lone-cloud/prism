@@ -1,6 +1,6 @@
 import { SUP_ENDPOINT_PREFIX } from '@/constants/config';
 
-export interface UnifiedPushMessage {
+interface UnifiedPushMessage {
   endpoint: string;
   title?: string;
   body?: string;

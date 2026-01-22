@@ -8,7 +8,6 @@ import {
   generateLinkQR,
   getAccount,
   hasValidAccount,
-  initSignal,
 } from '@/modules/signal';
 import { getAllMappings, remove } from '@/modules/store';
 import { verifyApiKey } from '@/utils/auth';
@@ -19,7 +18,7 @@ let qrCacheTime = 0;
 let generatingPromise: Promise<string> | null = null;
 const QR_CACHE_TTL = 10 * 60 * 1000;
 
-const admin = new Hono();
+export const admin = new Hono();
 
 admin.use(
   '*',
@@ -166,16 +165,11 @@ const handleQRSection = async () => {
         cachedQR = qr;
         qrCacheTime = Date.now();
 
-        finishLink()
-          .then(async () => {
-            await initSignal();
-          })
-          .catch(() => {})
-          .finally(() => {
-            generatingPromise = null;
-            cachedQR = null;
-            qrCacheTime = 0;
-          });
+        finishLink().finally(() => {
+          generatingPromise = null;
+          cachedQR = null;
+          qrCacheTime = 0;
+        });
 
         return qr;
       } catch (error) {
@@ -201,5 +195,3 @@ const handleQRSection = async () => {
     </div>
   `;
 };
-
-export default admin;

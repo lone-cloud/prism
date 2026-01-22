@@ -1,4 +1,3 @@
-import { networkInterfaces } from 'node:os';
 import { Hono } from 'hono';
 import { getConnInfo, serveStatic } from 'hono/bun';
 import { compress } from 'hono/compress';
@@ -15,11 +14,22 @@ import {
 } from '@/constants/config';
 import { PUBLIC_DIR } from '@/constants/paths';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
-import admin from '@/routes/admin';
-import ntfy from '@/routes/ntfy';
-import unifiedpush from '@/routes/unified-push';
-import { isLocalIP } from '@/utils/auth';
+import { admin } from '@/routes/admin';
+import { ntfy } from '@/routes/ntfy';
+import { unifiedpush } from '@/routes/unified-push';
+import { getLanIP, isLocalIP } from '@/utils/auth';
+import { formatToCspString } from '@/utils/format';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
+
+const cspConfig = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", 'data:'],
+  formAction: ["'self'"],
+  frameAncestors: ["'none'"],
+  objectSrc: ["'none'"],
+};
 
 initSignal();
 
@@ -37,42 +47,7 @@ if (PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD) {
   }
 }
 
-const getLanIP = () => {
-  const nets = networkInterfaces();
-
-  for (const name of Object.keys(nets)) {
-    const interfaces = nets[name];
-
-    if (!interfaces) continue;
-
-    for (const iface of interfaces) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return null;
-};
-
 const app = new Hono();
-
-const cspConfig = {
-  defaultSrc: ["'self'"],
-  scriptSrc: ["'self'"],
-  styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", 'data:'],
-  formAction: ["'self'"],
-  frameAncestors: ["'none'"],
-  objectSrc: ["'none'"],
-};
-
-const cspString = Object.entries(cspConfig)
-  .map(([key, values]) => {
-    const directive = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-
-    return `${directive} ${values.join(' ')}`;
-  })
-  .join('; ');
 
 app.use('*', (c, next) => {
   const proto = c.req.header('x-forwarded-proto') || 'http';
@@ -84,18 +59,15 @@ app.use('*', (c, next) => {
     })(c, next);
   }
 
-  c.header('Content-Security-Policy', cspString);
+  c.header('Content-Security-Policy', formatToCspString(cspConfig));
+
   return next();
 });
 
-app.use('*', (c, next) => {
-  if (c.req.path === '/link/status-check') {
-    return next();
-  }
+app.use('*', timeout(5000));
 
-  return timeout(5000)(c, next);
-});
 app.use('*', compress());
+
 app.use(
   '*',
   rateLimiter({

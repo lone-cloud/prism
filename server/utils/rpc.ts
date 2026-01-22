@@ -26,14 +26,15 @@ export const call = (method: string, params: Record<string, unknown>, account: s
             }
           }
         },
-        error(_socket, error) {
+        error(_, error) {
           reject(error);
         },
-        connectError(_socket, error) {
+        connectError(_, error) {
           reject(error);
         },
         close() {
           const isComplete = response.includes(MESSAGE_DELIMITER);
+
           if (!isComplete) {
             reject(new Error('Connection closed before response received'));
           }

@@ -5,7 +5,7 @@ import { getOrCreateGroup } from '@/modules/store';
 import { verifyApiKey } from '@/utils/auth';
 import { logError, logVerbose } from '@/utils/log';
 
-const ntfy = new Hono();
+export const ntfy = new Hono();
 
 ntfy.use(
   '*',
@@ -64,5 +64,3 @@ ntfy.post('/:topic', async (c) => {
     return c.text('Internal server error', 500);
   }
 });
-
-export default ntfy;

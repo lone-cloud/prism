@@ -24,6 +24,27 @@ const getReconnectDelay = () => {
   return delay;
 };
 
+async function sendNotification(from: string, subject: string) {
+  if (!(await hasValidAccount())) {
+    logVerbose('Skipping notification (Signal not linked)');
+
+    return;
+  }
+
+  try {
+    const groupId = await getOrCreateGroup(`proton-${PROTON_SUP_TOPIC}`, PROTON_SUP_TOPIC);
+
+    await sendGroupMessage(groupId, subject, {
+      androidPackage: 'ch.protonmail.android',
+      title: from,
+    });
+
+    logVerbose(`Email from ${from}: ${subject}`);
+  } catch (error) {
+    logError('Failed to send notification:', error);
+  }
+}
+
 export async function startProtonMonitor() {
   if (!PROTON_IMAP_USERNAME || !PROTON_IMAP_PASSWORD) {
     logError('Missing required env vars: PROTON_IMAP_USERNAME and PROTON_IMAP_PASSWORD');
@@ -31,11 +52,6 @@ export async function startProtonMonitor() {
     logWarn('Then use `login` and `info` commands to get IMAP credentials');
 
     return;
-  }
-
-  if (!(await hasValidAccount())) {
-    logWarn('Signal account not linked. Proton Mail notifications will be skipped.');
-    logWarn('Link your Signal account to enable email notifications.');
   }
 
   logInfo(`Connecting to Proton Bridge at ${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_PORT}`);
@@ -49,36 +65,16 @@ export async function startProtonMonitor() {
     keepalive: true,
   });
 
-  async function sendNotification(from: string, subject: string) {
-    if (!(await hasValidAccount())) {
-      logVerbose('Skipping notification (Signal not linked)');
-      return;
-    }
-
-    try {
-      const groupId = await getOrCreateGroup(`proton-${PROTON_SUP_TOPIC}`, PROTON_SUP_TOPIC);
-
-      await sendGroupMessage(groupId, subject, {
-        androidPackage: 'ch.protonmail.android',
-        title: from,
-      });
-
-      logVerbose(`Email from ${from}: ${subject}`);
-    } catch (error) {
-      logError('Failed to send notification:', error);
-    }
-  }
-
   const openInbox = () =>
     imap.openBox('INBOX', false, (err, box) => {
       if (err) {
         logError('Failed to open inbox:', err);
+
         return;
       }
 
       if (!monitorStartTime) {
         monitorStartTime = Date.now();
-        logVerbose(`Inbox opened with ${box.messages.total} existing messages`);
       } else {
         logVerbose('Inbox reopened (reconnection)');
       }
@@ -124,6 +120,7 @@ export async function startProtonMonitor() {
               const from = nameMatch?.[1]?.trim() || rawFrom;
 
               reconnectAttempts = 0;
+
               sendNotification(from, subject);
             });
           });
@@ -149,6 +146,7 @@ export async function startProtonMonitor() {
 
     const delay = getReconnectDelay();
     logInfo(`Attempting to reconnect in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+
     setTimeout(() => {
       if (!imapConnected) {
         logInfo('Reconnecting to Proton Bridge...');
