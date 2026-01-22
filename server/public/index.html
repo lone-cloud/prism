@@ -13,24 +13,27 @@
 <body>
   <div class="card">
     <div id="health-status" 
-         hx-get="/health/fragment" 
+         hx-get="/fragment/health" 
          hx-trigger="load, every 10s"
-         hx-indicator="#health-status"
-         class="loading">
-      Loading health status...
+         hx-indicator="#health-status">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
     </div>
   </div>
 
   <div class="card">
     <h2>Signal</h2>
     <div id="signal-info" 
-         hx-get="/signal-info/fragment" 
+         hx-get="/fragment/signal-info" 
          hx-trigger="load, accountLinked from:body"
          hx-indicator="#signal-info">
-      <div class="loading">Loading Signal status...</div>
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
     </div>
     <div id="qr-section"
-         hx-get="/signal-info/fragment"
+         hx-get="/fragment/signal-info"
          hx-trigger="accountLinked from:body"
          hx-swap="none"></div>
   </div>
@@ -38,11 +41,12 @@
   <div class="card">
     <h2>Endpoints</h2>
     <div id="endpoints-list" 
-         hx-get="/endpoints/fragment" 
+         hx-get="/fragment/endpoints" 
          hx-trigger="load"
-         hx-indicator="#endpoints-list"
-         class="loading">
-      Loading endpoints...
+         hx-indicator="#endpoints-list">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
     </div>
   </div>
 </body>

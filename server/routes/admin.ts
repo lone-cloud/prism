@@ -6,11 +6,13 @@ import {
   checkSignalCli,
   finishLink,
   generateLinkQR,
+  getAccount,
   hasValidAccount,
   initSignal,
 } from '@/modules/signal';
 import { getAllMappings, remove } from '@/modules/store';
 import { verifyApiKey } from '@/utils/auth';
+import { formatPhoneNumber, formatUptime } from '@/utils/format';
 
 let cachedQR: string | null = null;
 let qrCacheTime = 0;
@@ -22,19 +24,22 @@ export const handleHealthFragment = async () => {
   const linked = signalOk && (await hasValidAccount());
   const imap = isImapConnected();
   const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
+  const accountNumber = getAccount();
 
   const html = `
     <div class="status">
       <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
-        Signal Daemon: ${signalOk ? 'Running' : 'Stopped'}
+        Signal Network: ${signalOk ? 'Connected' : 'Disconnected'}
       </div>
       <div class="status-item ${linked ? 'status-ok' : 'status-error'}">
         Account: ${linked ? 'Linked' : 'Unlinked'}
+        ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
       </div>
       ${
         hasProtonConfig
           ? `<div class="status-item ${imap ? 'status-ok' : 'status-error'}">
         Proton Mail: ${imap ? 'Connected' : 'Disconnected'}
+        ${imap ? `<span class="tooltip">${PROTON_IMAP_USERNAME}</span>` : ''}
       </div>`
           : ''
       }
@@ -83,7 +88,7 @@ export const handleEndpointsFragment = async () => {
           </div>
           <button 
             class="btn-delete"
-            hx-delete="/endpoint/delete/${encodeURIComponent(e.endpoint)}"
+            hx-delete="/action/delete-endpoint/${encodeURIComponent(e.endpoint)}"
             hx-target="#endpoints-list"
             hx-swap="innerHTML"
           >Delete</button>
@@ -157,7 +162,7 @@ admin.get('/api/health', async (c) => {
   const hasProtonConfig = PROTON_IMAP_USERNAME && PROTON_IMAP_PASSWORD;
 
   const result: Record<string, unknown> = {
-    uptime: process.uptime(),
+    uptime: formatUptime(process.uptime()),
     signal: {
       daemon: signalOk ? 'running' : 'stopped',
       linked,
@@ -171,18 +176,18 @@ admin.get('/api/health', async (c) => {
   return c.json(result);
 });
 
-admin.get('/health/fragment', async (c) => {
+admin.get('/fragment/health', async (c) => {
   const { html } = await handleHealthFragment();
   return c.html(html);
 });
 
-admin.get('/signal-info/fragment', async (c) => c.html(await handleSignalInfoFragment()));
+admin.get('/fragment/signal-info', async (c) => c.html(await handleSignalInfoFragment()));
 
-admin.get('/endpoints/fragment', async (c) => c.html(await handleEndpointsFragment()));
+admin.get('/fragment/endpoints', async (c) => c.html(await handleEndpointsFragment()));
 
-admin.get('/link/qr-section', async (c) => c.html(await handleQRSection()));
+admin.get('/fragment/link-qr', async (c) => c.html(await handleQRSection()));
 
-admin.delete('/endpoint/delete/:endpoint', async (c) => {
+admin.delete('/action/delete-endpoint/:endpoint', async (c) => {
   const endpoint = decodeURIComponent(c.req.param('endpoint'));
 
   if (!endpoint) {

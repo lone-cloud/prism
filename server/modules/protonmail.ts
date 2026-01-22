@@ -11,6 +11,7 @@ import { getOrCreateGroup } from '@/modules/store';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 
 let imapConnected = false;
+let monitorStartTime = 0;
 
 export const isImapConnected = () => imapConnected;
 
@@ -68,11 +69,18 @@ export async function startProtonMonitor() {
         return;
       }
 
-      imap.on('mail', async (numNewMsgs: number) => {
-        logVerbose(`${numNewMsgs} new message(s) received`);
+      if (!monitorStartTime) {
+        monitorStartTime = Date.now();
+        logVerbose(`Inbox opened with ${box.messages.total} existing messages`);
+      } else {
+        logVerbose('Inbox reopened (reconnection)');
+      }
 
-        const fetch = imap.seq.fetch(`${box.messages.total}:*`, {
-          bodies: 'HEADER.FIELDS (FROM SUBJECT)',
+      imap.on('mail', async (numNewMsgs: number) => {
+        logVerbose(`${numNewMsgs} new message(s) in mailbox`);
+
+        const fetch = imap.seq.fetch(`${box.messages.total - numNewMsgs + 1}:*`, {
+          bodies: 'HEADER.FIELDS (FROM SUBJECT DATE)',
           struct: true,
         });
 
@@ -86,6 +94,19 @@ export async function startProtonMonitor() {
               const header = Imap.parseHeader(buffer);
               const rawFrom = header.from?.[0] || 'Unknown sender';
               const subject = header.subject?.[0] || 'No subject';
+              const dateStr = header.date?.[0];
+
+              if (dateStr) {
+                const messageDate = new Date(dateStr).getTime();
+                if (messageDate < monitorStartTime) {
+                  const formattedDate = new Date(dateStr).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  });
+                  logVerbose(`Skipping old email: ${subject} (${formattedDate})`);
+                  return;
+                }
+              }
 
               const nameMatch = rawFrom.match(/^"?([^"<]+)"?\s*<?/);
               const from = nameMatch?.[1]?.trim() || rawFrom;
