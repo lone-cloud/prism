@@ -28,7 +28,7 @@ Note that you'll need to run SUP on your own server (either at home or on a VPS)
 
 SUP functions as a UnifiedPush server to proxy http-based requests to Signal groups via [signal-cli](https://github.com/AsamK/signal-cli).
 
-For the optional ProtonMail integration, SUP requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). SUP's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between SUP and proton-bridge will be over IMAP.
+For the optional Proton Mail integration, SUP requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). SUP's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between SUP and proton-bridge will be over IMAP.
 
 ## Setup
 
@@ -60,7 +60,7 @@ curl -L -O https://raw.githubusercontent.com/lone-cloud/sup/master/docker-compos
 
 docker compose run --rm protonmail-bridge init
 ```
-  
+
 2.**Login to Proton Mail Bridge**:
 
 - At the `>>>` prompt, run: `login`
@@ -92,7 +92,7 @@ Your phone will now receive Signal notifications when Proton Mail receives new e
 
 Note that the bridge will first need to sync all of your old emails before you can start getting new email notifications which may take a while, but this is a one-time setup.
 
-### 3. SUP Server integration
+### 3. Install SUP Server
 
 ```bash
 # Download docker-compose.yml
@@ -110,28 +110,29 @@ docker compose up -d
 
 ```
 
-### 4. Configuration
+### 4. Link Your Signal Account
 
-Link your Signal account (one-time setup)
-Visit localhost:8080 and scan QR code with Signal app
+Visit <http://localhost:8080> and link your Signal account (one-time setup):
 
-#### Authenticate with the API_KEY
+#### 1. Authenticate with your API_KEY
 
-<img src="assets/screenshots/1.webp" style="display: block" width="500" />
+![Admin login screen](assets/screenshots/1.webp)
 
-#### Scan the QR code from your Signal app by linking SUP as a device
+#### 2. Scan the QR code from your Signal app
 
-<img src="assets/screenshots/2.webp" style="display: block" width="500" />
+Go to **Settings → Linked Devices → Link New Device** in Signal.
 
-#### A healthy setup with a linked account
+![QR code linking screen](assets/screenshots/2.webp)
 
-<img src="assets/screenshots/3.webp" style="display: block" width="500" />
+#### 3. Verify the setup
 
-#### A healthy setup with a linked account and the optional Proton Mail integration
+Once linked, you'll see the status dashboard:
 
-<img src="assets/screenshots/4.webp" style="display: block" width="500" />
+![Healthy setup with linked account](assets/screenshots/3.webp)
 
+With optional Proton Mail integration:
 
+![Healthy setup with Proton Mail](assets/screenshots/4.webp)
 
 ### Development
 
@@ -165,7 +166,9 @@ docker compose -f docker-compose.dev.yml up protonmail-bridge
 
 ### Proton Mail Notifications
 
-Receive instant Signal notifications when new emails arrive in your Proton Mail inbox. SUP monitors your Proton Mail account via the local Proton Mail Bridge and forwards email alerts through Signal, eliminating the need for persistent IMAP connections from your phone.
+Receive instant Signal notifications when new emails arrive in your Proton Mail inbox.
+
+SUP monitors your Proton Mail account via the local Proton Mail Bridge and forwards email alerts through Signal. This relies on the same technology that a third party email client like Thunderbird would be using to integrate with Proton Mail.
 
 ### Home Assistant Alerts
 
@@ -183,6 +186,8 @@ notify:
       Authorization: !secret sup_basic_auth
 ```
 
+Note how Home Assistant is also a self-hosted server. As such, it is advisable to turn on `ALLOW_INSECURE_HTTP` environment variable for SUP and to refer to it by its LAN IP address.
+
 Add the Base64 version of your API_KEY environment variable secret to your secrets.yaml. This secret must be prepended by a colon and the simplest way to get this value is to run `btoa(':<API_KEY>')` in your browser's console.
 
 ```bash
@@ -191,18 +196,21 @@ sup_basic_auth: "Basic <Base64 Hash value>"
 
 Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify sup action.  
 
+## Monitoring
+
+The health of the system can be viewed in the same admin UI used for linking Signal. SUP uses [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) - provide your `API_KEY` as the password (username can be anything).
+
+For API-based monitoring, call `/api/health` which returns JSON:
+
+```json
+{"uptime":"3s","signal":{"daemon":"running","linked":true},"protonMail":"connected"}
+```
+
 ## Architecture
 
 ![SUP Architecture](assets/SUP%20Architecture.webp)
 
-SUP consists of two services that **MUST rSUP uses [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) for authentication. un together on the same machin`API_KEY` as a password and the username can be ignored.
-
-For API-based monitoring, you can call `/api/health` which will return JSON health output like:
-
-```JSON
-{"uptime":"3s","signal":{"daemon":"running","linked":true},"protonMail":"connected"}
-```
-**:
+SUP consists of two services that **MUST run together on the same machine**:
 
 - **sup-server** (Bun): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors Proton Mail IMAP
 - **protonmail-bridge** (Official Proton, optional): Decrypts Proton Mail emails, runs local IMAP server
