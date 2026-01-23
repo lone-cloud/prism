@@ -8,6 +8,10 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["server/*"]
+    },
 
     "strict": true,
     "skipLibCheck": true,

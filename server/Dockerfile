@@ -2,12 +2,12 @@ FROM oven/bun:1.3.6-debian AS builder
 
 WORKDIR /app
 
-COPY server/package.json server/bun.lock* ./
+COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
 
-COPY server .
+COPY server ./server
 
-RUN bun build --compile index.ts --outfile sup-server
+RUN bun build --compile server/index.ts --outfile sup-server
 
 FROM debian:13.3-slim
 
@@ -35,7 +35,7 @@ RUN ARCH=$(uname -m) && \
     fi
 
 COPY --from=builder /app/sup-server /usr/local/bin/sup-server
-COPY --from=builder /app/public /public
+COPY --from=builder /app/server/public /public
 
 ENV PATH="/usr/local/signal-cli/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/signal-cli/lib:${LD_LIBRARY_PATH}"
