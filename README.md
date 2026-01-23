@@ -22,7 +22,9 @@ Traditional push notification systems require persistent connections to specific
 
 SUP also includes an optional Proton Mail integration, allowing you to receive email notifications as Signal messages without exposing IMAP connections.
 
-Note that you'll need to run SUP on your own server (either at home or on a VPS) since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi, which is a small and affordable micro-computer, works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
+Note that you'll need to run SUP on your own server at home since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
+
+> **💡 Privacy Tip:** Use [Molly.im](https://molly.im/) (hardened Signal fork) with **WebSocket** notifications instead of the official Signal app. This ensures all Signal traffic, including SUP notifications, goes through WebSockets, making it indistinguishable from regular Signal messages.
 
 ## How?
 
