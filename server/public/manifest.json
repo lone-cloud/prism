@@ -11,12 +11,6 @@
       "src": "/favicon.webp",
       "sizes": "32x32",
       "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.webp",
-      "sizes": "512x512",
-      "type": "image/webp",
       "purpose": "any maskable"
     }
   ]

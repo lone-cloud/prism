@@ -9,8 +9,11 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/index.css">
   <script src="/htmx.min.js"></script>
+  <script src="/theme.js"></script>
 </head>
 <body>
+  <button id="theme-toggle" class="theme-toggle"></button>
+  
   <div class="card">
     <div id="health-status" 
          hx-get="/fragment/health" 

@@ -11,6 +11,7 @@ The Android application (android/) contains modified code from:
   Licensed under Apache License 2.0
 
 Major modifications:
+
 - Completely replaced HTTP/WebSocket polling with Signal-based push delivery
 - Removed all user authentication, attachment downloads, and action buttons
 - Removed Firebase, certificate pinning, and instant delivery features
