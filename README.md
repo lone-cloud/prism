@@ -24,7 +24,9 @@ SUP also includes an optional Proton Mail integration, allowing you to receive e
 
 Note that you'll need to run SUP on your own server at home since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
 
-> **💡 Privacy Tip:** Use [Molly.im](https://molly.im/) (hardened Signal fork) with **WebSocket** notifications instead of the official Signal app. This ensures all Signal traffic, including SUP notifications, goes through WebSockets, making it indistinguishable from regular Signal messages.
+> **� Background:** For a detailed explanation of the privacy paradox of self-hosting that motivated this project, see [MOTIVATION.md](MOTIVATION.md).
+
+> **�💡 Privacy Tip:** Use [Molly.im](https://molly.im/) (hardened Signal fork) with **WebSocket** notifications instead of the official Signal app. This ensures all Signal traffic, including SUP notifications, goes through WebSockets, making it indistinguishable from regular Signal messages.
 
 ## How?
 
