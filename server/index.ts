@@ -16,7 +16,6 @@ import { PUBLIC_DIR } from '@/constants/paths';
 import { cleanupDaemon, initSignal } from '@/modules/signal';
 import { admin } from '@/routes/admin';
 import { ntfy } from '@/routes/ntfy';
-import { unifiedpush } from '@/routes/unified-push';
 import { getLanIP, isLocalIP } from '@/utils/auth';
 import { formatToCspString } from '@/utils/format';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
@@ -79,7 +78,6 @@ app.use(
 
 app.use('*', serveStatic({ root: PUBLIC_DIR }));
 
-app.route('/', unifiedpush);
 app.route('/', ntfy);
 app.route('/', admin);
 

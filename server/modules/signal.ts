@@ -1,10 +1,5 @@
 import { rm } from 'node:fs/promises';
-import {
-  DEVICE_NAME,
-  ENABLE_ANDROID_INTEGRATION,
-  LAUNCH_ENDPOINT_PREFIX,
-  VERBOSE_LOGGING,
-} from '@/constants/config';
+import { DEVICE_NAME, VERBOSE_LOGGING } from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
 import { formatPhoneNumber } from '@/utils/format';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
@@ -151,10 +146,7 @@ export async function sendGroupMessage(
 ) {
   let formattedMessage = message;
 
-  if (ENABLE_ANDROID_INTEGRATION && options?.androidPackage) {
-    const title = options.title ? `**${options.title}**\n` : '';
-    formattedMessage = `${LAUNCH_ENDPOINT_PREFIX}${options.androidPackage}]\n${title}${message}`;
-  } else if (options?.title) {
+  if (options?.title) {
     formattedMessage = `${options.title}\n${message}`;
   }
 

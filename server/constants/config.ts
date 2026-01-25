@@ -7,11 +7,9 @@ export const RATE_LIMIT = Number.parseInt(Bun.env.RATE_LIMIT || '100', 10);
 export const DEVICE_NAME = Bun.env.DEVICE_NAME || 'SUP';
 
 export const SUP_ENDPOINT_PREFIX = `[${DEVICE_NAME}:`;
-export const LAUNCH_ENDPOINT_PREFIX = '[LAUNCH:';
 
 export const PROTON_IMAP_USERNAME = Bun.env.PROTON_IMAP_USERNAME;
 export const PROTON_IMAP_PASSWORD = Bun.env.PROTON_IMAP_PASSWORD;
 export const PROTON_BRIDGE_HOST = Bun.env.PROTON_BRIDGE_HOST || 'protonmail-bridge';
 export const PROTON_BRIDGE_PORT = Number.parseInt(Bun.env.PROTON_BRIDGE_PORT || '143', 10);
 export const PROTON_SUP_TOPIC = Bun.env.PROTON_SUP_TOPIC || 'Proton Mail';
-export const ENABLE_ANDROID_INTEGRATION = Bun.env.ENABLE_ANDROID_INTEGRATION === 'true';

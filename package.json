@@ -19,10 +19,6 @@
     "build": "bun build --compile server/index.ts --outfile server/sup-server",
     "check": "tsc --noEmit && biome check .",
     "fix": "biome check --write --unsafe .",
-    "android:build": "bun run scripts/test-android-build.ts",
-    "android:release": "bun run scripts/release-android.ts",
-    "android:deps": "bun run scripts/check-android-deps.ts",
-    "android:lockfile": "bun run scripts/update-android-lockfile.ts",
     "docker:release": "bun run scripts/release-docker.ts"
   },
   "dependencies": {
