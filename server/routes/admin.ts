@@ -80,11 +80,8 @@ const handleHealthFragment = async () => {
   const html = `
     <div class="status">
       <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
-        Signal Network: ${signalOk ? 'Connected' : 'Disconnected'}
-      </div>
-      <div class="status-item ${linked ? 'status-ok' : 'status-error'}">
-        Account: ${linked ? 'Linked' : 'Unlinked'}
-        ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
+        Signal: ${signalOk ? 'Connected' : 'Disconnected'} and ${linked ? 'Linked' : 'Unlinked'}
+                ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
       </div>
       ${
         hasProtonConfig

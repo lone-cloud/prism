@@ -24,10 +24,6 @@ SUP also includes an optional Proton Mail integration, allowing you to receive e
 
 Note that you'll need to run SUP on your own server at home since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
 
-> **� Background:** For a detailed explanation of the privacy paradox of self-hosting that motivated this project, see [MOTIVATION.md](MOTIVATION.md).
-
-> **�💡 Privacy Tip:** Use [Molly.im](https://molly.im/) (hardened Signal fork) with **WebSocket** notifications instead of the official Signal app. This ensures all Signal traffic, including SUP notifications, goes through WebSockets, making it indistinguishable from regular Signal messages.
-
 ## How?
 
 SUP functions as a UnifiedPush server to proxy http-based requests to Signal groups via [signal-cli](https://github.com/AsamK/signal-cli).
@@ -36,21 +32,7 @@ For the optional Proton Mail integration, SUP requires a server that runs Proton
 
 ## Setup
 
-### 1. Install Android App (Optional)
-
-> ⚠️ **Early Alpha**: The Android app is currently unavailable, but is planned for the full release of SUP.
-
-An Android app is optionally available to connect UnifiedPush Android apps to the SUP server. It can also provide a better experience for displaying SUP-based notifications if the `ENABLE_ANDROID_INTEGRATION` environment variable is enabled on the server.
-
-Download the latest APK from [GitHub Releases](https://github.com/lone-cloud/sup/releases).
-
-**Certificate Fingerprint:**
-
-```text
-0D:3C:99:15:0E:12:1A:DE:0D:AE:05:CB:16:46:5E:65:31:56:DC:D6:98:87:59:4E:79:B1:0D:AE:1E:56:F2:E8
-```
-
-### 2. Proton Mail Integration (Optional)
+### 1. Proton Mail Integration
 
 > ⚠️ **Early Alpha**: Currently only `docker-compose.dev.yml` dev deployments are available.
 
@@ -100,7 +82,7 @@ Your phone will now receive Signal notifications when Proton Mail receives new e
 
 Note that the bridge will first need to sync all of your old emails before you can start getting new email notifications which may take a while, but this is a one-time setup.
 
-### 3. Install SUP Server
+### 2. Install SUP Server
 
 > ⚠️ **Early Alpha**: Currently only `docker-compose.dev.yml` dev deployments are available.
 
@@ -120,7 +102,7 @@ docker compose up -d
 
 ```
 
-### 4. Link Your Signal Account
+### 3. Link Your Signal Account
 
 Visit <http://localhost:8080> and link your Signal account (one-time setup):
 
@@ -226,5 +208,3 @@ SUP consists of two services that **MUST run together on the same machine**:
 - **protonmail-bridge** (Official Proton, optional): Decrypts Proton Mail emails, runs local IMAP server
 
 All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
-
-**Android App** (Kotlin): Monitors Signal notifications, extracts UnifiedPush payloads, delivers to apps
