@@ -188,7 +188,7 @@ For API-based monitoring, call `/api/health` which returns JSON:
 
 SUP consists of two services that **MUST run together on the same machine**:
 
-- **sup-server** (Bun): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors Proton Mail IMAP
+- **sup** (Bun): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors Proton Mail IMAP
 - **protonmail-bridge** (Official Proton, optional): Decrypts Proton Mail emails, runs local IMAP server
 
 All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**

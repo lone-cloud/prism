@@ -1,6 +1,6 @@
 {
   "name": "sup",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Privacy-preserving push notifications using Signal as transport",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
   "scripts": {
     "postinstall": "bun run scripts/install-signal-cli.ts || true",
     "start": "bun run server/index.ts",
-    "build": "bun build --compile server/index.ts --outfile server/sup-server",
+    "build": "bun build --compile server/index.ts --outfile server/sup",
     "check": "tsc --noEmit && biome check .",
     "fix": "biome check --write --unsafe .",
     "release": "bun run scripts/release.ts"

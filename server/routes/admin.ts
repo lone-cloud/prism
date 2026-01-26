@@ -79,7 +79,7 @@ const handleHealthFragment = async () => {
 
   const html = `
     <div class="status">
-      <div class="status-item ${signalOk ? 'status-ok' : 'status-error'}">
+      <div class="status-item ${signalOk && linked ? 'status-ok' : 'status-error'}">
         Signal: ${signalOk ? 'Connected' : 'Disconnected'} and ${linked ? 'Linked' : 'Unlinked'}
                 ${linked && accountNumber ? `<span class="tooltip">${formatPhoneNumber(accountNumber)}</span>` : ''}
       </div>
