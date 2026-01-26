@@ -4,7 +4,7 @@
 
 # SUP
 
-**Privacy-preserving push notification system using Signal as transport**
+**Push notification system using Signal as transport**
 
 [Setup](#setup) • [Real-World Examples](#real-world-examples) • [Architecture](#architecture)
 
@@ -12,17 +12,7 @@
 
 <!-- markdownlint-enable MD033 -->
 
-> ⚠️ **Early Alpha**: SUP is under rapid development. The Android app is being actively developed and the current version is not thoroughly tested. There are no stable releases yet. Use at your own risk.
-
-SUP is a [UnifiedPush](https://unifiedpush.org/) server and distributor that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to any network observers. All notification traffic appears as regular Signal messages.
-
-## Why?
-
-Traditional push notification systems require persistent connections to specific servers, creating unique network fingerprints. Relying on traditional push notification services like Android's built-in FCM (Firebase Cloud Messaging) may also expose your notification metadata. SUP blends your notification traffic with regular Signal usage for better privacy.
-
-SUP also includes an optional Proton Mail integration, allowing you to receive email notifications as Signal messages without exposing IMAP connections.
-
-Note that you'll need to run SUP on your own server at home since it uses your personal Signal and Proton Mail credentials. A Raspberry Pi works perfectly for this, using minimal power (3-5W) while running SUP 24/7.
+SUP is a self-hosted server that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to any network observers. All notification traffic appears as regular Signal messages.
 
 ## How?
 
