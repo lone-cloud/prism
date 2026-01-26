@@ -24,8 +24,6 @@ For the optional Proton Mail integration, SUP requires a server that runs Proton
 
 ### 1. Proton Mail Integration
 
-> ⚠️ **Early Alpha**: Currently only `docker-compose.dev.yml` dev deployments are available.
-
 A Proton Mail Bridge is optionally available if you want to receive push notifications for incoming emails.
 
 > **Note:** The default Proton Mail Bridge image uses `shenxn/protonmail-bridge:build` which compiles from source and supports multiple architectures. For x86_64 systems, you can use `shenxn/protonmail-bridge:latest` (pre-built binary, smaller and faster). For ARM devices (Raspberry Pi), stick with `:build`.
@@ -73,8 +71,6 @@ Your phone will now receive Signal notifications when Proton Mail receives new e
 Note that the bridge will first need to sync all of your old emails before you can start getting new email notifications which may take a while, but this is a one-time setup.
 
 ### 2. Install SUP Server
-
-> ⚠️ **Early Alpha**: Currently only `docker-compose.dev.yml` dev deployments are available.
 
 ```bash
 # Download docker-compose.yml
@@ -148,9 +144,9 @@ docker compose -f docker-compose.dev.yml up protonmail-bridge
 
 ### Proton Mail Notifications
 
-Receive instant Signal notifications when new emails arrive in your Proton Mail inbox.
+Receive Signal notifications when new emails arrive in your Proton Mail inbox.
 
-SUP monitors your Proton Mail account via the local Proton Mail Bridge and forwards email alerts through Signal. This relies on the same technology that a third-party email client like Thunderbird would be using to integrate with Proton Mail.
+SUP monitors a Proton Mail account via the local bridge and forwards email alerts through Signal. This relies on the same technology that a third-party email client like Thunderbird would be using to integrate with Proton Mail.
 
 ### Home Assistant Alerts
 
