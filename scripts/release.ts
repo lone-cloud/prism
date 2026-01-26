@@ -21,19 +21,36 @@ try {
   console.log(`Pushing tag to trigger CI build...`);
   await $`git push origin ${version}`;
 
+  console.log(`\nCreating GitHub release...`);
+  await $`gh release create ${version} --title ${version} --notes "## Docker Images
+
+Pull the latest version:
+\`\`\`bash
+docker pull ghcr.io/lone-cloud/sup:${version}
+\`\`\`
+
+Or use in your \`docker-compose.yml\`:
+\`\`\`yaml
+services:
+  server:
+    image: ghcr.io/lone-cloud/sup:${version}
+\`\`\`
+
+### Architectures
+- linux/amd64
+- linux/arm64
+
+### Changes
+See commit history for details." --generate-notes`;
+
   console.log(`
-✨ Release ${version} triggered!
+✨ Release ${version} complete!
 
-GitHub Actions will now:
-  1. Build Docker images
-  2. Push to ghcr.io/lone-cloud/sup-server:${version}
-  3. Push to ghcr.io/lone-cloud/sup-server:latest
+GitHub release: https://github.com/lone-cloud/sup/releases/tag/${version}
+GitHub Actions: https://github.com/lone-cloud/sup/actions
 
-Watch the build:
-  https://github.com/lone-cloud/sup/actions
-
-Once complete, images will be available:
-  docker pull ghcr.io/lone-cloud/sup-server:${version}
+Once CI completes, images will be available:
+  docker pull ghcr.io/lone-cloud/sup:${version}
 `);
 } catch (error) {
   console.error('Release failed:', error);
