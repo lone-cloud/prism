@@ -162,8 +162,6 @@ notify:
     name: SUP
     resource: "http://<Your SUP server network IP>/Home Assistant"
     method: POST
-    data:
-      package: "io.homeassistant.companion.android"
     headers:
       Authorization: !secret sup_basic_auth
 ```

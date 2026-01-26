@@ -2,11 +2,3 @@ node_modules/
 signal-cli
 .env
 sup-server
-
-android/.gradle
-android/.kotlin
-android/local.properties
-android/build/
-android/*/build/
-android/*.keystore
-android/*.jks

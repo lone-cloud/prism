@@ -31,14 +31,11 @@ ntfy.post('/:topic', async (c) => {
     const contentType = c.req.header('content-type') || '';
     let title: string | undefined =
       c.req.header('X-Title') || c.req.header('Title') || c.req.header('t') || undefined;
-    let androidPackage: string | undefined =
-      c.req.header('X-Package') || c.req.header('Package') || c.req.header('p') || undefined;
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const params = new URLSearchParams(message);
       message = params.get('message') || message;
       title = title || params.get('title') || params.get('t') || undefined;
-      androidPackage = androidPackage || params.get('package') || params.get('p') || undefined;
     }
 
     if (title === topic) title = undefined;
@@ -46,7 +43,6 @@ ntfy.post('/:topic', async (c) => {
     const groupId = await getOrCreateGroup(`ntfy-${topic}`, topic);
 
     await sendGroupMessage(groupId, message, {
-      androidPackage: androidPackage || undefined,
       title: title || undefined,
     });
 

@@ -35,7 +35,6 @@ async function sendNotification(from: string, subject: string) {
     const groupId = await getOrCreateGroup(`proton-${PROTON_SUP_TOPIC}`, PROTON_SUP_TOPIC);
 
     await sendGroupMessage(groupId, subject, {
-      androidPackage: 'ch.protonmail.android',
       title: from,
     });
 

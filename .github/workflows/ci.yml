@@ -3,14 +3,8 @@ name: CI
 on:
   push:
     branches: [master]
-    paths-ignore:
-      - 'android/**'
-      - '.github/workflows/android-ci.yml'
   pull_request:
     branches: [master]
-    paths-ignore:
-      - 'android/**'
-      - '.github/workflows/android-ci.yml'
 
 jobs:
   check:

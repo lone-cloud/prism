@@ -142,7 +142,7 @@ export async function createGroup(name: string, members: string[] = []) {
 export async function sendGroupMessage(
   groupId: string,
   message: string,
-  options?: { androidPackage?: string; title?: string },
+  options?: { title?: string },
 ) {
   let formattedMessage = message;
 
