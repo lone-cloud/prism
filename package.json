@@ -1,6 +1,6 @@
 {
   "name": "sup",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Privacy-preserving push notifications using Signal as transport",
   "private": true,
   "type": "module",
