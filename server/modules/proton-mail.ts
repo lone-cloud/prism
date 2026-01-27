@@ -14,6 +14,7 @@ let imapConnected = false;
 let monitorStartTime = 0;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 300000; // 5 minutes
+let imapInstance: Imap | null = null;
 
 export const isImapConnected = () => imapConnected;
 
@@ -167,4 +168,28 @@ export async function startProtonMonitor() {
   process.on('SIGTERM', () => imap.end());
 
   process.on('SIGINT', () => imap.end());
+
+  imapInstance = imap;
+}
+
+export async function markEmailAsRead(uid: number) {
+  if (!imapInstance || !imapConnected) {
+    return { success: false, error: 'IMAP not connected' };
+  }
+
+  return new Promise<{ success: boolean; error?: string }>((resolve) => {
+    try {
+      imapInstance?.addFlags(uid, '\\Seen', (err) => {
+        if (err) {
+          logError('Failed to mark email as read:', err);
+          resolve({ success: false, error: err.message });
+        } else {
+          resolve({ success: true });
+        }
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      resolve({ success: false, error: errorMessage });
+    }
+  });
 }

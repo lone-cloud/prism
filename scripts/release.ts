@@ -27,27 +27,10 @@ try {
 Pull the latest version:
 \`\`\`bash
 docker pull ghcr.io/lone-cloud/sup:${version}
-\`\`\`
-
-Or use in your \`docker-compose.yml\`:
-\`\`\`yaml
-services:
-  server:
-    image: ghcr.io/lone-cloud/sup:${version}
-\`\`\`
-
-### Architectures
-- linux/amd64
-- linux/arm64
-
-### Changes
-See commit history for details." --generate-notes`;
+\`\`\`" --generate-notes`;
 
   console.log(`
 ✨ Release ${version} complete!
-
-GitHub release: https://github.com/lone-cloud/sup/releases/tag/${version}
-GitHub Actions: https://github.com/lone-cloud/sup/actions
 
 Once CI completes, images will be available:
   docker pull ghcr.io/lone-cloud/sup:${version}
