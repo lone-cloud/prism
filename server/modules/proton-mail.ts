@@ -1,49 +1,44 @@
 import Imap from 'imap';
 import {
+  ACTION_MARK_READ,
+  ENDPOINT_PREFIX_PROTON,
+  IMAP_INBOX,
+  IMAP_MAX_RECONNECT_DELAY,
+  IMAP_RECONNECT_BASE_DELAY,
+  IMAP_SEEN_FLAG,
   PROTON_BRIDGE_HOST,
   PROTON_BRIDGE_PORT,
   PROTON_IMAP_PASSWORD,
   PROTON_IMAP_USERNAME,
   PROTON_SUP_TOPIC,
 } from '@/constants/config';
-import { hasValidAccount, sendGroupMessage } from '@/modules/signal';
-import { getOrCreateGroup } from '@/modules/store';
+import { sendNotification as sendChannelNotification } from '@/modules/notifications';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 
 let imapConnected = false;
 let monitorStartTime = 0;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_DELAY = 300000; // 5 minutes
 let imapInstance: Imap | null = null;
+let reconnectTimeout: Timer | null = null;
 
 export const isImapConnected = () => imapConnected;
 
-const getReconnectDelay = () => {
-  const baseDelay = 10000; // 10 seconds
-  const delay = Math.min(baseDelay * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY);
+const scheduleReconnect = () => {
+  const delay = Math.min(
+    IMAP_RECONNECT_BASE_DELAY * 2 ** reconnectAttempts,
+    IMAP_MAX_RECONNECT_DELAY,
+  );
   reconnectAttempts++;
-  return delay;
+
+  logInfo(`Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+
+  reconnectTimeout = setTimeout(() => {
+    if (!imapConnected && imapInstance) {
+      logInfo('Reconnecting to Proton Bridge...');
+      imapInstance.connect();
+    }
+  }, delay);
 };
-
-async function sendNotification(from: string, subject: string) {
-  if (!(await hasValidAccount())) {
-    logVerbose('Skipping notification (Signal not linked)');
-
-    return;
-  }
-
-  try {
-    const groupId = await getOrCreateGroup(`proton-${PROTON_SUP_TOPIC}`, PROTON_SUP_TOPIC);
-
-    await sendGroupMessage(groupId, subject, {
-      title: from,
-    });
-
-    logVerbose(`Email from ${from}: ${subject}`);
-  } catch (error) {
-    logError('Failed to send notification:', error);
-  }
-}
 
 export async function startProtonMonitor() {
   if (!PROTON_IMAP_USERNAME || !PROTON_IMAP_PASSWORD) {
@@ -66,7 +61,7 @@ export async function startProtonMonitor() {
   });
 
   const openInbox = () =>
-    imap.openBox('INBOX', false, (err, box) => {
+    imap.openBox(IMAP_INBOX, false, (err, box) => {
       if (err) {
         logError('Failed to open inbox:', err);
 
@@ -87,7 +82,13 @@ export async function startProtonMonitor() {
           struct: true,
         });
 
-        fetch.on('message', (msg) => {
+        fetch.on('message', async (msg) => {
+          const uidPromise = new Promise<number>((resolve) =>
+            msg.once('attributes', (attrs) => {
+              resolve(attrs.uid);
+            }),
+          );
+
           msg.on('body', (stream) => {
             let buffer = '';
 
@@ -95,7 +96,7 @@ export async function startProtonMonitor() {
               buffer += chunk.toString('utf8');
             });
 
-            stream.once('end', () => {
+            stream.once('end', async () => {
               const header = Imap.parseHeader(buffer);
               const rawFrom = header.from?.[0] || 'Unknown sender';
               const subject = header.subject?.[0] || 'No subject';
@@ -121,7 +122,22 @@ export async function startProtonMonitor() {
 
               reconnectAttempts = 0;
 
-              sendNotification(from, subject);
+              const uid = await uidPromise;
+
+              await sendChannelNotification(`${ENDPOINT_PREFIX_PROTON}${PROTON_SUP_TOPIC}`, {
+                title: from,
+                message: subject,
+                actions: [
+                  {
+                    id: ACTION_MARK_READ,
+                    endpoint: '/api/proton-mail/mark-read',
+                    method: 'POST',
+                    data: { uid },
+                  },
+                ],
+              });
+
+              logVerbose(`Email from ${from}: ${subject}`);
             });
           });
         });
@@ -140,34 +156,27 @@ export async function startProtonMonitor() {
     logError('IMAP error:', err.message);
   });
 
-  const handleReconnect = (reason: string) => {
-    imapConnected = false;
-    logError(reason);
-
-    const delay = getReconnectDelay();
-    logInfo(`Attempting to reconnect in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
-
-    setTimeout(() => {
-      if (!imapConnected) {
-        logInfo('Reconnecting to Proton Bridge...');
-        imap.connect();
-      }
-    }, delay);
-  };
-
   imap.on('close', (hadError: boolean) => {
-    handleReconnect(`IMAP connection closed (hadError: ${hadError})`);
+    imapConnected = false;
+    logError(`IMAP connection closed (hadError: ${hadError})`);
+    scheduleReconnect();
   });
 
   imap.on('end', () => {
-    handleReconnect('IMAP connection ended by server');
+    imapConnected = false;
+    logError('IMAP connection ended by server');
+    scheduleReconnect();
   });
 
   imap.connect();
 
-  process.on('SIGTERM', () => imap.end());
+  const cleanup = () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    imap.end();
+  };
 
-  process.on('SIGINT', () => imap.end());
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
 
   imapInstance = imap;
 }
@@ -179,7 +188,7 @@ export async function markEmailAsRead(uid: number) {
 
   return new Promise<{ success: boolean; error?: string }>((resolve) => {
     try {
-      imapInstance?.addFlags(uid, '\\Seen', (err) => {
+      imapInstance?.addFlags(uid, IMAP_SEEN_FLAG, (err) => {
         if (err) {
           logError('Failed to mark email as read:', err);
           resolve({ success: false, error: err.message });

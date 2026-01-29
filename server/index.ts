@@ -17,6 +17,7 @@ import { cleanupDaemon, initSignal } from '@/modules/signal';
 import { admin } from '@/routes/admin';
 import { ntfy } from '@/routes/ntfy';
 import { protonMail } from '@/routes/proton-mail';
+import { unifiedPush } from '@/routes/unified-push';
 import { getLanIP, isLocalIP } from '@/utils/auth';
 import { formatToCspString } from '@/utils/format';
 import { logError, logInfo, logVerbose, logWarn } from '@/utils/log';
@@ -81,7 +82,8 @@ app.use('*', serveStatic({ root: PUBLIC_DIR }));
 
 app.route('/', ntfy);
 app.route('/', admin);
-app.route('/', protonMail);
+app.route('/api', protonMail);
+app.route('/api', unifiedPush);
 
 app.notFound((c) => c.text('Not Found', 404));
 

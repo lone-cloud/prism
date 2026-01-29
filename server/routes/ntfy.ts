@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
-import { sendGroupMessage } from '@/modules/signal';
-import { getOrCreateGroup } from '@/modules/store';
+import { sendNotification } from '@/modules/notifications';
 import { verifyApiKey } from '@/utils/auth';
 import { logError, logVerbose } from '@/utils/log';
 
@@ -40,10 +39,9 @@ ntfy.post('/:topic', async (c) => {
 
     if (title === topic) title = undefined;
 
-    const groupId = await getOrCreateGroup(`ntfy-${topic}`, topic);
-
-    await sendGroupMessage(groupId, message, {
+    await sendNotification(`ntfy-${topic}`, {
       title: title || undefined,
+      message: message,
     });
 
     logVerbose(`Sent ntfy message to topic ${topic}: ${title || message.substring(0, 50)}`);

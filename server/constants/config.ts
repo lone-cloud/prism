@@ -13,3 +13,14 @@ export const PROTON_IMAP_PASSWORD = Bun.env.PROTON_IMAP_PASSWORD;
 export const PROTON_BRIDGE_HOST = Bun.env.PROTON_BRIDGE_HOST || 'protonmail-bridge';
 export const PROTON_BRIDGE_PORT = Number.parseInt(Bun.env.PROTON_BRIDGE_PORT || '143', 10);
 export const PROTON_SUP_TOPIC = Bun.env.PROTON_SUP_TOPIC || 'Proton Mail';
+
+export const IMAP_INBOX = 'INBOX';
+export const IMAP_SEEN_FLAG = '\\Seen';
+export const IMAP_RECONNECT_BASE_DELAY = 10000;
+export const IMAP_MAX_RECONNECT_DELAY = 300000;
+
+export const ENDPOINT_PREFIX_PROTON = 'proton-';
+export const ENDPOINT_PREFIX_NTFY = 'ntfy-';
+export const ENDPOINT_PREFIX_UP = 'up-';
+
+export const ACTION_MARK_READ = 'mark-read';

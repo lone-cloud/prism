@@ -1,58 +1,69 @@
 import { Database } from 'bun:sqlite';
 import { SUP_DB } from '@/constants/paths';
-import { createGroup } from '@/modules/signal';
+import type { NotificationChannel } from '@/types/notifications';
 
-interface EndpointMapping {
+type EndpointMapping = {
   endpoint: string;
-  groupId: string;
   appName: string;
-}
+  channel: NotificationChannel;
+  groupId: string | null;
+  upEndpoint: string | null;
+};
 
 const db = new Database(SUP_DB);
 
 db.run(`
   CREATE TABLE IF NOT EXISTS mappings (
     endpoint TEXT PRIMARY KEY,
-    groupId TEXT NOT NULL,
-    appName TEXT NOT NULL
+    groupId TEXT,
+    appName TEXT NOT NULL,
+    channel TEXT NOT NULL DEFAULT 'signal',
+    upEndpoint TEXT
   )
 `);
 
-export const register = (endpoint: string, groupId: string, appName: string) =>
-  db.run('INSERT OR REPLACE INTO mappings (endpoint, groupId, appName) VALUES (?, ?, ?)', [
-    endpoint,
-    groupId,
-    appName,
-  ]);
+export function register(
+  endpoint: string,
+  appName: string,
+  channel: 'signal',
+  options?: { groupId?: string },
+): void;
+export function register(
+  endpoint: string,
+  appName: string,
+  channel: 'unifiedpush',
+  options: { upEndpoint: string },
+): void;
+export function register(
+  endpoint: string,
+  appName: string,
+  channel: NotificationChannel,
+  options: { groupId?: string; upEndpoint?: string } = {},
+) {
+  const { groupId = null, upEndpoint = null } = options;
+  db.run(
+    'INSERT OR IGNORE INTO mappings (endpoint, groupId, appName, channel, upEndpoint) VALUES (?, ?, ?, ?, ?)',
+    [endpoint, groupId, appName, channel, upEndpoint],
+  );
+}
 
-export const getGroupId = (endpoint: string) => {
-  const row = db.query('SELECT groupId FROM mappings WHERE endpoint = ?').get(endpoint) as
-    | { groupId: string }
-    | undefined;
+export const getMapping = (endpoint: string) => {
+  const row = db
+    .query(
+      'SELECT endpoint, groupId, appName, channel, upEndpoint FROM mappings WHERE endpoint = ?',
+    )
+    .get(endpoint) as EndpointMapping | undefined;
 
-  return row?.groupId;
-};
-
-export const getAppName = (endpoint: string) => {
-  const row = db.query('SELECT appName FROM mappings WHERE endpoint = ?').get(endpoint) as
-    | { appName: string }
-    | undefined;
-
-  return row?.appName;
+  return row;
 };
 
 export const getAllMappings = () =>
-  db.query('SELECT endpoint, groupId, appName FROM mappings').all() as EndpointMapping[];
+  db
+    .query('SELECT endpoint, groupId, appName, channel, upEndpoint FROM mappings')
+    .all() as EndpointMapping[];
 
-export const remove = (endpoint: string) =>
+export const updateChannel = (endpoint: string, channel: NotificationChannel) =>
+  db.run('UPDATE mappings SET channel = ? WHERE endpoint = ?', [channel, endpoint]);
+
+export const removeEndpoint = (endpoint: string) =>
   db.run('DELETE FROM mappings WHERE endpoint = ?', [endpoint]);
-
-export const getOrCreateGroup = async (key: string, name: string) => {
-  const existingGroupId = getGroupId(key);
-  if (existingGroupId) return existingGroupId;
-
-  const groupId = await createGroup(name);
-  register(key, groupId, name);
-
-  return groupId;
-};

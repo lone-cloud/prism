@@ -9,9 +9,11 @@ import {
   getAccount,
   hasValidAccount,
 } from '@/modules/signal';
-import { getAllMappings, remove } from '@/modules/store';
+import { getAllMappings, removeEndpoint, updateChannel } from '@/modules/store';
+import type { NotificationChannel } from '@/types/notifications';
 import { verifyApiKey } from '@/utils/auth';
 import { formatPhoneNumber, formatUptime } from '@/utils/format';
+import { logError } from '@/utils/log';
 
 let cachedQR: string | null = null;
 let qrCacheTime = 0;
@@ -59,15 +61,41 @@ admin.get('/fragment/endpoints', async (c) => c.html(await handleEndpointsFragme
 
 admin.get('/fragment/link-qr', async (c) => c.html(await handleQRSection()));
 
-admin.delete('/action/delete-endpoint/:endpoint', async (c) => {
-  const endpoint = decodeURIComponent(c.req.param('endpoint'));
+admin.delete('/action/delete-endpoint', async (c) => {
+  const formData = await c.req.formData();
+  const endpoint = formData.get('endpoint') as string;
 
   if (!endpoint) {
     return c.text('Invalid endpoint', 400);
   }
 
-  remove(endpoint);
+  removeEndpoint(endpoint);
+
   return c.html(await handleEndpointsFragment());
+});
+
+admin.post('/action/toggle-channel', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const endpoint = formData.get('endpoint') as string;
+    const channel = formData.get('channel') as NotificationChannel;
+
+    if (!endpoint) {
+      return c.json({ error: 'Invalid endpoint' }, 400);
+    }
+
+    if (!channel || !['signal', 'unifiedpush'].includes(channel)) {
+      return c.json({ error: 'Invalid channel' }, 400);
+    }
+
+    updateChannel(endpoint, channel);
+
+    return c.html(await handleEndpointsFragment());
+  } catch (err) {
+    logError('Failed to toggle channel:', err);
+
+    return c.text('Invalid request', 400);
+  }
 });
 
 const handleHealthFragment = async () => {
@@ -129,17 +157,49 @@ const handleEndpointsFragment = async () => {
     <ul class="endpoint-list">
       ${endpoints
         .map(
-          (e: { appName: string; endpoint: string }) => `
+          (e) => `
         <li class="endpoint-item">
-          <div class="endpoint-name">
-            <strong>${e.appName}</strong>
+          <div class="endpoint-info">
+            <div class="endpoint-name">
+              <strong>${e.appName}</strong>
+            </div>
+            <div class="endpoint-channel">
+              <span class="channel-badge channel-${e.channel}">${e.channel === 'signal' ? 'Signal' : 'UnifiedPush'}</span>
+              ${e.upEndpoint ? `<span class="endpoint-detail">${new URL(e.upEndpoint).hostname}</span>` : ''}
+            </div>
           </div>
-          <button 
-            class="btn-delete"
-            hx-delete="/action/delete-endpoint/${encodeURIComponent(e.endpoint)}"
-            hx-target="#endpoints-list"
-            hx-swap="innerHTML"
-          >Delete</button>
+          <div class="endpoint-actions">
+            ${
+              e.upEndpoint
+                ? `
+            <form style="display: inline;">
+              <input type="hidden" name="endpoint" value="${e.endpoint.replace(/"/g, '&quot;')}" />
+              <select 
+                class="channel-select"
+                name="channel"
+                hx-post="/action/toggle-channel"
+                hx-target="#endpoints-list"
+                hx-swap="innerHTML"
+                hx-include="closest form"
+              >
+                <option value="signal" ${e.channel === 'signal' ? 'selected' : ''}>Signal</option>
+                <option value="unifiedpush" ${e.channel === 'unifiedpush' ? 'selected' : ''}>UnifiedPush</option>
+              </select>
+            </form>
+            `
+                : ''
+            }
+            <form style="display: inline;">
+              <input type="hidden" name="endpoint" value="${e.endpoint.replace(/"/g, '&quot;')}" />
+              <button 
+                class="btn-delete"
+                hx-delete="/action/delete-endpoint"
+                hx-target="#endpoints-list"
+                hx-swap="innerHTML"
+                hx-include="closest form"
+              >Delete</button>
+            </form>
+          </div>
         </li>
       `,
         )

@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { DEVICE_NAME, VERBOSE_LOGGING } from '@/constants/config';
 import { SIGNAL_CLI, SIGNAL_CLI_DATA, SIGNAL_CLI_SOCKET } from '@/constants/paths';
+import type { Notification } from '@/types/notifications';
 import { formatPhoneNumber } from '@/utils/format';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
 import { call } from '@/utils/rpc';
@@ -139,16 +140,10 @@ export async function createGroup(name: string, members: string[] = []) {
   return result.groupId;
 }
 
-export async function sendGroupMessage(
-  groupId: string,
-  message: string,
-  options?: { title?: string },
-) {
-  let formattedMessage = message;
-
-  if (options?.title) {
-    formattedMessage = `${options.title}\n${message}`;
-  }
+export async function sendGroupMessage(groupId: string, notification: Notification) {
+  const formattedMessage = notification.title
+    ? `${notification.title}\n${notification.message}`
+    : notification.message;
 
   await call(
     'send',
@@ -285,7 +280,16 @@ export async function startDaemon() {
     logError('Account authorization failed. You may need to unlink and re-link your device.');
   }
 
-  throw new Error('Failed to start signal-cli daemon');
+  logError('Failed to start signal-cli daemon, will retry later...');
+
+  setTimeout(() => {
+    logInfo('Retrying signal-cli daemon startup...');
+    startDaemon().catch(() => {
+      // Already logged, just prevent unhandled rejection
+    });
+  }, 30000);
+
+  return null;
 }
 
 export const cleanupDaemon = () => daemon?.kill();

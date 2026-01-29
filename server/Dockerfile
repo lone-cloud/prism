@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.6-debian AS builder
+FROM oven/bun:1.3.7-debian AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN bun build --compile server/index.ts --outfile sup
 
 FROM debian:13.3-slim
 
-ARG SIGNAL_CLI_VERSION=0.13.22
+ARG SIGNAL_CLI_VERSION=${SIGNAL_CLI_VERSION:-0.13.23}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-21-jre-headless \
