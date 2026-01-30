@@ -8,12 +8,12 @@
   --success: #28a745;
   --error: #dc3545;
   --spinner-track: #e0e0e0;
-  --badge-signal-bg: rgba(129, 89, 184, 0.2);
-  --badge-up-bg: rgba(40, 167, 69, 0.2);
+  --badge-signal-bg: #8159b8;
+  --badge-webhook-bg: rgba(40, 167, 69, 0.2);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg-primary: #1a1a1a;
     --bg-secondary: #2d2d2d;
     --text-primary: #e0e0e0;
@@ -23,21 +23,8 @@
     --error: #ef4444;
     --spinner-track: #4a4a4a;
     --badge-signal-bg: #8159b8;
-    --badge-up-bg: #28a745;
+    --badge-webhook-bg: #28a745;
   }
-}
-
-[data-theme="light"] {
-  --bg-primary: #f5f5f5;
-  --bg-secondary: #fdfdfd;
-  --text-primary: #000;
-  --text-secondary: #666;
-  --border-color: rgba(0, 0, 0, 0.1);
-  --success: #28a745;
-  --error: #dc3545;
-  --spinner-track: #e0e0e0;
-  --badge-signal-bg: rgba(129, 89, 184, 0.2);
-  --badge-up-bg: rgba(40, 167, 69, 0.2);
 }
 
 [data-theme="dark"] {
@@ -50,7 +37,7 @@
   --error: #ef4444;
   --spinner-track: #4a4a4a;
   --badge-signal-bg: #8159b8;
-  --badge-up-bg: #28a745;
+  --badge-webhook-bg: #28a745;
 }
 
 /* CSS Reset */
@@ -249,8 +236,8 @@ h2 {
   color: white;
 }
 
-.channel-unifiedpush {
-  background: var(--badge-up-bg);
+.channel-webhook {
+  background: var(--badge-webhook-bg);
   color: white;
 }
 

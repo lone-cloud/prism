@@ -31,7 +31,7 @@ export function register(
 export function register(
   endpoint: string,
   appName: string,
-  channel: 'unifiedpush',
+  channel: 'webhook',
   options: { upEndpoint: string },
 ): void;
 export function register(

@@ -5,17 +5,17 @@ import { register } from '@/modules/store';
 import { verifyApiKey } from '@/utils/auth';
 import { logError, logVerbose } from '@/utils/log';
 
-export const unifiedPush = new Hono();
+export const webhook = new Hono();
 
-unifiedPush.use(
+webhook.use(
   '*',
   basicAuth({
     verifyUser: (_, password) => verifyApiKey(password),
-    realm: 'SUP UnifiedPush - Username: any, Password: API_KEY',
+    realm: 'SUP Webhook - Username: any, Password: API_KEY',
   }),
 );
 
-unifiedPush.post('/up/register', async (c) => {
+webhook.post('/register', async (c) => {
   try {
     const body = await c.req.json<{
       appName: string;
@@ -36,17 +36,17 @@ unifiedPush.post('/up/register', async (c) => {
 
     const endpoint = `${ENDPOINT_PREFIX_UP}${appName}`;
 
-    register(endpoint, appName, 'unifiedpush', { upEndpoint });
+    register(endpoint, appName, 'webhook', { upEndpoint });
 
-    logVerbose(`Registered UP endpoint for ${appName}: ${upEndpoint}`);
+    logVerbose(`Registered webhook endpoint for ${appName}: ${upEndpoint}`);
 
     return c.json({
       endpoint,
       appName,
-      channel: 'unifiedpush',
+      channel: 'webhook',
     });
   } catch (error) {
-    logError('Failed to register UP endpoint:', error);
+    logError('Failed to register webhook endpoint:', error);
 
     return c.json({ error: 'Internal server error' }, 500);
   }

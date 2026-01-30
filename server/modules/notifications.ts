@@ -1,6 +1,6 @@
 import { createGroup, sendGroupMessage } from '@/modules/signal';
 import { getMapping, register } from '@/modules/store';
-import { sendUnifiedPushNotification } from '@/modules/unified-push';
+import { sendWebhookNotification } from '@/modules/webhook';
 import type { Notification } from '@/types/notifications';
 import { logError, logVerbose } from '@/utils/log';
 
@@ -22,13 +22,13 @@ export const sendNotification = async (endpoint: string, notification: Notificat
     const { channel, upEndpoint, appName } = mapping;
     let { groupId } = mapping;
 
-    if (channel === 'unifiedpush') {
+    if (channel === 'webhook') {
       if (!upEndpoint) {
-        logError(`UnifiedPush endpoint not configured for ${appName}`);
+        logError(`Webhook endpoint not configured for ${appName}`);
         return false;
       }
 
-      return await sendUnifiedPushNotification(upEndpoint, notification);
+      return await sendWebhookNotification(upEndpoint, notification);
     }
 
     if (!groupId) {

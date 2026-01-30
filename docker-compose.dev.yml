@@ -1,5 +1,6 @@
 services:
   server:
+    container_name: sup-server
     build:
       context: .
       dockerfile: server/Dockerfile
@@ -21,6 +22,7 @@ services:
     restart: unless-stopped
 
   protonmail-bridge:
+    container_name: protonmail-bridge
     image: shenxn/protonmail-bridge:build
     profiles: ['protonmail']
     ports:

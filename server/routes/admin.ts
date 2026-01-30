@@ -51,7 +51,7 @@ admin.get('/api/health', async (c) => {
 });
 
 admin.get('/fragment/health', async (c) => {
-  const { html } = await handleHealthFragment();
+  const html = await handleHealthFragment();
   return c.html(html);
 });
 
@@ -84,7 +84,7 @@ admin.post('/action/toggle-channel', async (c) => {
       return c.json({ error: 'Invalid endpoint' }, 400);
     }
 
-    if (!channel || !['signal', 'unifiedpush'].includes(channel)) {
+    if (!channel || !['signal', 'webhook'].includes(channel)) {
       return c.json({ error: 'Invalid channel' }, 400);
     }
 
@@ -125,7 +125,7 @@ const handleHealthFragment = async () => {
     </div>
   `;
 
-  return { html, linked };
+  return html;
 };
 
 const handleSignalInfoFragment = async () => {
@@ -156,16 +156,20 @@ const handleEndpointsFragment = async () => {
   return `
     <ul class="endpoint-list">
       ${endpoints
-        .map(
-          (e) => `
+        .map((e) => {
+          const isSignal = e.channel === 'signal';
+          const isWebhook = e.channel === 'webhook';
+
+          return `
         <li class="endpoint-item">
           <div class="endpoint-info">
             <div class="endpoint-name">
               <strong>${e.appName}</strong>
             </div>
             <div class="endpoint-channel">
-              <span class="channel-badge channel-${e.channel}">${e.channel === 'signal' ? 'Signal' : 'UnifiedPush'}</span>
-              ${e.upEndpoint ? `<span class="endpoint-detail">${new URL(e.upEndpoint).hostname}</span>` : ''}
+              <span class="channel-badge channel-${e.channel}">${isSignal ? 'Signal' : 'Webhook'}</span>
+              ${e.upEndpoint && isWebhook ? `<span class="endpoint-detail">${new URL(e.upEndpoint).hostname}</span>` : ``}
+              ${e.groupId && isSignal ? `<span class="endpoint-detail">${e.groupId}</span>` : ``}
             </div>
           </div>
           <div class="endpoint-actions">
@@ -182,8 +186,8 @@ const handleEndpointsFragment = async () => {
                 hx-swap="innerHTML"
                 hx-include="closest form"
               >
-                <option value="signal" ${e.channel === 'signal' ? 'selected' : ''}>Signal</option>
-                <option value="unifiedpush" ${e.channel === 'unifiedpush' ? 'selected' : ''}>UnifiedPush</option>
+                <option value="signal" ${isSignal ? 'selected' : ''}>Signal</option>
+                <option value="webhook" ${isWebhook ? 'selected' : ''}>Webhook</option>
               </select>
             </form>
             `
@@ -201,8 +205,8 @@ const handleEndpointsFragment = async () => {
             </form>
           </div>
         </li>
-      `,
-        )
+      `;
+        })
         .join('')}
     </ul>
   `;

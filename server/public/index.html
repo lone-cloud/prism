@@ -17,8 +17,7 @@
   <div class="card">
     <div id="health-status" 
          hx-get="/fragment/health" 
-         hx-trigger="load, every 10s"
-         hx-indicator="#health-status">
+         hx-trigger="load">
       <div class="loading">
         <div class="spinner"></div>
       </div>
@@ -45,8 +44,7 @@
     <h2>Endpoints</h2>
     <div id="endpoints-list" 
          hx-get="/fragment/endpoints" 
-         hx-trigger="load, every 10s"
-         hx-indicator="#endpoints-list">
+         hx-trigger="load">
       <div class="loading">
         <div class="spinner"></div>
       </div>

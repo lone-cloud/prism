@@ -1,7 +1,7 @@
 {
   "name": "SUP Admin",
   "short_name": "SUP",
-  "description": "Signal Unified Push Admin Panel",
+  "description": "Notification gateway admin panel",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",

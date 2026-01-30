@@ -4,7 +4,7 @@
 
 # SUP
 
-**Push notification system using Signal as transport**
+**Self-hosted notification gateway using Signal and Webhooks for transport**
 
 [Setup](#setup) • [Real-World Examples](#real-world-examples) • [Architecture](#architecture)
 
@@ -12,11 +12,16 @@
 
 <!-- markdownlint-enable MD033 -->
 
-SUP is a self-hosted server that routes push notifications through Signal, allowing you to receive app notifications without exposing unique network fingerprints to any network observers. All notification traffic appears as regular Signal messages.
+SUP is a self-hosted notification gateway that receives HTTP requests and routes them through Signal groups or custom webhooks. Route notifications through Signal to avoid exposing unique network fingerprints, or forward them to your own webhook endpoints for custom handling.
 
 ## How?
 
-SUP functions as a UnifiedPush server to proxy http-based requests to Signal groups via [signal-cli](https://github.com/AsamK/signal-cli).
+SUP accepts notifications via HTTP POST requests and routes them based on your configured delivery method:
+
+- **Signal groups**: Uses [signal-cli](https://github.com/AsamK/signal-cli) to create a Signal group for each app and send notifications as messages
+- **Webhook forwarding**: Forwards notifications to your own webhook URL (useful for UnifiedPush distributors, ntfy, or custom handlers)
+
+Each endpoint can be independently configured to use either delivery method through the admin UI.
 
 For the optional Proton Mail integration, SUP requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). SUP's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between SUP and proton-bridge will be over IMAP.
 
@@ -170,7 +175,7 @@ Add the Base64 version of your API_KEY environment variable secret to your secre
 sup_basic_auth: "Basic <Base64 Hash value>"
 ```
 
-Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify sup action.  
+Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify sup action.
 
 ## Monitoring
 

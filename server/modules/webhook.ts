@@ -1,7 +1,7 @@
 import type { Notification } from '@/types/notifications';
 import { logError, logVerbose } from '@/utils/log';
 
-export const sendUnifiedPushNotification = async (endpoint: string, notification: Notification) => {
+export const sendWebhookNotification = async (endpoint: string, notification: Notification) => {
   try {
     const payload = {
       message: notification.message,
@@ -18,15 +18,17 @@ export const sendUnifiedPushNotification = async (endpoint: string, notification
     });
 
     if (!response.ok) {
-      logError(`Failed to send UP notification: ${response.status} ${response.statusText}`);
+      logError(`Failed to send webhook notification: ${response.status} ${response.statusText}`);
       return false;
     }
 
-    logVerbose(`Sent UP notification to ${endpoint}: ${notification.message.substring(0, 50)}`);
+    logVerbose(
+      `Sent webhook notification to ${endpoint}: ${notification.message.substring(0, 50)}`,
+    );
 
     return true;
   } catch (error) {
-    logError('Failed to send UP notification:', error);
+    logError('Failed to send webhook notification:', error);
     return false;
   }
 };

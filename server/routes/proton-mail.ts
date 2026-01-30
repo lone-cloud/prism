@@ -14,7 +14,7 @@ protonMail.use(
   }),
 );
 
-protonMail.post('/proton-mail/mark-read', async (c) => {
+protonMail.post('/mark-read', async (c) => {
   try {
     const body = await c.req.json();
     const { uid } = body;

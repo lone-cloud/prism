@@ -1,4 +1,4 @@
-export interface UnifiedPushAction {
+export interface WebPushAction {
   id: string;
   endpoint: string;
   method: 'POST' | 'GET' | 'DELETE';
@@ -8,7 +8,7 @@ export interface UnifiedPushAction {
 export interface Notification {
   title?: string;
   message: string;
-  actions?: UnifiedPushAction[];
+  actions?: WebPushAction[];
 }
 
-export type NotificationChannel = 'signal' | 'unifiedpush';
+export type NotificationChannel = 'signal' | 'webhook';
