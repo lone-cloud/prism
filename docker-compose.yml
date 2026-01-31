@@ -1,7 +1,7 @@
 services:
   server:
-    container_name: sup-server
-    image: ghcr.io/lone-cloud/sup:latest
+    container_name: prism-server
+    image: ghcr.io/lone-cloud/prism:latest
     ports:
       - '8080:8080'
     environment:
@@ -14,10 +14,10 @@ services:
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_HOST=protonmail-bridge
       - PROTON_BRIDGE_PORT=${PROTON_BRIDGE_PORT:-143}
-      - PROTON_SUP_TOPIC=${PROTON_SUP_TOPIC:-Proton Mail}
+      - PROTON_PRISM_TOPIC=${PROTON_PRISM_TOPIC:-Proton Mail}
     volumes:
       - signal-data:/root/.local/share/signal-cli
-      - sup-data:/root/.local/share/sup
+      - prism-data:/root/.local/share/prism
     restart: unless-stopped
 
   protonmail-bridge:
@@ -31,5 +31,5 @@ services:
 
 volumes:
   signal-data:
-  sup-data:
+  prism-data:
   proton-bridge-data:

@@ -1,5 +1,5 @@
 {
-  "name": "sup",
+  "name": "prism",
   "version": "0.2.0",
   "description": "Privacy-preserving push notifications using Signal as transport",
   "private": true,
@@ -11,12 +11,12 @@
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lone-cloud/sup"
+    "url": "https://github.com/lone-cloud/prism"
   },
   "scripts": {
     "postinstall": "bun run scripts/install-signal-cli.ts || true",
     "start": "bun run server/index.ts",
-    "build": "bun build --compile server/index.ts --outfile server/sup",
+    "build": "bun build --compile server/index.ts --outfile server/prism",
     "check": "tsc --noEmit && biome check .",
     "fix": "biome check --write --unsafe .",
     "release": "bun run scripts/release.ts"

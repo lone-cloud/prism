@@ -10,7 +10,7 @@ import {
   PROTON_BRIDGE_PORT,
   PROTON_IMAP_PASSWORD,
   PROTON_IMAP_USERNAME,
-  PROTON_SUP_TOPIC,
+  PROTON_PRISM_TOPIC,
 } from '@/constants/config';
 import { sendNotification as sendChannelNotification } from '@/modules/notifications';
 import { logError, logInfo, logSuccess, logVerbose, logWarn } from '@/utils/log';
@@ -124,7 +124,7 @@ export async function startProtonMonitor() {
 
               const uid = await uidPromise;
 
-              await sendChannelNotification(`${ENDPOINT_PREFIX_PROTON}${PROTON_SUP_TOPIC}`, {
+              await sendChannelNotification(`${ENDPOINT_PREFIX_PROTON}${PROTON_PRISM_TOPIC}`, {
                 title: from,
                 message: subject,
                 actions: [

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "sup",
+      "name": "prism",
       "dependencies": {
         "chalk": "5.6.2",
         "hono": "4.11.7",

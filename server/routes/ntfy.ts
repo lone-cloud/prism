@@ -10,7 +10,7 @@ ntfy.use(
   '*',
   basicAuth({
     verifyUser: (_, password) => verifyApiKey(password),
-    realm: 'SUP ntfy - Username: any, Password: API_KEY',
+    realm: 'PRISM ntfy - Username: any, Password: API_KEY',
   }),
 );
 

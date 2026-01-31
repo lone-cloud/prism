@@ -1,5 +1,7 @@
 import { Database } from 'bun:sqlite';
-import { SUP_DB } from '@/constants/paths';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { PRISM_DB } from '@/constants/paths';
 import type { NotificationChannel } from '@/types/notifications';
 
 type EndpointMapping = {
@@ -10,7 +12,8 @@ type EndpointMapping = {
   upEndpoint: string | null;
 };
 
-const db = new Database(SUP_DB);
+mkdirSync(dirname(PRISM_DB), { recursive: true });
+const db = new Database(PRISM_DB);
 
 db.run(`
   CREATE TABLE IF NOT EXISTS mappings (

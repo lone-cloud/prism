@@ -11,7 +11,7 @@ webhook.use(
   '*',
   basicAuth({
     verifyUser: (_, password) => verifyApiKey(password),
-    realm: 'SUP Webhook - Username: any, Password: API_KEY',
+    realm: 'PRISM Webhook - Username: any, Password: API_KEY',
   }),
 );
 

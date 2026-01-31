@@ -94,7 +94,7 @@ const server = Bun.serve({
   idleTimeout: 30,
 });
 
-logInfo(`\nSUP running on:`);
+logInfo(`\nPRISM running on:`);
 logInfo(`  Local:   http://localhost:${server.port}`);
 
 const lanIP = getLanIP();

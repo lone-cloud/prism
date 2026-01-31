@@ -26,7 +26,7 @@ admin.use(
   '*',
   basicAuth({
     verifyUser: (_, password, c) => verifyApiKey(password, c),
-    realm: 'SUP Admin - Username: any, Password: API_KEY',
+    realm: 'PRISM Admin - Username: any, Password: API_KEY',
   }),
 );
 

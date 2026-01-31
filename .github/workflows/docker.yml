@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/sup
+  IMAGE_NAME: ${{ github.repository_owner }}/prism
 
 jobs:
   build:

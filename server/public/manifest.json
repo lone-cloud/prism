@@ -1,6 +1,6 @@
 {
-  "name": "SUP Admin",
-  "short_name": "SUP",
+  "name": "PRISM Admin",
+  "short_name": "PRISM",
   "description": "Notification gateway admin panel",
   "start_url": "/",
   "display": "standalone",

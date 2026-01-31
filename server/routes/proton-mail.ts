@@ -10,7 +10,7 @@ protonMail.use(
   '*',
   basicAuth({
     verifyUser: (_, password, c) => verifyApiKey(password, c),
-    realm: 'SUP Proton Mail - Username: any, Password: API_KEY',
+    realm: 'PRISM Proton Mail - Username: any, Password: API_KEY',
   }),
 );
 

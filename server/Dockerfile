@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile
 
 COPY server ./server
 
-RUN bun build --compile server/index.ts --outfile sup
+RUN bun build --compile server/index.ts --outfile prism
 
 FROM debian:13.3-slim
 
@@ -34,7 +34,7 @@ RUN ARCH=$(uname -m) && \
         rm /tmp/libsignal_jni_aarch64.so; \
     fi
 
-COPY --from=builder /app/sup /usr/local/bin/sup
+COPY --from=builder /app/prism /usr/local/bin/prism
 COPY --from=builder /app/server/public /public
 
 ENV PATH="/usr/local/signal-cli/bin:${PATH}"
@@ -42,4 +42,4 @@ ENV LD_LIBRARY_PATH="/usr/local/signal-cli/lib:${LD_LIBRARY_PATH}"
 
 EXPOSE 8080
 
-CMD ["sup"]
+CMD ["prism"]

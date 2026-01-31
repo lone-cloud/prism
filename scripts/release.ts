@@ -26,14 +26,14 @@ try {
 
 Pull the latest version:
 \`\`\`bash
-docker pull ghcr.io/lone-cloud/sup:${version}
+docker pull ghcr.io/lone-cloud/prism:${version}
 \`\`\`" --generate-notes`;
 
   console.log(`
 ✨ Release ${version} complete!
 
 Once CI completes, images will be available:
-  docker pull ghcr.io/lone-cloud/sup:${version}
+  docker pull ghcr.io/lone-cloud/prism:${version}
 `);
 } catch (error) {
   console.error('Release failed:', error);
