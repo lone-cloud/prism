@@ -40,7 +40,7 @@ clean:
 install-tools:
 	@echo "Installing Go tools to $(GOBIN)..."
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.8.0
 	@echo "Installing signal-cli..."
 	@bash scripts/install-signal-cli.sh
 
