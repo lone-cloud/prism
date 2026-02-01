@@ -1,9 +1,9 @@
 services:
-  server:
-    container_name: prism-server
+  prism:
+    container_name: prism
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - '8080:8080'
     environment:
@@ -11,6 +11,7 @@ services:
       - API_KEY=${API_KEY:-}
       - VERBOSE_LOGGING=${VERBOSE_LOGGING:-false}
       - ALLOW_INSECURE_HTTP=${ALLOW_INSECURE_HTTP:-false}
+      - RATE_LIMIT=${RATE_LIMIT:-100}
       - PROTON_IMAP_USERNAME=${PROTON_IMAP_USERNAME:-}
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_HOST=protonmail-bridge

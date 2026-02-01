@@ -1,3 +1,8 @@
-server/node_modules
+node_modules/
+signal-cli/
+data/
+*.db
+prism
+prism-*
 proton-bridge/node_modules
 node_modules

@@ -1,0 +1,63 @@
+run:
+  timeout: 5m
+  tests: false
+  
+linters-settings:
+  errcheck:
+    check-blank: true
+    exclude-functions:
+      - (net.Conn).Close
+      - (io.ReadCloser).Close
+      - (*database/sql.Rows).Close
+      - os.Remove
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+  gocyclo:
+    min-complexity: 15
+  misspell:
+    locale: US
+  lll:
+    line-length: 140
+  gofmt:
+    simplify: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+    disabled-checks:
+      - singleCaseSwitch
+      - hugeParam
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - gocritic
+    - gocyclo
+    - gosec
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - gosec
+    - text: "G204|G301"
+      linters:
+        - gosec
+    - text: "d\\.cmd\\.Process\\.Kill"
+      linters:
+        - errcheck
+  max-issues-per-linter: 0
+  max-same-issues: 0

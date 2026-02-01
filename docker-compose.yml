@@ -1,6 +1,6 @@
 services:
-  server:
-    container_name: prism-server
+  prism:
+    container_name: prism
     image: ghcr.io/lone-cloud/prism:latest
     ports:
       - '8080:8080'

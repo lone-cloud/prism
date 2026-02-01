@@ -1,4 +1,6 @@
-node_modules/
-signal-cli
+signal-cli/
+data/
+*.db
 .env
-prism
+/prism
+prism-*
