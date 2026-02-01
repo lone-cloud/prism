@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prism Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#8159b8">
+  <link rel="icon" type="image/webp" href="/favicon.webp">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/index.css">
+  <script src="/htmx.min.js"></script>
+  <script src="/theme.js"></script>
+</head>
+<body>
+  <button id="theme-toggle" class="theme-toggle"></button>
+  
+  <div class="card">
+    <div id="health-status" 
+         hx-get="/fragment/health" 
+         hx-trigger="load">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Signal</h2>
+    <div id="signal-info" 
+         hx-get="/fragment/signal-info" 
+         hx-trigger="load, accountLinked from:body"
+         hx-indicator="#signal-info">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <div id="qr-section"
+         hx-get="/fragment/signal-info"
+         hx-trigger="accountLinked from:body"
+         hx-swap="none"></div>
+  </div>
+
+  <div class="card">
+    <h2>Endpoints</h2>
+    <div id="endpoints-list" 
+         hx-get="/fragment/endpoints" 
+         hx-trigger="load">
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
