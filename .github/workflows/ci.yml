@@ -46,4 +46,4 @@ jobs:
         args: --timeout=5m
     
     - name: Build
-      run: go build -v ./cmd/prism
+      run: go build -v .

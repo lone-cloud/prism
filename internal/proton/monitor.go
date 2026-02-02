@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"prism/internal/config"
+	"prism/internal/notification"
+
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"github.com/lone-cloud/prism/internal/config"
-	"github.com/lone-cloud/prism/internal/notification"
 )
 
 type Monitor struct {

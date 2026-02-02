@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"prism/internal/notification"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/lone-cloud/prism/internal/notification"
 )
 
 func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {

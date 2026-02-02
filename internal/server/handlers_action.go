@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/lone-cloud/prism/internal/notification"
+	"prism/internal/notification"
 )
 
 func (s *Server) handleDeleteEndpointAction(w http.ResponseWriter, r *http.Request) {

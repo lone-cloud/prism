@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/lone-cloud/prism/internal/notification"
+	"prism/internal/notification"
 )
 
 type registerWebhookRequest struct {

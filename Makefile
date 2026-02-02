@@ -9,16 +9,16 @@ export PATH := $(GOBIN):$(PATH)
 all: fmt lint build
 
 build:
-	go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) ./cmd/prism
+	go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) .
 
 build-linux:
-	GOOS=linux GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME)-linux-arm64 ./cmd/prism
+	GOOS=linux GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME)-linux-arm64 .
 
 run: build
-	./$(BINARY_NAME) serve
+	./$(BINARY_NAME)
 
 dev:
-	go run ./cmd/prism serve
+	go run .
 
 fmt:
 	gofmt -s -w .
