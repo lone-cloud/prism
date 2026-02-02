@@ -11,14 +11,12 @@ all: fmt lint build
 build:
 	go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) .
 
-build-linux:
-	GOOS=linux GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME)-linux-arm64 .
-
 run: build
 	./$(BINARY_NAME)
 
 dev:
-	go run .
+	@which air > /dev/null || (echo "Installing air..." && go install github.com/air-verse/air@latest)
+	air
 
 fmt:
 	gofmt -s -w .

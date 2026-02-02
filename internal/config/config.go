@@ -7,11 +7,10 @@ import (
 )
 
 type Config struct {
-	Port              int
-	APIKey            string
-	VerboseLogging    bool
-	AllowInsecureHTTP bool
-	RateLimit         int
+	Port           int
+	APIKey         string
+	VerboseLogging bool
+	RateLimit      int
 
 	DeviceName          string
 	PrismEndpointPrefix string
@@ -35,17 +34,15 @@ type Config struct {
 	EndpointPrefixNtfy   string
 	EndpointPrefixUP     string
 
-	ActionMarkRead string
-	StoragePath    string
+	StoragePath string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:              getEnvInt("PORT", 8080),
-		APIKey:            os.Getenv("API_KEY"),
-		VerboseLogging:    getEnvBool("VERBOSE_LOGGING", false),
-		AllowInsecureHTTP: getEnvBool("ALLOW_INSECURE_HTTP", false),
-		RateLimit:         getEnvInt("RATE_LIMIT", 100),
+		Port:           getEnvInt("PORT", 8080),
+		APIKey:         os.Getenv("API_KEY"),
+		VerboseLogging: getEnvBool("VERBOSE_LOGGING", false),
+		RateLimit:      getEnvInt("RATE_LIMIT", 100),
 
 		DeviceName:          getEnvString("DEVICE_NAME", "Prism"),
 		SignalCLISocketPath: getEnvString("SIGNAL_CLI_SOCKET", "./data/signal-cli.sock"),
@@ -68,8 +65,7 @@ func Load() (*Config, error) {
 		EndpointPrefixNtfy:   "ntfy-",
 		EndpointPrefixUP:     "up-",
 
-		ActionMarkRead: "mark-read",
-		StoragePath:    getEnvString("STORAGE_PATH", "./data/prism.db"),
+		StoragePath: getEnvString("STORAGE_PATH", "./data/prism.db"),
 	}
 
 	cfg.PrismEndpointPrefix = fmt.Sprintf("[%s:", cfg.DeviceName)

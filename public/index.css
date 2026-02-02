@@ -160,22 +160,19 @@ h2 {
 }
 
 .theme-toggle {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  float: right;
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 1.5rem;
   padding: 0;
   line-height: 1;
-  opacity: 0.4;
+  opacity: 0.6;
   transition: opacity 0.2s;
-  z-index: 100;
 }
 
 .theme-toggle:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .status-ok {

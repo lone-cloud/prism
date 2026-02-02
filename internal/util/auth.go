@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func VerifyAPIKey(r *http.Request, apiKey string, allowInsecureHTTP bool) bool {
+func VerifyAPIKey(r *http.Request, apiKey string) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		return false
@@ -38,21 +38,19 @@ func VerifyAPIKey(r *http.Request, apiKey string, allowInsecureHTTP bool) bool {
 		return false
 	}
 
-	// Enforce HTTPS for non-local connections unless explicitly allowed
-	if !allowInsecureHTTP {
-		proto := r.Header.Get("X-Forwarded-Proto")
-		if proto == "" {
-			if r.TLS != nil {
-				proto = "https"
-			} else {
-				proto = "http"
-			}
+	// Enforce HTTPS for non-local connections
+	proto := r.Header.Get("X-Forwarded-Proto")
+	if proto == "" {
+		if r.TLS != nil {
+			proto = "https"
+		} else {
+			proto = "http"
 		}
+	}
 
-		clientIP := GetClientIP(r)
-		if proto != "https" && !isLocalIP(clientIP) {
-			return false
-		}
+	clientIP := GetClientIP(r)
+	if proto != "https" && !isLocalIP(clientIP) {
+		return false
 	}
 
 	return subtle.ConstantTimeCompare([]byte(password), []byte(apiKey)) == 1

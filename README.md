@@ -156,7 +156,7 @@ Prism monitors a Proton Mail account via the local bridge and forwards email ale
 
 Add a rest notification configuration (eg. add to configuration.yaml) to Home Assistant like:
 
-```bash
+```yaml
 notify:
   - platform: rest
     name: Prism
@@ -166,7 +166,7 @@ notify:
       Authorization: !secret prism_api_key
 ```
 
-Note how Home Assistant is also a self-hosted server. As such, it is advisable to turn on `ALLOW_INSECURE_HTTP` environment variable for Prism and to refer to it by its LAN IP address.
+Since Home Assistant and Prism are both on your local network, HTTP is allowed automatically - no additional configuration needed.
 
 Add your API_KEY to your secrets.yaml:
 

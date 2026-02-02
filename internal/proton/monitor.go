@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"prism/internal/config"
@@ -15,10 +14,11 @@ import (
 )
 
 type Monitor struct {
-	cfg        *config.Config
-	dispatcher *notification.Dispatcher
-	logger     *slog.Logger
-	client     *client.Client
+	cfg              *config.Config
+	dispatcher       *notification.Dispatcher
+	logger           *slog.Logger
+	client           *client.Client
+	monitorStartTime time.Time
 }
 
 func NewMonitor(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger) *Monitor {
@@ -89,6 +89,11 @@ func (m *Monitor) monitor(ctx context.Context) error {
 		return fmt.Errorf("failed to select inbox: %w", err)
 	}
 
+	if m.monitorStartTime.IsZero() {
+		m.monitorStartTime = time.Now()
+		m.logger.Info("Monitor start time set", "time", m.monitorStartTime)
+	}
+
 	updates := make(chan client.Update, 10)
 	m.client.Updates = updates
 
@@ -141,24 +146,23 @@ func (m *Monitor) handleNewMessages() error {
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{m.cfg.IMAPSeenFlag}
 
-	seqNums, err := m.client.Search(criteria)
+	uids, err := m.client.UidSearch(criteria)
 	if err != nil {
 		return fmt.Errorf("search failed: %w", err)
 	}
 
-	if len(seqNums) == 0 {
+	if len(uids) == 0 {
 		return nil
 	}
 
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(seqNums...)
+	seqSet.AddNum(uids...)
 
 	messages := make(chan *imap.Message, 10)
 	done := make(chan error, 1)
-	section := &imap.BodySectionName{}
 
 	go func() {
-		done <- m.client.Fetch(seqSet, []imap.FetchItem{imap.FetchEnvelope, section.FetchItem()}, messages)
+		done <- m.client.UidFetch(seqSet, []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}, messages)
 	}()
 
 	for msg := range messages {
@@ -179,25 +183,43 @@ func (m *Monitor) processMessage(msg *imap.Message) error {
 		return nil
 	}
 
+	if msg.Envelope.Date.Before(m.monitorStartTime) {
+		m.logger.Debug("Skipping old email", "date", msg.Envelope.Date, "subject", msg.Envelope.Subject)
+		return nil
+	}
+
+	var from string
+	if len(msg.Envelope.From) > 0 {
+		addr := msg.Envelope.From[0]
+		if addr.PersonalName != "" {
+			from = addr.PersonalName
+		} else {
+			from = addr.Address()
+		}
+	} else {
+		from = "Unknown sender"
+	}
+
 	subject := msg.Envelope.Subject
-	if !strings.HasPrefix(subject, m.cfg.PrismEndpointPrefix) {
-		return nil
+	if subject == "" {
+		subject = "No subject"
 	}
 
-	parts := strings.SplitN(subject, "]", 2)
-	if len(parts) != 2 {
-		return nil
-	}
-
-	endpoint := strings.TrimSpace(parts[0])
-	endpoint = strings.TrimPrefix(endpoint, m.cfg.PrismEndpointPrefix)
-	endpoint = m.cfg.EndpointPrefixProton + endpoint
-
-	message := strings.TrimSpace(parts[1])
+	endpoint := m.cfg.EndpointPrefixProton + m.cfg.ProtonPrismTopic
 
 	notif := notification.Notification{
-		Title:   m.cfg.ProtonPrismTopic,
-		Message: message,
+		Title:   from,
+		Message: subject,
+		Actions: []notification.Action{
+			{
+				ID:       "mark-read",
+				Endpoint: "/api/proton-mail/mark-read",
+				Method:   "POST",
+				Data: map[string]interface{}{
+					"uid": msg.Uid,
+				},
+			},
+		},
 	}
 
 	if err := m.dispatcher.Send(endpoint, notif); err != nil {
@@ -205,20 +227,24 @@ func (m *Monitor) processMessage(msg *imap.Message) error {
 		return err
 	}
 
-	m.logger.Info("Processed Proton Mail notification", "endpoint", endpoint)
+	m.logger.Info("Processed Proton Mail notification", "from", from, "subject", subject)
 	return nil
 }
 
-func (m *Monitor) MarkAsRead(messageID string) error {
+func (m *Monitor) MarkAsRead(uid uint32) error {
 	if m.client == nil {
 		return fmt.Errorf("not connected")
 	}
 
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(1)
+	seqSet.AddNum(uid)
 
 	item := imap.FormatFlagsOp(imap.AddFlags, true)
 	flags := []interface{}{m.cfg.IMAPSeenFlag}
 
-	return m.client.Store(seqSet, item, flags, nil)
+	return m.client.UidStore(seqSet, item, flags, nil)
+}
+
+func (m *Monitor) IsConnected() bool {
+	return m.client != nil
 }

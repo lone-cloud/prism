@@ -12,12 +12,10 @@
   <script src="/theme.js"></script>
 </head>
 <body>
-  <button id="theme-toggle" class="theme-toggle"></button>
-  
   <div class="card">
     <div id="health-status" 
          hx-get="/fragment/health" 
-         hx-trigger="load">
+         hx-trigger="load, every 10s">
       <div class="loading">
         <div class="spinner"></div>
       </div>
@@ -26,18 +24,13 @@
 
   <div class="card">
     <h2>Signal</h2>
-    <div id="signal-info" 
-         hx-get="/fragment/signal-info" 
-         hx-trigger="load, accountLinked from:body"
-         hx-indicator="#signal-info">
+    <div id="signal-info"
+         hx-get="/fragment/signal-info"
+         hx-trigger="load, every 3s">
       <div class="loading">
         <div class="spinner"></div>
       </div>
     </div>
-    <div id="qr-section"
-         hx-get="/fragment/signal-info"
-         hx-trigger="accountLinked from:body"
-         hx-swap="none"></div>
   </div>
 
   <div class="card">
@@ -50,5 +43,7 @@
       </div>
     </div>
   </div>
+
+  <button id="theme-toggle" class="theme-toggle"></button>
 </body>
 </html>

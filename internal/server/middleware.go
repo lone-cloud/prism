@@ -11,10 +11,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func authMiddleware(apiKey string, allowInsecureHTTP bool) func(http.Handler) http.Handler {
+func authMiddleware(apiKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !util.VerifyAPIKey(r, apiKey, allowInsecureHTTP) {
+			if !util.VerifyAPIKey(r, apiKey) {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Prism Admin - Username: any, Password: API_KEY"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
@@ -53,12 +53,10 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func securityHeadersMiddleware(allowInsecureHTTP bool) func(http.Handler) http.Handler {
+func securityHeadersMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
-			w.Header().Set("X-Frame-Options", "DENY")
-			w.Header().Set("X-XSS-Protection", "1; mode=block")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'")
 
@@ -77,14 +75,14 @@ var (
 	visitorsMu sync.RWMutex
 )
 
-func rateLimitMiddleware(rps int, allowInsecureHTTP bool) func(http.Handler) http.Handler {
+func rateLimitMiddleware(rps int) func(http.Handler) http.Handler {
 	go cleanupVisitors()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := util.GetClientIP(r)
 
-			if allowInsecureHTTP || util.IsLocalhost(ip) {
+			if util.IsLocalhost(ip) {
 				next.ServeHTTP(w, r)
 				return
 			}

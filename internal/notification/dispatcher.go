@@ -78,11 +78,20 @@ func (d *Dispatcher) sendSignal(mapping *Mapping, notif Notification) error {
 }
 
 func (d *Dispatcher) createGroup(appName string) (string, error) {
-	params := map[string]interface{}{
-		"name": appName,
+	account, err := d.signalClient.GetLinkedAccount()
+	if err != nil {
+		return "", fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		return "", fmt.Errorf("no linked Signal account")
 	}
 
-	result, err := d.signalClient.Call("createGroup", params)
+	params := map[string]interface{}{
+		"name":   appName,
+		"member": []string{},
+	}
+
+	result, err := d.signalClient.CallWithAccount("updateGroup", params, account.Number)
 	if err != nil {
 		return "", err
 	}
@@ -91,24 +100,37 @@ func (d *Dispatcher) createGroup(appName string) (string, error) {
 		GroupID string `json:"groupId"`
 	}
 	if err := json.Unmarshal(result, &response); err != nil {
-		return "", fmt.Errorf("failed to parse createGroup response: %w", err)
+		return "", fmt.Errorf("failed to parse updateGroup response: %w", err)
+	}
+
+	if response.GroupID == "" {
+		return "", fmt.Errorf("empty groupId in response")
 	}
 
 	return response.GroupID, nil
 }
 
 func (d *Dispatcher) sendGroupMessage(groupID string, notif Notification) error {
+	account, err := d.signalClient.GetLinkedAccount()
+	if err != nil {
+		return fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		return fmt.Errorf("no linked Signal account")
+	}
+
 	message := notif.Message
 	if notif.Title != "" {
 		message = fmt.Sprintf("%s\n\n%s", notif.Title, notif.Message)
 	}
 
 	params := map[string]interface{}{
-		"groupId": groupID,
-		"message": message,
+		"groupId":     groupID,
+		"message":     message,
+		"notify-self": true,
 	}
 
-	_, err := d.signalClient.Call("sendGroupMessage", params)
+	_, err = d.signalClient.CallWithAccount("send", params, account.Number)
 	return err
 }
 
