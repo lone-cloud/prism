@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"prism/internal/util"
+	"prism/service/util"
 
 	"golang.org/x/time/rate"
 )

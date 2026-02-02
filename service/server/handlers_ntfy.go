@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"prism/internal/notification"
+	"prism/service/notification"
 
 	"github.com/go-chi/chi/v5"
 )

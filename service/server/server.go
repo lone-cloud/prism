@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"prism/internal/config"
-	"prism/internal/notification"
-	"prism/internal/proton"
-	"prism/internal/signal"
-	"prism/internal/util"
+	"prism/service/config"
+	"prism/service/notification"
+	"prism/service/proton"
+	"prism/service/signal"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
