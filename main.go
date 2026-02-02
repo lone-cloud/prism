@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	_ = godotenv.Load() //nolint:errcheck // .env is optional
+	_ = godotenv.Load() //nolint:errcheck
 }
 
 func main() {

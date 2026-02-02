@@ -23,14 +23,14 @@ func (s *Server) handleWebhookRegister(w http.ResponseWriter, r *http.Request) {
 	if req.AppName == "" || req.UpEndpoint == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "appName and upEndpoint are required"}) //nolint:errcheck // Error encoding response is not critical
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "appName and upEndpoint are required"}) //nolint:errcheck
 		return
 	}
 
 	if _, err := url.Parse(req.UpEndpoint); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid upEndpoint URL"}) //nolint:errcheck // Error encoding response is not critical
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid upEndpoint URL"}) //nolint:errcheck
 		return
 	}
 
@@ -40,7 +40,7 @@ func (s *Server) handleWebhookRegister(w http.ResponseWriter, r *http.Request) {
 		s.logger.Error("Failed to register webhook endpoint", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Internal server error"}) //nolint:errcheck // Error encoding response is not critical
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Internal server error"}) //nolint:errcheck
 		return
 	}
 

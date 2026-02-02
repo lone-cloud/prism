@@ -1,5 +1,6 @@
 signal-cli/
 data/
+tmp/
 *.db
 .env
 /prism

@@ -34,10 +34,12 @@ func (s *Server) handleFragmentHealth(w http.ResponseWriter, r *http.Request) {
 	if hasProton {
 		protonStatus := "Disconnected"
 		protonClass := "status-error"
-		protonTooltip := ""
-		// TODO: check actual IMAP connection status with protonMonitor
+		if s.protonMonitor.IsConnected() {
+			protonStatus = "Connected"
+			protonClass = "status-ok"
+		}
 		html += fmt.Sprintf(`
-		<div class="status-item %s">Proton Mail: %s%s</div>`, protonClass, protonStatus, protonTooltip)
+		<div class="status-item %s">Proton Mail: %s</div>`, protonClass, protonStatus)
 	}
 
 	html += `</div>
@@ -50,12 +52,12 @@ func (s *Server) handleFragmentHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleFragmentSignalInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	_, _ = fmt.Fprint(w, s.getSignalInfoHTML()) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
+	_, _ = fmt.Fprint(w, s.getSignalInfoHTML()) //nolint:errcheck
 }
 
 func (s *Server) getSignalInfoHTML() string {
 	if s.getLinkedAccount() != nil {
-		return fmt.Sprintf(`<details class="unlink-details">
+		return fmt.Sprintf(`<div id="signal-info"><details class="unlink-details">
 			<summary class="unlink-summary">Unlink and remove device</summary>
 			<div class="unlink-instructions">
 				<ol>
@@ -64,9 +66,10 @@ func (s *Server) getSignalInfoHTML() string {
 					<li>Tap <strong>"Unlink Device"</strong></li>
 				</ol>
 			</div>
-		</details>`, s.cfg.DeviceName)
+		</details></div>`, s.cfg.DeviceName)
 	}
-	return s.getQRCodeHTML()
+
+	return fmt.Sprintf(`<div id="signal-info" hx-get="/fragment/signal-info" hx-trigger="every 3s">%s</div>`, s.getQRCodeHTML())
 }
 
 func (s *Server) getLinkedAccount() *signal.AccountInfo {
@@ -80,8 +83,7 @@ func (s *Server) getQRCodeHTML() string {
 		return `<p>Account already linked</p>`
 	}
 
-	linkDevice := signal.NewLinkDevice(signal.NewClient(s.cfg.SignalCLISocketPath))
-	qrCode, err := linkDevice.GenerateQR()
+	qrCode, err := s.linkDevice.GenerateQR()
 	if err != nil {
 		s.logger.Error("Failed to generate QR code", "error", err)
 		return `<p>Signal daemon is starting up, please refresh in a few seconds...</p>`
@@ -105,11 +107,11 @@ func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "text/html")
 
 	if len(mappings) == 0 {
-		_, _ = fmt.Fprint(w, `<p>No endpoints registered</p>`) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
+		_, _ = fmt.Fprint(w, `<p>No endpoints registered</p>`) //nolint:errcheck
 		return
 	}
 
-	_, _ = fmt.Fprint(w, `<ul class="endpoint-list">`) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
+	_, _ = fmt.Fprint(w, `<ul class="endpoint-list">`) //nolint:errcheck
 	for _, m := range mappings {
 		isSignal := m.Channel == notification.ChannelSignal
 		isWebhook := m.Channel == notification.ChannelWebhook
@@ -132,7 +134,7 @@ func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request)
 		}
 
 		if m.GroupID != nil && isSignal {
-			html += fmt.Sprintf(`<span class="endpoint-detail">%s</span>`, *m.GroupID)
+			html += fmt.Sprintf(`<span class="endpoint-detail">Groud ID: %s</span>`, *m.GroupID)
 		}
 
 		html += `</div></div><div class="endpoint-actions">`
@@ -152,7 +154,7 @@ func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request)
 			<button class="btn-delete" hx-delete="/action/delete-endpoint" hx-target="#endpoints-list" hx-swap="innerHTML" hx-include="closest form">Delete</button>
 		</form></div></li>`, m.Endpoint)
 
-		_, _ = fmt.Fprint(w, html) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
+		_, _ = fmt.Fprint(w, html) //nolint:errcheck
 	}
-	_, _ = fmt.Fprint(w, `</ul>`) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
+	_, _ = fmt.Fprint(w, `</ul>`) //nolint:errcheck
 }

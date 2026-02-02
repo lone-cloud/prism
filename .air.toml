@@ -1,0 +1,15 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ."
+  include_ext = ["go", "html", "css", "js"]
+  exclude_dir = ["tmp", "data", "signal-cli"]
+  delay = 1000
+
+[log]
+  time = false
+
+[screen]
+  clear_on_rebuild = false

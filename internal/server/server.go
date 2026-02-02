@@ -22,8 +22,8 @@ type Server struct {
 	store         *notification.Store
 	dispatcher    *notification.Dispatcher
 	protonMonitor *proton.Monitor
-	actionHandler *proton.ActionHandler
 	signalDaemon  *signal.Daemon
+	linkDevice    *signal.LinkDevice
 	logger        *slog.Logger
 	router        *chi.Mux
 	httpServer    *http.Server
@@ -42,17 +42,17 @@ func New(cfg *config.Config) (*Server, error) {
 	dispatcher := notification.NewDispatcher(store, signalClient, logger)
 
 	protonMonitor := proton.NewMonitor(cfg, dispatcher, logger)
-	actionHandler := proton.NewActionHandler(protonMonitor, cfg, logger)
 
 	signalDaemon := signal.NewDaemon(cfg.SignalCLIBinaryPath, cfg.SignalCLIDataPath, cfg.SignalCLISocketPath)
+	linkDevice := signal.NewLinkDevice(signalClient, cfg.DeviceName)
 
 	s := &Server{
 		cfg:           cfg,
 		store:         store,
 		dispatcher:    dispatcher,
 		protonMonitor: protonMonitor,
-		actionHandler: actionHandler,
 		signalDaemon:  signalDaemon,
+		linkDevice:    linkDevice,
 		logger:        logger,
 		startTime:     time.Now(),
 	}
@@ -68,32 +68,29 @@ func (s *Server) setupRoutes() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(loggingMiddleware(s.logger))
-	r.Use(securityHeadersMiddleware(s.cfg.AllowInsecureHTTP))
+	r.Use(securityHeadersMiddleware())
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(middleware.Compress(5))
 	r.Use(middleware.StripSlashes)
-	r.Use(rateLimitMiddleware(s.cfg.RateLimit, s.cfg.AllowInsecureHTTP))
+	r.Use(rateLimitMiddleware(s.cfg.RateLimit))
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./public/index.html")
-	})
 	r.Handle("/*", http.StripPrefix("/", http.FileServer(http.Dir("./public"))))
 
 	r.Route("/fragment", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
+		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Get("/health", s.handleFragmentHealth)
 		r.Get("/signal-info", s.handleFragmentSignalInfo)
 		r.Get("/endpoints", s.handleFragmentEndpoints)
 	})
 
 	r.Route("/action", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
+		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Delete("/delete-endpoint", s.handleDeleteEndpointAction)
 		r.Post("/toggle-channel", s.handleToggleChannelAction)
 	})
 
 	r.Route("/admin", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
+		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Get("/mappings", s.handleGetMappings)
 		r.Post("/mappings", s.handleCreateMapping)
 		r.Delete("/mappings/{endpoint}", s.handleDeleteMapping)
@@ -101,30 +98,17 @@ func (s *Server) setupRoutes() {
 		r.Get("/stats", s.handleGetStats)
 	})
 
-	r.Route("/ntfy", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
-		r.Post("/{endpoint}", s.handleNtfyPublish)
-	})
-
-	r.Route("/webhook", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
-		r.Post("/register", s.handleWebhookRegister)
-	})
-
 	r.Route("/api/webhook", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
+		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Post("/register", s.handleWebhookRegister)
 	})
 
 	r.Route("/api/proton-mail", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
+		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Post("/mark-read", s.handleProtonMarkRead)
 	})
 
-	r.Route("/proton", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey, s.cfg.AllowInsecureHTTP))
-		r.Post("/mark-read", s.handleProtonMarkRead)
-	})
+	r.With(authMiddleware(s.cfg.APIKey)).Post("/{topic}", s.handleNtfyPublish)
 
 	s.router = r
 }
@@ -150,14 +134,12 @@ func (s *Server) Start(ctx context.Context) error {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	s.logger.Info("")
 	s.logger.Info("Prism running on:")
-	s.logger.Info(fmt.Sprintf("  Local:   http://localhost:%d", s.cfg.Port))
+	s.logger.Info(fmt.Sprintf("Local: http://localhost:%d", s.cfg.Port))
 
 	if lanIP := util.GetLANIP(); lanIP != "" {
-		s.logger.Debug(fmt.Sprintf("  Network: http://%s:%d", lanIP, s.cfg.Port))
+		s.logger.Debug(fmt.Sprintf("Network: http://%s:%d", lanIP, s.cfg.Port))
 	}
-	s.logger.Info("")
 
 	errCh := make(chan error, 1)
 	go func() {

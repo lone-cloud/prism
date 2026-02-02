@@ -12,15 +12,17 @@ import (
 
 type LinkDevice struct {
 	client      *Client
+	deviceName  string
 	qrCode      string
 	generatedAt time.Time
 	ttl         time.Duration
 }
 
-func NewLinkDevice(client *Client) *LinkDevice {
+func NewLinkDevice(client *Client, deviceName string) *LinkDevice {
 	return &LinkDevice{
-		client: client,
-		ttl:    10 * time.Minute,
+		client:     client,
+		deviceName: deviceName,
+		ttl:        10 * time.Minute,
 	}
 }
 
@@ -48,9 +50,8 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 		return "", fmt.Errorf("empty device link URI")
 	}
 
-	// Generate QR code via qrserver.com API
 	qrURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=%s", url.QueryEscape(uri))
-	//nolint:gosec // QR code generation URL is from trusted API
+	//nolint:gosec
 	resp, err := http.Get(qrURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch QR code: %w", err)
@@ -62,7 +63,6 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 		return "", fmt.Errorf("failed to read QR code: %w", err)
 	}
 
-	// Convert to base64 data URL
 	base64Data := base64.StdEncoding.EncodeToString(qrData)
 	l.qrCode = fmt.Sprintf("data:image/png;base64,%s", base64Data)
 	l.generatedAt = time.Now()
@@ -75,12 +75,11 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 func (l *LinkDevice) finishLink(uri string) {
 	params := map[string]interface{}{
 		"deviceLinkUri": uri,
+		"deviceName":    l.deviceName,
 	}
 
-	// This blocks until device is linked or times out
 	_, err := l.client.Call("finishLink", params)
 	if err == nil {
-		// Clear cache on successful link
 		l.qrCode = ""
 		l.generatedAt = time.Time{}
 	}
