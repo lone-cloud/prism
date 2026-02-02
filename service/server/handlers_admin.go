@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"prism/internal/notification"
-	"prism/internal/util"
+	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )

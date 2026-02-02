@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"prism/internal/notification"
-	"prism/internal/signal"
-	"prism/internal/util"
+	"prism/service/notification"
+	"prism/service/signal"
+	"prism/service/util"
 )
 
 func (s *Server) handleFragmentHealth(w http.ResponseWriter, r *http.Request) {

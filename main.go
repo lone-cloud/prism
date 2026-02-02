@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"prism/internal/config"
-	"prism/internal/server"
-	"prism/internal/util"
+	"prism/service/config"
+	"prism/service/server"
+	"prism/service/util"
 
 	"github.com/joho/godotenv"
 )

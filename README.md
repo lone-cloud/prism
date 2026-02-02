@@ -14,16 +14,6 @@
 
 Prism is a self-hosted notification gateway that receives HTTP requests and routes them through Signal groups or custom webhooks. Route notifications through Signal to avoid exposing unique network fingerprints, or forward them to your own webhook endpoints for custom handling.
 
-## How?
-
-Prism accepts notifications via HTTP POST requests and routes them based on your configured delivery method:
-
-- **Signal groups**: Uses [signal-cli](https://github.com/AsamK/signal-cli) to create a Signal group for each app and send notifications as messages
-- **Webhook forwarding**: Forwards notifications to your own webhook URL (useful for UnifiedPush distributors, ntfy, or custom handlers)
-
-Each endpoint can be independently configured to use either delivery method through the admin UI.
-
-For the optional Proton Mail integration, Prism requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). Prism's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between Prism and proton-bridge will be over IMAP.
 
 ## Setup
 
@@ -188,9 +178,11 @@ For API-based monitoring, call `/api/health` which returns JSON:
 
 ## Architecture
 
-Prism consists of two services that **MUST run together on the same machine**:
+Prism accepts notifications via HTTP POST requests and routes them based on your configured delivery method:
 
-- **prism** (Go): Receives webhooks, sends Signal messages via signal-cli. Optional: monitors Proton Mail IMAP
-- **protonmail-bridge** (Official Proton, optional): Decrypts Proton Mail emails, runs local IMAP server
+- **Signal groups**: Uses [signal-cli](https://github.com/AsamK/signal-cli) to create a Signal group for each app and send notifications as messages
+- **Webhook forwarding**: Forwards notifications to your own webhook URL (useful for UnifiedPush distributors, ntfy or custom handlers)
 
-All services communicate over a private Docker network with no external exposure except Signal protocol. **Separating these services across multiple machines would expose plaintext IMAP traffic and compromise security.**
+Each endpoint can be independently configured to use either delivery method through the admin UI.
+
+For the optional Proton Mail integration, Prism requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). Prism's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between Prism and proton-bridge will be over IMAP.

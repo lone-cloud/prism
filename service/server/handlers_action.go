@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"prism/internal/notification"
+	"prism/service/notification"
 )
 
 func (s *Server) handleDeleteEndpointAction(w http.ResponseWriter, r *http.Request) {

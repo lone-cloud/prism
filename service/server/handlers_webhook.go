@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"prism/internal/notification"
+	"prism/service/notification"
 )
 
 type registerWebhookRequest struct {

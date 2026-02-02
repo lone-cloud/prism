@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"prism/internal/signal"
+	"prism/service/signal"
 )
 
 type Dispatcher struct {
