@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lone-cloud/prism/internal/util"
+	"prism/internal/util"
+
 	"golang.org/x/time/rate"
 )
 

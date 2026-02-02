@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/lone-cloud/prism/internal/config"
+	"prism/internal/config"
 )
 
 type ActionHandler struct {

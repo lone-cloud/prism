@@ -11,7 +11,7 @@ COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
     -ldflags="-w -s -X main.version=$(git describe --tags --always) -X main.commit=$(git rev-parse --short HEAD)" \
-    -o prism ./cmd/prism
+    -o prism .
 
 FROM alpine:latest
 
@@ -33,4 +33,4 @@ ENV SIGNAL_CLI_SOCKET=/var/run/signal-cli/socket
 
 EXPOSE 8080
 
-CMD ["./prism", "serve"]
+CMD ["./prism"]

@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"time"
 
+	"prism/internal/config"
+	"prism/internal/notification"
+	"prism/internal/proton"
+	"prism/internal/signal"
+	"prism/internal/util"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/lone-cloud/prism/internal/config"
-	"github.com/lone-cloud/prism/internal/notification"
-	"github.com/lone-cloud/prism/internal/proton"
-	"github.com/lone-cloud/prism/internal/signal"
-	"github.com/lone-cloud/prism/internal/util"
 )
 
 type Server struct {

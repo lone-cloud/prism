@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"prism/internal/config"
+	"prism/internal/server"
+	"prism/internal/util"
+
 	"github.com/joho/godotenv"
-	"github.com/lone-cloud/prism/internal/config"
-	"github.com/lone-cloud/prism/internal/server"
-	"github.com/lone-cloud/prism/internal/util"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -23,34 +23,13 @@ func init() {
 	_ = godotenv.Load() //nolint:errcheck // .env is optional
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "prism",
-	Short: "Privacy-preserving push notifications via Signal",
-}
-
-var serveCmd = &cobra.Command{
-	Use:   "serve",
-	Short: "Start the Prism server",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runServer()
-	},
-}
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Prism %s (%s)\n", version, commit)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(serveCmd)
-	rootCmd.AddCommand(versionCmd)
-}
-
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Printf("Prism %s (%s)\n", version, commit)
+		return
+	}
+
+	if err := runServer(); err != nil {
 		logger := util.NewLogger(false)
 		logger.Error("Fatal error", "error", err)
 		os.Exit(1)

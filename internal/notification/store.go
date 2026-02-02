@@ -66,7 +66,7 @@ func (s *Store) Register(endpoint, appName string, channel Channel, groupID, upE
 	return err
 }
 
-func (s *Store) GetMapping(endpoint string) (*Mapping, error) {
+func (s *Store) GetEndpointMapping(endpoint string) (*Mapping, error) {
 	query := `
 		SELECT endpoint, groupId, appName, channel, upEndpoint
 		FROM mappings

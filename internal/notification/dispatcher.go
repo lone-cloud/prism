@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/lone-cloud/prism/internal/signal"
+	"prism/internal/signal"
 )
 
 type Dispatcher struct {
@@ -26,7 +26,7 @@ func NewDispatcher(store *Store, signalClient *signal.Client, logger *slog.Logge
 }
 
 func (d *Dispatcher) Send(endpoint string, notif Notification) error {
-	mapping, err := d.store.GetMapping(endpoint)
+	mapping, err := d.store.GetEndpointMapping(endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to get mapping: %w", err)
 	}
@@ -39,7 +39,7 @@ func (d *Dispatcher) Send(endpoint string, notif Notification) error {
 			return fmt.Errorf("failed to register endpoint: %w", err)
 		}
 
-		mapping, err = d.store.GetMapping(endpoint)
+		mapping, err = d.store.GetEndpointMapping(endpoint)
 		if err != nil {
 			return fmt.Errorf("failed to get mapping after registration: %w", err)
 		}
