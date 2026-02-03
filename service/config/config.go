@@ -30,10 +30,6 @@ type Config struct {
 	IMAPMaxReconnectDelay    int
 	IMAPMaxReconnectAttempts int
 
-	EndpointPrefixProton string
-	EndpointPrefixNtfy   string
-	EndpointPrefixUP     string
-
 	StoragePath string
 }
 
@@ -53,17 +49,13 @@ func Load() (*Config, error) {
 		ProtonIMAPPassword: os.Getenv("PROTON_IMAP_PASSWORD"),
 		ProtonBridgeHost:   getEnvString("PROTON_BRIDGE_HOST", "protonmail-bridge"),
 		ProtonBridgePort:   getEnvInt("PROTON_BRIDGE_PORT", 143),
-		ProtonPrismTopic:   getEnvString("PROTON_PRISM_TOPIC", "Proton Mail"),
+		ProtonPrismTopic:   "Proton Mail",
 
 		IMAPInbox:                "INBOX",
 		IMAPSeenFlag:             "\\Seen",
 		IMAPReconnectBaseDelay:   10000,
 		IMAPMaxReconnectDelay:    300000,
 		IMAPMaxReconnectAttempts: 50,
-
-		EndpointPrefixProton: "proton-",
-		EndpointPrefixNtfy:   "ntfy-",
-		EndpointPrefixUP:     "up-",
 
 		StoragePath: getEnvString("STORAGE_PATH", "./data/prism.db"),
 	}

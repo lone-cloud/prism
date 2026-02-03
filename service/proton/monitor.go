@@ -8,22 +8,24 @@ import (
 	"prism/service/config"
 	"prism/service/notification"
 
-	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-imap/v2/imapclient"
 )
 
 type Monitor struct {
 	cfg              *config.Config
 	dispatcher       *notification.Dispatcher
 	logger           *slog.Logger
-	client           *client.Client
+	client           *imapclient.Client
 	monitorStartTime time.Time
+	newMessagesChan  chan struct{}
 }
 
 func NewMonitor(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger) *Monitor {
 	return &Monitor{
-		cfg:        cfg,
-		dispatcher: dispatcher,
-		logger:     logger,
+		cfg:             cfg,
+		dispatcher:      dispatcher,
+		logger:          logger,
+		newMessagesChan: make(chan struct{}, 10),
 	}
 }
 

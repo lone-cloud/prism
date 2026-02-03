@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags="-w -s -X main.version=$(git describe --tags --always) -X main.commit=$(git rev-parse --short HEAD)" \
+    -ldflags="-w -s -X main.version=$(cat VERSION 2>/dev/null || echo dev) -X main.commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
     -o prism .
 
 FROM alpine:latest

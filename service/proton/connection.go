@@ -5,20 +5,33 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-imap/v2/imapclient"
 )
 
 func (m *Monitor) connect() error {
 	addr := fmt.Sprintf("%s:%d", m.cfg.ProtonBridgeHost, m.cfg.ProtonBridgePort)
-	c, err := client.Dial(addr)
+
+	options := &imapclient.Options{
+		UnilateralDataHandler: &imapclient.UnilateralDataHandler{
+			Mailbox: func(data *imapclient.UnilateralDataMailbox) {
+				if data.NumMessages != nil {
+					select {
+					case m.newMessagesChan <- struct{}{}:
+					default:
+						m.logger.Warn("New messages channel full, skipping signal")
+					}
+				}
+			},
+		},
+	}
+
+	c, err := imapclient.DialInsecure(addr, options)
 	if err != nil {
 		return fmt.Errorf("failed to dial: %w", err)
 	}
 
-	if err := c.Login(m.cfg.ProtonIMAPUsername, m.cfg.ProtonIMAPPassword); err != nil {
-		if logoutErr := c.Logout(); logoutErr != nil {
-			m.logger.Error("Logout failed", "error", logoutErr)
-		}
+	if err := c.Login(m.cfg.ProtonIMAPUsername, m.cfg.ProtonIMAPPassword).Wait(); err != nil {
+		c.Close()
 		return fmt.Errorf("failed to login: %w", err)
 	}
 
@@ -28,60 +41,39 @@ func (m *Monitor) connect() error {
 }
 
 func (m *Monitor) monitor(ctx context.Context) error {
-	_, err := m.client.Select(m.cfg.IMAPInbox, false)
+	selectCmd := m.client.Select(m.cfg.IMAPInbox, nil)
+	_, err := selectCmd.Wait()
 	if err != nil {
 		return fmt.Errorf("failed to select inbox: %w", err)
 	}
 
 	if m.monitorStartTime.IsZero() {
 		m.monitorStartTime = time.Now()
-		m.logger.Info("Monitor start time set", "time", m.monitorStartTime)
+		m.logger.Info("Proton Mail monitor start time set", "time", m.monitorStartTime)
 	}
 
-	updates := make(chan client.Update, 10)
-	m.client.Updates = updates
-
-	stop := make(chan struct{})
-	defer close(stop)
-
-	idleErr := make(chan error, 1)
-	go func() {
-		idleErr <- m.client.Idle(stop, nil)
-	}()
-
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
+	idleCmd, err := m.client.Idle()
+	if err != nil {
+		return fmt.Errorf("failed to start idle: %w", err)
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
+			idleCmd.Close()
 			return ctx.Err()
 
-		case update := <-updates:
-			switch u := update.(type) {
-			case *client.MailboxUpdate:
-				if u.Mailbox.UnseenSeqNum > 0 {
-					if err := m.handleNewMessages(); err != nil {
-						m.logger.Error("Failed to handle new messages", "error", err)
-					}
-				}
+		case <-m.newMessagesChan:
+			idleCmd.Close()
+
+			if err := m.sendNotification(); err != nil {
+				m.logger.Error("Failed to send notification", "error", err)
 			}
 
-		case <-ticker.C:
-			close(stop)
-			<-idleErr
-
-			if err := m.client.Noop(); err != nil {
-				return fmt.Errorf("noop failed: %w", err)
+			idleCmd, err = m.client.Idle()
+			if err != nil {
+				return fmt.Errorf("failed to restart idle: %w", err)
 			}
-
-			stop = make(chan struct{})
-			go func() {
-				idleErr <- m.client.Idle(stop, nil)
-			}()
-
-		case err := <-idleErr:
-			return fmt.Errorf("idle ended: %w", err)
 		}
 	}
 }

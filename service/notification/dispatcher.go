@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"prism/service/signal"
 )
@@ -28,19 +27,23 @@ func NewDispatcher(store *Store, signalClient *signal.Client, logger *slog.Logge
 func (d *Dispatcher) Send(endpoint string, notif Notification) error {
 	mapping, err := d.store.GetEndpointMapping(endpoint)
 	if err != nil {
+		d.logger.Error("Failed to get endpoint mapping", "endpoint", endpoint, "error", err)
 		return fmt.Errorf("failed to get mapping: %w", err)
 	}
 
 	if mapping == nil {
-		appName := strings.TrimPrefix(endpoint, "ntfy-")
-		appName = strings.TrimPrefix(appName, "proton-")
+		d.logger.Info("No mapping found for endpoint, creating new registration", "endpoint", endpoint)
 
-		if err := d.store.Register(endpoint, appName, ChannelSignal, nil, nil); err != nil {
+		d.logger.Info("Registering new endpoint", "endpoint", endpoint, "appName", endpoint, "channel", ChannelSignal)
+
+		if err := d.store.Register(endpoint, endpoint, ChannelSignal, nil, nil); err != nil {
+			d.logger.Error("Failed to register endpoint", "endpoint", endpoint, "error", err)
 			return fmt.Errorf("failed to register endpoint: %w", err)
 		}
 
 		mapping, err = d.store.GetEndpointMapping(endpoint)
 		if err != nil {
+			d.logger.Error("Failed to get mapping after registration", "endpoint", endpoint, "error", err)
 			return fmt.Errorf("failed to get mapping after registration: %w", err)
 		}
 	}
@@ -51,6 +54,7 @@ func (d *Dispatcher) Send(endpoint string, notif Notification) error {
 	case ChannelSignal:
 		return d.sendSignal(mapping, notif)
 	default:
+		d.logger.Error("Unknown channel type", "channel", mapping.Channel)
 		return fmt.Errorf("unknown channel: %s", mapping.Channel)
 	}
 }
@@ -58,11 +62,16 @@ func (d *Dispatcher) Send(endpoint string, notif Notification) error {
 func (d *Dispatcher) sendSignal(mapping *Mapping, notif Notification) error {
 	groupID := mapping.GroupID
 	if groupID == nil || *groupID == "" {
+		d.logger.Info("No group ID found, creating new group", "appName", mapping.AppName)
+
 		newGroupID, err := d.createGroup(mapping.AppName)
 		if err != nil {
+			d.logger.Error("Failed to create group", "appName", mapping.AppName, "error", err)
 			return fmt.Errorf("failed to create group: %w", err)
 		}
 		groupID = &newGroupID
+
+		d.logger.Info("Created new group", "appName", mapping.AppName, "groupID", *groupID)
 
 		if err := d.store.UpdateGroupID(mapping.Endpoint, *groupID); err != nil {
 			d.logger.Warn("Failed to update group ID", "error", err)
@@ -70,10 +79,10 @@ func (d *Dispatcher) sendSignal(mapping *Mapping, notif Notification) error {
 	}
 
 	if err := d.sendGroupMessage(*groupID, notif); err != nil {
+		d.logger.Error("Failed to send group message", "groupID", *groupID, "error", err)
 		return fmt.Errorf("failed to send group message: %w", err)
 	}
 
-	d.logger.Debug("Sent Signal notification", "app", mapping.AppName, "message", notif.Message)
 	return nil
 }
 
@@ -113,15 +122,17 @@ func (d *Dispatcher) createGroup(appName string) (string, error) {
 func (d *Dispatcher) sendGroupMessage(groupID string, notif Notification) error {
 	account, err := d.signalClient.GetLinkedAccount()
 	if err != nil {
+		d.logger.Error("Failed to get linked account", "error", err)
 		return fmt.Errorf("failed to get linked account: %w", err)
 	}
 	if account == nil {
+		d.logger.Error("No linked Signal account found")
 		return fmt.Errorf("no linked Signal account")
 	}
 
 	message := notif.Message
 	if notif.Title != "" {
-		message = fmt.Sprintf("%s\n\n%s", notif.Title, notif.Message)
+		message = fmt.Sprintf("%s\n%s", notif.Title, notif.Message)
 	}
 
 	params := map[string]interface{}{
@@ -131,6 +142,9 @@ func (d *Dispatcher) sendGroupMessage(groupID string, notif Notification) error 
 	}
 
 	_, err = d.signalClient.CallWithAccount("send", params, account.Number)
+	if err != nil {
+		d.logger.Error("Signal send API call failed", "error", err)
+	}
 	return err
 }
 

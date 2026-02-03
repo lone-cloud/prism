@@ -63,15 +63,13 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		title = ""
 	}
 
-	fullEndpoint := s.cfg.EndpointPrefixNtfy + topic
-
 	notif := notification.Notification{
 		Title:   title,
 		Message: message,
 	}
 
-	if err := s.dispatcher.Send(fullEndpoint, notif); err != nil {
-		s.logger.Error("Failed to send notification", "endpoint", fullEndpoint, "error", err)
+	if err := s.dispatcher.Send(topic, notif); err != nil {
+		s.logger.Error("Failed to send notification", "endpoint", topic, "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

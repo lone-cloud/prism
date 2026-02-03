@@ -34,12 +34,14 @@ func (s *Server) handleFragmentHealth(w http.ResponseWriter, r *http.Request) {
 	if hasProton {
 		protonStatus := "Disconnected"
 		protonClass := "status-error"
+		protonTooltip := ""
 		if s.protonMonitor.IsConnected() {
 			protonStatus = "Connected"
 			protonClass = "status-ok"
+			protonTooltip = fmt.Sprintf(`<span class="tooltip">%s</span>`, s.cfg.ProtonIMAPUsername)
 		}
 		html += fmt.Sprintf(`
-		<div class="status-item %s">Proton Mail: %s</div>`, protonClass, protonStatus)
+		<div class="status-item %s">Proton Mail: %s%s</div>`, protonClass, protonStatus, protonTooltip)
 	}
 
 	html += `</div>
@@ -116,25 +118,27 @@ func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request)
 		isSignal := m.Channel == notification.ChannelSignal
 		isWebhook := m.Channel == notification.ChannelWebhook
 		channelBadge := "Signal"
+		channelTooltip := ""
 		if isWebhook {
 			channelBadge = "Webhook"
+		}
+		if isSignal && m.GroupID != nil {
+			channelTooltip = fmt.Sprintf(`<span class="tooltip">Group ID: %s</span>`, *m.GroupID)
+		}
+		if isWebhook && m.UpEndpoint != nil {
+			channelTooltip = fmt.Sprintf(`<span class="tooltip">%s</span>`, *m.UpEndpoint)
 		}
 
 		html := fmt.Sprintf(`<li class="endpoint-item">
 			<div class="endpoint-info">
 				<div class="endpoint-name"><strong>%s</strong></div>
 				<div class="endpoint-channel">
-					<span class="channel-badge channel-%s">%s</span>`, m.AppName, m.Channel, channelBadge)
+					<span class="channel-badge channel-%s">%s%s</span>`, m.AppName, m.Channel, channelBadge, channelTooltip)
 
 		if m.UpEndpoint != nil && isWebhook {
-			// Extract hostname from webhook URL
 			if u, err := url.Parse(*m.UpEndpoint); err == nil {
 				html += fmt.Sprintf(`<span class="endpoint-detail">%s</span>`, u.Hostname())
 			}
-		}
-
-		if m.GroupID != nil && isSignal {
-			html += fmt.Sprintf(`<span class="endpoint-detail">Groud ID: %s</span>`, *m.GroupID)
 		}
 
 		html += `</div></div><div class="endpoint-actions">`

@@ -11,7 +11,7 @@ all: fmt lint build
 build:
 	go build -ldflags="-X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) .
 
-run: build
+start: build
 	./$(BINARY_NAME)
 
 dev:
@@ -52,11 +52,14 @@ check-updates:
 docker-build:
 	docker build -t prism:$(VERSION) .
 
-docker-run:
+docker-up:
 	docker compose -f docker-compose.dev.yml up -d
 
 docker-down:
 	docker compose -f docker-compose.dev.yml down
+
+docker-up-proton:
+	docker compose -f docker-compose.dev.yml --profile protonmail up -d
 
 release:
 	@if [ ! -f VERSION ]; then \
