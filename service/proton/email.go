@@ -5,73 +5,66 @@ import (
 
 	"prism/service/notification"
 
-	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/v2"
 )
 
-func (m *Monitor) handleNewMessages() error {
-	criteria := imap.NewSearchCriteria()
-	criteria.WithoutFlags = []string{m.cfg.IMAPSeenFlag}
-
-	uids, err := m.client.UidSearch(criteria)
+func (m *Monitor) sendNotification() error {
+	selectData, err := m.client.Select(m.cfg.IMAPInbox, nil).Wait()
 	if err != nil {
-		return fmt.Errorf("search failed: %w", err)
+		m.logger.Error("Failed to select inbox", "error", err)
+		return err
 	}
 
-	if len(uids) == 0 {
+	if selectData.NumMessages == 0 {
+		m.logger.Warn("No messages in mailbox")
 		return nil
 	}
 
-	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(uids...)
+	latestSeq := selectData.NumMessages
 
-	messages := make(chan *imap.Message, 10)
-	done := make(chan error, 1)
+	seqSet := imap.SeqSetNum(latestSeq)
 
-	go func() {
-		done <- m.client.UidFetch(seqSet, []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}, messages)
-	}()
-
-	for msg := range messages {
-		if err := m.processMessage(msg); err != nil {
-			m.logger.Error("Failed to process message", "error", err)
-		}
+	fetchOptions := &imap.FetchOptions{
+		Envelope: true,
+		UID:      true,
 	}
 
-	if err := <-done; err != nil {
-		return fmt.Errorf("fetch failed: %w", err)
-	}
+	fetchCmd := m.client.Fetch(seqSet, fetchOptions)
+	defer fetchCmd.Close()
 
-	return nil
-}
-
-func (m *Monitor) processMessage(msg *imap.Message) error {
-	if msg.Envelope == nil {
+	msg := fetchCmd.Next()
+	if msg == nil {
+		m.logger.Warn("No message found to send notification")
 		return nil
 	}
 
-	if msg.Envelope.Date.Before(m.monitorStartTime) {
-		m.logger.Debug("Skipping old email", "date", msg.Envelope.Date, "subject", msg.Envelope.Subject)
+	msgData, err := msg.Collect()
+	if err != nil {
+		m.logger.Error("Failed to collect message", "error", err)
+		return err
+	}
+
+	if msgData.Envelope == nil {
+		m.logger.Warn("Message has no envelope")
 		return nil
 	}
 
 	var from string
-	if len(msg.Envelope.From) > 0 {
-		addr := msg.Envelope.From[0]
-		if addr.PersonalName != "" {
-			from = addr.PersonalName
+	if len(msgData.Envelope.From) > 0 {
+		addr := msgData.Envelope.From[0]
+		if addr.Name != "" {
+			from = addr.Name
 		} else {
-			from = addr.Address()
+			from = addr.Addr()
 		}
 	} else {
 		from = "Unknown sender"
 	}
 
-	subject := msg.Envelope.Subject
+	subject := msgData.Envelope.Subject
 	if subject == "" {
 		subject = "No subject"
 	}
-
-	endpoint := m.cfg.EndpointPrefixProton + m.cfg.ProtonPrismTopic
 
 	notif := notification.Notification{
 		Title:   from,
@@ -82,18 +75,18 @@ func (m *Monitor) processMessage(msg *imap.Message) error {
 				Endpoint: "/api/proton-mail/mark-read",
 				Method:   "POST",
 				Data: map[string]interface{}{
-					"uid": msg.Uid,
+					"uid": msgData.UID,
 				},
 			},
 		},
 	}
 
-	if err := m.dispatcher.Send(endpoint, notif); err != nil {
-		m.logger.Error("Failed to send notification", "endpoint", endpoint, "error", err)
+	if err := m.dispatcher.Send(m.cfg.ProtonPrismTopic, notif); err != nil {
+		m.logger.Error("Failed to send notification", "error", err)
 		return err
 	}
 
-	m.logger.Info("Processed Proton Mail notification", "from", from, "subject", subject)
+	m.logger.Info("Sent ProtonMail notification", "from", from, "subject", subject, "uid", msgData.UID)
 	return nil
 }
 
@@ -102,11 +95,28 @@ func (m *Monitor) MarkAsRead(uid uint32) error {
 		return fmt.Errorf("not connected")
 	}
 
-	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(uid)
+	uidSet := imap.UIDSet{}
+	uidSet.AddNum(imap.UID(uid))
 
-	item := imap.FormatFlagsOp(imap.AddFlags, true)
-	flags := []interface{}{m.cfg.IMAPSeenFlag}
+	storeFlags := &imap.StoreFlags{
+		Op:     imap.StoreFlagsAdd,
+		Flags:  []imap.Flag{imap.FlagSeen},
+		Silent: false,
+	}
 
-	return m.client.UidStore(seqSet, item, flags, nil)
+	storeCmd := m.client.Store(uidSet, storeFlags, nil)
+
+	for {
+		msg := storeCmd.Next()
+		if msg == nil {
+			break
+		}
+	}
+
+	if err := storeCmd.Close(); err != nil {
+		return fmt.Errorf("failed to mark message as read: %w", err)
+	}
+
+	m.logger.Info("Marked message as read", "uid", uid)
+	return nil
 }

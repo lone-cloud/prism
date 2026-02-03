@@ -15,7 +15,6 @@ services:
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_HOST=protonmail-bridge
       - PROTON_BRIDGE_PORT=${PROTON_BRIDGE_PORT:-143}
-      - PROTON_PRISM_TOPIC=${PROTON_PRISM_TOPIC:-Proton Mail}
     volumes:
       - signal-data:/root/.local/share/signal-cli
       - prism-data:/root/.local/share/prism

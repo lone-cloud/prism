@@ -34,9 +34,7 @@ func (s *Server) handleWebhookRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	endpoint := s.cfg.EndpointPrefixUP + req.AppName
-
-	if err := s.store.Register(endpoint, req.AppName, notification.ChannelWebhook, nil, &req.UpEndpoint); err != nil {
+	if err := s.store.Register(req.AppName, req.AppName, notification.ChannelWebhook, nil, &req.UpEndpoint); err != nil {
 		s.logger.Error("Failed to register webhook endpoint", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +46,7 @@ func (s *Server) handleWebhookRegister(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
-		"endpoint": endpoint,
+		"endpoint": req.AppName,
 		"appName":  req.AppName,
 		"channel":  "webhook",
 	}
