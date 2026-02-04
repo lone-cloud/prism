@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"prism/service/signal"
+
+	webpush "github.com/SherClockHolmes/webpush-go"
 )
 
 type Dispatcher struct {
@@ -24,33 +26,31 @@ func NewDispatcher(store *Store, signalClient *signal.Client, logger *slog.Logge
 	}
 }
 
-func (d *Dispatcher) Send(endpoint string, notif Notification) error {
-	mapping, err := d.store.GetEndpointMapping(endpoint)
+func (d *Dispatcher) Send(appName string, notif Notification) error {
+	mapping, err := d.store.GetApp(appName)
 	if err != nil {
-		d.logger.Error("Failed to get endpoint mapping", "endpoint", endpoint, "error", err)
+		d.logger.Error("Failed to get app mapping", "app", appName, "error", err)
 		return fmt.Errorf("failed to get mapping: %w", err)
 	}
 
 	if mapping == nil {
-		d.logger.Info("No mapping found for endpoint, creating new registration", "endpoint", endpoint)
+		d.logger.Info("Registering new app", "app", appName)
 
-		d.logger.Info("Registering new endpoint", "endpoint", endpoint, "appName", endpoint, "channel", ChannelSignal)
-
-		if err := d.store.Register(endpoint, endpoint, ChannelSignal, nil, nil); err != nil {
-			d.logger.Error("Failed to register endpoint", "endpoint", endpoint, "error", err)
-			return fmt.Errorf("failed to register endpoint: %w", err)
+		if err := d.store.RegisterDefault(appName); err != nil {
+			d.logger.Error("Failed to register app", "app", appName, "error", err)
+			return fmt.Errorf("failed to register app: %w", err)
 		}
 
-		mapping, err = d.store.GetEndpointMapping(endpoint)
+		mapping, err = d.store.GetApp(appName)
 		if err != nil {
-			d.logger.Error("Failed to get mapping after registration", "endpoint", endpoint, "error", err)
+			d.logger.Error("Failed to get mapping after registration", "app", appName, "error", err)
 			return fmt.Errorf("failed to get mapping after registration: %w", err)
 		}
 	}
 
 	switch mapping.Channel {
-	case ChannelWebhook:
-		return d.sendWebhook(mapping, notif)
+	case ChannelWebPush:
+		return d.sendWebPush(mapping, notif)
 	case ChannelSignal:
 		return d.sendSignal(mapping, notif)
 	default:
@@ -60,39 +60,63 @@ func (d *Dispatcher) Send(endpoint string, notif Notification) error {
 }
 
 func (d *Dispatcher) sendSignal(mapping *Mapping, notif Notification) error {
-	groupID := mapping.GroupID
-	if groupID == nil || *groupID == "" {
-		d.logger.Info("No group ID found, creating new group", "appName", mapping.AppName)
-
-		newGroupID, err := d.createGroup(mapping.AppName)
-		if err != nil {
-			d.logger.Error("Failed to create group", "appName", mapping.AppName, "error", err)
-			return fmt.Errorf("failed to create group: %w", err)
-		}
-		groupID = &newGroupID
-
-		d.logger.Info("Created new group", "appName", mapping.AppName, "groupID", *groupID)
-
-		if err := d.store.UpdateGroupID(mapping.Endpoint, *groupID); err != nil {
-			d.logger.Warn("Failed to update group ID", "error", err)
-		}
+	account, err := d.signalClient.GetLinkedAccount()
+	if err != nil {
+		d.logger.Error("Failed to get linked account", "error", err)
+		return fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		d.logger.Error("No linked Signal account found")
+		return fmt.Errorf("no linked Signal account")
 	}
 
-	if err := d.sendGroupMessage(*groupID, notif); err != nil {
-		d.logger.Error("Failed to send group message", "groupID", *groupID, "error", err)
-		return fmt.Errorf("failed to send group message: %w", err)
+	var signalGroupID string
+	needsNewGroup := mapping.Signal == nil || mapping.Signal.GroupID == ""
+
+	if !needsNewGroup && mapping.Signal.Account != account.Number {
+		d.logger.Info("Signal account changed, recreating group",
+			"app", mapping.AppName,
+			"oldAccount", mapping.Signal.Account,
+			"newAccount", account.Number)
+		needsNewGroup = true
+	}
+
+	if needsNewGroup {
+		d.logger.Info("Creating new group", "app", mapping.AppName, "account", account.Number)
+
+		newGroupID, accountNumber, err := d.createGroup(mapping.AppName)
+		if err != nil {
+			d.logger.Error("Failed to create group", "app", mapping.AppName, "error", err)
+			return fmt.Errorf("failed to create group: %w", err)
+		}
+		signalGroupID = newGroupID
+
+		d.logger.Info("Created new group", "app", mapping.AppName, "groupID", signalGroupID, "account", accountNumber)
+
+		if err := d.store.UpdateSignal(mapping.AppName, &SignalSubscription{
+			GroupID: signalGroupID,
+			Account: accountNumber,
+		}); err != nil {
+			d.logger.Warn("Failed to update signal subscription", "error", err)
+		}
+	} else {
+		signalGroupID = mapping.Signal.GroupID
+	}
+
+	if err := d.sendGroupMessage(signalGroupID, notif); err != nil {
+		d.logger.Error("Failed to send group message", "groupID", signalGroupID, "error", err)
 	}
 
 	return nil
 }
 
-func (d *Dispatcher) createGroup(appName string) (string, error) {
+func (d *Dispatcher) createGroup(appName string) (string, string, error) {
 	account, err := d.signalClient.GetLinkedAccount()
 	if err != nil {
-		return "", fmt.Errorf("failed to get linked account: %w", err)
+		return "", "", fmt.Errorf("failed to get linked account: %w", err)
 	}
 	if account == nil {
-		return "", fmt.Errorf("no linked Signal account")
+		return "", "", fmt.Errorf("no linked Signal account")
 	}
 
 	params := map[string]interface{}{
@@ -102,21 +126,21 @@ func (d *Dispatcher) createGroup(appName string) (string, error) {
 
 	result, err := d.signalClient.CallWithAccount("updateGroup", params, account.Number)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var response struct {
 		GroupID string `json:"groupId"`
 	}
 	if err := json.Unmarshal(result, &response); err != nil {
-		return "", fmt.Errorf("failed to parse updateGroup response: %w", err)
+		return "", "", fmt.Errorf("failed to parse updateGroup response: %w", err)
 	}
 
 	if response.GroupID == "" {
-		return "", fmt.Errorf("empty groupId in response")
+		return "", "", fmt.Errorf("empty groupId in response")
 	}
 
-	return response.GroupID, nil
+	return response.GroupID, account.Number, nil
 }
 
 func (d *Dispatcher) sendGroupMessage(groupID string, notif Notification) error {
@@ -148,9 +172,9 @@ func (d *Dispatcher) sendGroupMessage(groupID string, notif Notification) error 
 	return err
 }
 
-func (d *Dispatcher) sendWebhook(mapping *Mapping, notif Notification) error {
-	if mapping.UpEndpoint == nil || *mapping.UpEndpoint == "" {
-		return fmt.Errorf("webhook endpoint not configured for %s", mapping.AppName)
+func (d *Dispatcher) sendWebPush(mapping *Mapping, notif Notification) error {
+	if mapping.WebPush == nil {
+		return fmt.Errorf("no push endpoint configured for %s", mapping.AppName)
 	}
 
 	payload, err := json.Marshal(notif)
@@ -158,16 +182,42 @@ func (d *Dispatcher) sendWebhook(mapping *Mapping, notif Notification) error {
 		return fmt.Errorf("failed to marshal notification: %w", err)
 	}
 
-	resp, err := http.Post(*mapping.UpEndpoint, "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("failed to send webhook: %w", err)
-	}
-	defer resp.Body.Close()
+	if mapping.WebPush.HasEncryption() {
+		subscription := &webpush.Subscription{
+			Endpoint: mapping.WebPush.Endpoint,
+			Keys: webpush.Keys{
+				P256dh: mapping.WebPush.P256dh,
+				Auth:   mapping.WebPush.Auth,
+			},
+		}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+		resp, err := webpush.SendNotification(payload, subscription, &webpush.Options{
+			VAPIDPrivateKey: mapping.WebPush.VapidPrivateKey,
+			TTL:             86400,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to send webpush: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return fmt.Errorf("webpush returned status %d", resp.StatusCode)
+		}
+
+		d.logger.Debug("Sent encrypted webpush notification", "app", mapping.AppName, "url", mapping.WebPush.Endpoint)
+	} else {
+		resp, err := http.Post(mapping.WebPush.Endpoint, "application/json", bytes.NewBuffer(payload))
+		if err != nil {
+			return fmt.Errorf("failed to send webhook: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+		}
+
+		d.logger.Debug("Sent plain webhook notification", "app", mapping.AppName, "url", mapping.WebPush.Endpoint)
 	}
 
-	d.logger.Debug("Sent webhook notification", "app", mapping.AppName, "endpoint", *mapping.UpEndpoint)
 	return nil
 }

@@ -27,10 +27,9 @@ func (s *Server) handleGetMappings(w http.ResponseWriter, r *http.Request) {
 }
 
 type createMappingRequest struct {
-	Endpoint   string               `json:"endpoint"`
-	AppName    string               `json:"appName"`
-	Channel    notification.Channel `json:"channel"`
-	UpEndpoint *string              `json:"upEndpoint,omitempty"`
+	App          string               `json:"app"`
+	Channel      notification.Channel `json:"channel"`
+	PushEndpoint *string              `json:"pushEndpoint,omitempty"`
 }
 
 func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +39,7 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Endpoint == "" || req.AppName == "" {
+	if req.App == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -49,12 +48,19 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 		req.Channel = notification.ChannelSignal
 	}
 
-	if req.Channel == notification.ChannelWebhook && req.UpEndpoint == nil {
-		http.Error(w, "upEndpoint required for webhook channel", http.StatusBadRequest)
+	if req.Channel == notification.ChannelWebPush && req.PushEndpoint == nil {
+		http.Error(w, "pushEndpoint required for webpush channel", http.StatusBadRequest)
 		return
 	}
 
-	if err := s.store.Register(req.Endpoint, req.AppName, req.Channel, nil, req.UpEndpoint); err != nil {
+	var webPush *notification.WebPushSubscription
+	if req.Channel == notification.ChannelWebPush && req.PushEndpoint != nil {
+		webPush = &notification.WebPushSubscription{
+			Endpoint: *req.PushEndpoint,
+		}
+	}
+
+	if err := s.store.Register(req.App, &req.Channel, nil, webPush); err != nil {
 		s.logger.Error("Failed to register mapping", "error", err)
 		http.Error(w, "Failed to create mapping", http.StatusInternalServerError)
 		return
@@ -67,13 +73,13 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteMapping(w http.ResponseWriter, r *http.Request) {
-	endpoint := chi.URLParam(r, "endpoint")
-	if endpoint == "" {
-		http.Error(w, "Missing endpoint parameter", http.StatusBadRequest)
+	appName := chi.URLParam(r, "appName")
+	if appName == "" {
+		http.Error(w, "Missing appName parameter", http.StatusBadRequest)
 		return
 	}
 
-	if err := s.store.RemoveEndpoint(endpoint); err != nil {
+	if err := s.store.RemoveApp(appName); err != nil {
 		s.logger.Error("Failed to delete mapping", "error", err)
 		http.Error(w, "Failed to delete mapping", http.StatusInternalServerError)
 		return
@@ -88,9 +94,9 @@ type updateChannelRequest struct {
 }
 
 func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
-	endpoint := chi.URLParam(r, "endpoint")
-	if endpoint == "" {
-		http.Error(w, "Missing endpoint parameter", http.StatusBadRequest)
+	appName := chi.URLParam(r, "appName")
+	if appName == "" {
+		http.Error(w, "Missing appName parameter", http.StatusBadRequest)
 		return
 	}
 
@@ -100,12 +106,12 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Channel == notification.ChannelWebhook && req.UpEndpoint == nil {
-		http.Error(w, "upEndpoint required for webhook channel", http.StatusBadRequest)
+	if req.Channel == notification.ChannelWebPush && req.UpEndpoint == nil {
+		http.Error(w, "upEndpoint required for webpush channel", http.StatusBadRequest)
 		return
 	}
 
-	if err := s.store.UpdateChannel(endpoint, req.Channel); err != nil {
+	if err := s.store.UpdateChannel(appName, req.Channel); err != nil {
 		s.logger.Error("Failed to update channel", "error", err)
 		http.Error(w, "Failed to update channel", http.StatusInternalServerError)
 		return
@@ -132,7 +138,7 @@ func (s *Server) handleGetStats(w http.ResponseWriter, r *http.Request) {
 		"uptimeSeconds": int(uptime.Seconds()),
 		"mappingsCount": len(mappings),
 		"signalCount":   countByChannel(mappings, notification.ChannelSignal),
-		"webhookCount":  countByChannel(mappings, notification.ChannelWebhook),
+		"webpushCount":  countByChannel(mappings, notification.ChannelWebPush),
 		"protonEnabled": s.cfg.IsProtonEnabled(),
 	}
 

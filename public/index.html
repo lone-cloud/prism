@@ -26,7 +26,7 @@
     <h2>Signal</h2>
     <div id="signal-info"
          hx-get="/fragment/signal-info"
-         hx-trigger="load, every 3s">
+         hx-trigger="load">
       <div class="loading">
         <div class="spinner"></div>
       </div>
@@ -34,9 +34,9 @@
   </div>
 
   <div class="card">
-    <h2>Endpoints</h2>
-    <div id="endpoints-list" 
-         hx-get="/fragment/endpoints" 
+    <h2>Registered Applications</h2>
+    <div id="apps-list" 
+         hx-get="/fragment/apps" 
          hx-trigger="load">
       <div class="loading">
         <div class="spinner"></div>

@@ -190,14 +190,14 @@ h2 {
 	color: white;
 }
 
-.endpoint-list {
+.app-list {
 	list-style: none;
 	padding: 0;
 	max-height: 18.75rem;
 	overflow: visible;
 }
 
-.endpoint-item {
+.app-item {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -208,18 +208,18 @@ h2 {
 	gap: 1rem;
 }
 
-.endpoint-info {
+.app-info {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	gap: 0.25rem;
 }
 
-.endpoint-name {
+.app-name {
 	font-size: 1.1em;
 }
 
-.endpoint-channel {
+.app-channel {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -244,12 +244,12 @@ h2 {
 	color: white;
 }
 
-.endpoint-detail {
+.app-detail {
 	color: var(--text-secondary);
 	font-size: 0.85em;
 }
 
-.endpoint-actions {
+.app-actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;

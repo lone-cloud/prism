@@ -4,7 +4,7 @@
 
 # Prism
 
-**Self-hosted notification gateway using Signal and Webhooks for transport**
+**Self-hosted notification gateway using Signal and WebPush for transport**
 
 [Setup](#setup) • [Real-World Examples](#real-world-examples) • [Architecture](#architecture)
 
@@ -12,7 +12,7 @@
 
 <!-- markdownlint-enable MD033 -->
 
-Prism is a self-hosted notification gateway that receives HTTP requests and routes them through Signal groups or custom webhooks. Route notifications through Signal to avoid exposing unique network fingerprints, or forward them to your own webhook endpoints for custom handling.
+Prism is a self-hosted notification gateway that receives HTTP requests and routes them through Signal groups or WebPush apps. Route notifications through Signal to avoid exposing unique network fingerprints, or forward them to your own WebPush apps for custom handling.
 
 
 ## Setup
@@ -166,6 +166,71 @@ prism_api_key: "Bearer YOUR_API_KEY_HERE"
 
 Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
 
+## API Reference
+
+### Send Notification
+
+#### POST /{topic}
+
+Send a notification to a registered app/topic. Compatible with ntfy format.
+
+```bash
+curl -X POST http://localhost:8080/my-app \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Alert", "message": "Something happened"}'
+```
+
+Or ntfy-style:
+
+```bash
+curl -X POST http://localhost:8080/my-app \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "Simple message text"
+```
+
+### WebPush/Webhook Management
+
+#### POST /webpush/app
+
+Register or update a WebPush subscription or plain webhook.
+
+Encrypted WebPush (all crypto fields required):
+
+```bash
+curl -X POST http://localhost:8080/webpush/app \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appName": "my-app",
+    "pushEndpoint": "https://updates.push.services.mozilla.org/...",
+    "p256dh": "base64-encoded-key",
+    "auth": "base64-encoded-auth",
+    "vapidPrivateKey": "base64-encoded-vapid-key"
+  }'
+```
+
+Plain HTTP webhook (no encryption):
+
+```bash
+curl -X POST http://localhost:8080/webpush/app \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appName": "my-app",
+    "pushEndpoint": "https://your-server.com/webhook"
+  }'
+```
+
+#### DELETE /webpush/app/{appName}
+
+Unregister a WebPush subscription (clears WebPush settings, reverts to Signal).
+
+```bash
+curl -X DELETE http://localhost:8080/webpush/app/my-app \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
 ## Monitoring
 
 The health of the system can be viewed in the same admin UI used for linking Signal. Prism uses [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) - provide your `API_KEY` as the password (username can be anything).
@@ -181,8 +246,10 @@ For API-based monitoring, call `/api/health` which returns JSON:
 Prism accepts notifications via HTTP POST requests and routes them based on your configured delivery method:
 
 - **Signal groups**: Uses [signal-cli](https://github.com/AsamK/signal-cli) to create a Signal group for each app and send notifications as messages
-- **Webhook forwarding**: Forwards notifications to your own webhook URL (useful for UnifiedPush distributors, ntfy or custom handlers)
+- **WebPush**: Supports both encrypted WebPush (with VAPID signing and payload encryption) and plain HTTP webhooks
+  - **Encrypted WebPush**: Full WebPush protocol with end-to-end encryption - requires `appName`, `pushEndpoint`, `p256dh`, `auth`, and `vapidPrivateKey`
+  - **Plain webhooks**: Simple JSON POST to any HTTP endpoint - only requires `appName` and `pushEndpoint`
 
-Each endpoint can be independently configured to use either delivery method through the admin UI.
+Each app can be independently configured to use either delivery method through the admin UI.
 
 For the optional Proton Mail integration, Prism requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). Prism's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between Prism and proton-bridge will be over IMAP.

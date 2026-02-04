@@ -18,16 +18,18 @@ import (
 )
 
 type Server struct {
-	cfg           *config.Config
-	store         *notification.Store
-	dispatcher    *notification.Dispatcher
-	protonMonitor *proton.Monitor
-	signalDaemon  *signal.Daemon
-	linkDevice    *signal.LinkDevice
-	logger        *slog.Logger
-	router        *chi.Mux
-	httpServer    *http.Server
-	startTime     time.Time
+	cfg              *config.Config
+	store            *notification.Store
+	dispatcher       *notification.Dispatcher
+	protonMonitor    *proton.Monitor
+	signalDaemon     *signal.Daemon
+	linkDevice       *signal.LinkDevice
+	logger           *slog.Logger
+	router           *chi.Mux
+	httpServer       *http.Server
+	startTime        time.Time
+	lastSignalLinked *bool // Track signal linked status for change detection
+	lastAppsCount    *int  // Track apps count for change detection
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -80,27 +82,28 @@ func (s *Server) setupRoutes() {
 		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Get("/health", s.handleFragmentHealth)
 		r.Get("/signal-info", s.handleFragmentSignalInfo)
-		r.Get("/endpoints", s.handleFragmentEndpoints)
+		r.Get("/apps", s.handleFragmentApps)
 	})
 
 	r.Route("/action", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Delete("/delete-endpoint", s.handleDeleteEndpointAction)
+		r.Delete("/delete-app/{appName}", s.handleDeleteAppAction)
 		r.Post("/toggle-channel", s.handleToggleChannelAction)
 	})
 
-	r.Route("/admin", func(r chi.Router) {
+	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Get("/mappings", s.handleGetMappings)
 		r.Post("/mappings", s.handleCreateMapping)
-		r.Delete("/mappings/{endpoint}", s.handleDeleteMapping)
-		r.Put("/mappings/{endpoint}/channel", s.handleUpdateChannel)
+		r.Delete("/mappings/{appName}", s.handleDeleteMapping)
+		r.Put("/mappings/{appName}/channel", s.handleUpdateChannel)
 		r.Get("/stats", s.handleGetStats)
 	})
 
-	r.Route("/api/webhook", func(r chi.Router) {
+	r.Route("/webpush/app", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Post("/register", s.handleWebhookRegister)
+		r.Post("/", s.handleWebPushRegister)
+		r.Delete("/{appName}", s.handleWebPushUnregister)
 	})
 
 	r.Route("/api/proton-mail", func(r chi.Router) {
@@ -134,12 +137,11 @@ func (s *Server) Start(ctx context.Context) error {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	s.logger.Info("Prism running on:")
-	s.logger.Info(fmt.Sprintf("Local: http://localhost:%d", s.cfg.Port))
-
+	msg := fmt.Sprintf("Prism running on:\n  Local: http://localhost:%d", s.cfg.Port)
 	if lanIP := util.GetLANIP(); lanIP != "" {
-		s.logger.Debug(fmt.Sprintf("Network: http://%s:%d", lanIP, s.cfg.Port))
+		msg += fmt.Sprintf("\n  Network: http://%s:%d", lanIP, s.cfg.Port)
 	}
+	s.logger.Info(msg)
 
 	errCh := make(chan error, 1)
 	go func() {

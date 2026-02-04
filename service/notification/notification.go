@@ -17,13 +17,28 @@ type Channel string
 
 const (
 	ChannelSignal  Channel = "signal"
-	ChannelWebhook Channel = "webhook"
+	ChannelWebPush Channel = "webpush"
 )
 
+type WebPushSubscription struct {
+	Endpoint        string
+	P256dh          string
+	Auth            string
+	VapidPrivateKey string
+}
+
+func (w *WebPushSubscription) HasEncryption() bool {
+	return w.P256dh != "" && w.Auth != "" && w.VapidPrivateKey != ""
+}
+
+type SignalSubscription struct {
+	GroupID string
+	Account string
+}
+
 type Mapping struct {
-	Endpoint   string
-	AppName    string
-	Channel    Channel
-	GroupID    *string
-	UpEndpoint *string
+	AppName string
+	Channel Channel
+	Signal  *SignalSubscription
+	WebPush *WebPushSubscription
 }
