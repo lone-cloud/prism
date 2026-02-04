@@ -87,7 +87,7 @@ func (s *Server) setupRoutes() {
 
 	r.Route("/action", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Delete("/delete-app/{appName}", s.handleDeleteAppAction)
+		r.Delete("/app/{appName}", s.handleDeleteAppAction)
 		r.Post("/toggle-channel", s.handleToggleChannelAction)
 	})
 

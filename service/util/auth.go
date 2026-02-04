@@ -38,7 +38,6 @@ func VerifyAPIKey(r *http.Request, apiKey string) bool {
 		return false
 	}
 
-	// Enforce HTTPS for non-local connections
 	proto := r.Header.Get("X-Forwarded-Proto")
 	if proto == "" {
 		if r.TLS != nil {
