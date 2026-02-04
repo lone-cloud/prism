@@ -44,10 +44,29 @@ func (s *Server) handleFragmentHealth(w http.ResponseWriter, r *http.Request) {
 		<div class="status-item %s">Proton Mail: %s%s</div>`, protonClass, protonStatus, protonTooltip)
 	}
 
-	html += `</div>
-	<div id="signal-info" hx-swap-oob="true">`
-	html += s.getSignalInfoHTML()
 	html += `</div>`
+
+	currentLinked := linked != nil
+	if s.lastSignalLinked == nil || *s.lastSignalLinked != currentLinked {
+		html += `
+	<div id="signal-info" hx-swap-oob="true">`
+		html += s.getSignalInfoHTML()
+		html += `</div>`
+		s.lastSignalLinked = &currentLinked
+	}
+
+	// Check if apps changed
+	mappings, err := s.store.GetAllMappings()
+	if err == nil {
+		currentAppsCount := len(mappings)
+		if s.lastAppsCount == nil || *s.lastAppsCount != currentAppsCount {
+			html += `
+	<div id="apps-list" hx-swap-oob="true">`
+			html += s.getAppsListHTML(mappings)
+			html += `</div>`
+			s.lastAppsCount = &currentAppsCount
+		}
+	}
 
 	_, _ = fmt.Fprint(w, html) //nolint:errcheck // Error writing to ResponseWriter is handled by HTTP server
 }
@@ -98,7 +117,7 @@ func (s *Server) getQRCodeHTML() string {
 	</div>`, qrCode)
 }
 
-func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleFragmentApps(w http.ResponseWriter, r *http.Request) {
 	mappings, err := s.store.GetAllMappings()
 	if err != nil {
 		s.logger.Error("Failed to get mappings", "error", err)
@@ -107,58 +126,67 @@ func (s *Server) handleFragmentEndpoints(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "text/html")
+	_, _ = fmt.Fprint(w, s.getAppsListHTML(mappings)) //nolint:errcheck
+}
 
+func (s *Server) getAppsListHTML(mappings []notification.Mapping) string {
 	if len(mappings) == 0 {
-		_, _ = fmt.Fprint(w, `<p>No endpoints registered</p>`) //nolint:errcheck
-		return
+		return `<p>No apps registered</p>`
 	}
 
-	_, _ = fmt.Fprint(w, `<ul class="endpoint-list">`) //nolint:errcheck
+	var html string
+	html += `<ul class="app-list">`
 	for _, m := range mappings {
 		isSignal := m.Channel == notification.ChannelSignal
-		isWebhook := m.Channel == notification.ChannelWebhook
+		isWebPush := m.Channel == notification.ChannelWebPush
 		channelBadge := "Signal"
 		channelTooltip := ""
-		if isWebhook {
-			channelBadge = "Webhook"
-		}
-		if isSignal && m.GroupID != nil {
-			channelTooltip = fmt.Sprintf(`<span class="tooltip">Group ID: %s</span>`, *m.GroupID)
-		}
-		if isWebhook && m.UpEndpoint != nil {
-			channelTooltip = fmt.Sprintf(`<span class="tooltip">%s</span>`, *m.UpEndpoint)
+
+		if isWebPush && m.WebPush != nil {
+			if m.WebPush.HasEncryption() {
+				channelBadge = "WebPush"
+			} else {
+				channelBadge = "Webhook"
+			}
+			channelTooltip = fmt.Sprintf(`<span class="tooltip">%s</span>`, m.WebPush.Endpoint)
 		}
 
-		html := fmt.Sprintf(`<li class="endpoint-item">
-			<div class="endpoint-info">
-				<div class="endpoint-name"><strong>%s</strong></div>
-				<div class="endpoint-channel">
+		if isSignal && m.Signal != nil && m.Signal.GroupID != "" {
+			channelTooltip = fmt.Sprintf(`<span class="tooltip">Group ID: %s</span>`, m.Signal.GroupID)
+		}
+
+		itemHTML := fmt.Sprintf(`<li class="app-item">
+			<div class="app-info">
+				<div class="app-name"><strong>%s</strong></div>
+				<div class="app-channel">
 					<span class="channel-badge channel-%s">%s%s</span>`, m.AppName, m.Channel, channelBadge, channelTooltip)
 
-		if m.UpEndpoint != nil && isWebhook {
-			if u, err := url.Parse(*m.UpEndpoint); err == nil {
-				html += fmt.Sprintf(`<span class="endpoint-detail">%s</span>`, u.Hostname())
+		if m.WebPush != nil && isWebPush {
+			if u, err := url.Parse(m.WebPush.Endpoint); err == nil {
+				itemHTML += fmt.Sprintf(`<span class="app-detail">%s</span>`, u.Hostname())
 			}
 		}
 
-		html += `</div></div><div class="endpoint-actions">`
+		itemHTML += `</div></div><div class="app-actions">`
 
-		if m.UpEndpoint != nil {
-			html += fmt.Sprintf(`<form style="display: inline;">
-				<input type="hidden" name="endpoint" value="%s" />
-				<select class="channel-select" name="channel" hx-post="/action/toggle-channel" hx-target="#endpoints-list" hx-swap="innerHTML" hx-include="closest form">
+		if m.WebPush != nil {
+			webpushLabel := "WebPush"
+			if !m.WebPush.HasEncryption() {
+				webpushLabel = "Webhook"
+			}
+			itemHTML += fmt.Sprintf(`<form style="display: inline;">
+				<input type="hidden" name="app" value="%s" />
+				<select class="channel-select" name="channel" hx-post="/action/toggle-channel" hx-target="#apps-list" hx-swap="innerHTML" hx-include="closest form">
 					<option value="signal"%s>Signal</option>
-					<option value="webhook"%s>Webhook</option>
+					<option value="webpush"%s>%s</option>
 				</select>
-			</form>`, m.Endpoint, map[bool]string{true: " selected", false: ""}[isSignal], map[bool]string{true: " selected", false: ""}[isWebhook])
+			</form>`, m.AppName, map[bool]string{true: " selected", false: ""}[isSignal], map[bool]string{true: " selected", false: ""}[isWebPush], webpushLabel)
 		}
 
-		html += fmt.Sprintf(`<form style="display: inline;">
-			<input type="hidden" name="endpoint" value="%s" />
-			<button class="btn-delete" hx-delete="/action/delete-endpoint" hx-target="#endpoints-list" hx-swap="innerHTML" hx-include="closest form">Delete</button>
-		</form></div></li>`, m.Endpoint)
+		itemHTML += fmt.Sprintf(`<button class="btn-delete" hx-delete="/action/delete-app/%s" hx-target="#apps-list" hx-swap="innerHTML">Delete</button></div></li>`, m.AppName)
 
-		_, _ = fmt.Fprint(w, html) //nolint:errcheck
+		html += itemHTML
 	}
-	_, _ = fmt.Fprint(w, `</ul>`) //nolint:errcheck
+	html += `</ul>`
+	return html
 }
