@@ -183,7 +183,7 @@ func (s *Server) getAppsListHTML(mappings []notification.Mapping) string {
 			</form>`, m.AppName, map[bool]string{true: " selected", false: ""}[isSignal], map[bool]string{true: " selected", false: ""}[isWebPush], webpushLabel)
 		}
 
-		itemHTML += fmt.Sprintf(`<button class="btn-delete" hx-delete="/action/delete-app/%s" hx-target="#apps-list" hx-swap="innerHTML">Delete</button></div></li>`, m.AppName)
+		itemHTML += fmt.Sprintf(`<button class="btn-delete" hx-delete="/action/app/%s" hx-target="#apps-list" hx-swap="innerHTML">Delete</button></div></li>`, m.AppName)
 
 		html += itemHTML
 	}
