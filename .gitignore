@@ -4,3 +4,5 @@ data/
 .env
 /prism
 prism-*
+tmp
+.VSCodeCounter/

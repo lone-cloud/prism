@@ -3,7 +3,7 @@
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")
 COMMIT?=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-GOBIN?=$(shell go env GOPATH)/bin
+GOBIN?=$(shell command -v go >/dev/null 2>&1 && go env GOPATH || echo "${HOME}/go")/bin
 export PATH := $(GOBIN):$(PATH)
 
 all: fmt lint build
@@ -39,8 +39,6 @@ install-tools:
 	@echo "Installing Go tools to $(GOBIN)..."
 	go install golang.org/x/tools/cmd/goimports@latest
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.8.0
-	@echo "Installing signal-cli..."
-	@bash scripts/install-signal-cli.sh
 
 deps:
 	go mod download
@@ -59,7 +57,13 @@ docker-down:
 	docker compose -f docker-compose.dev.yml down
 
 docker-up-proton:
-	docker compose -f docker-compose.dev.yml --profile protonmail up -d
+	docker compose -f docker-compose.dev.yml up -d --build protonmail-bridge
+
+docker-up-signal:
+	docker compose -f docker-compose.dev.yml up -d --build signal-cli
+
+docker-up-telegram:
+	docker compose -f docker-compose.dev.yml up -d --build telegram-bot
 
 release:
 	@if [ ! -f VERSION ]; then \
@@ -70,4 +74,8 @@ release:
 	echo "Releasing v$$VERSION..."; \
 	git tag -a "v$$VERSION" -m "Release v$$VERSION"; \
 	git push origin "v$$VERSION"; \
-	echo "Tag pushed. GitHub Actions will build and push Docker image."
+	gh workflow run release.yml
+
+release-signal:
+	@echo "Triggering signal-cli image release via GitHub Actions..."
+	gh workflow run release-signal-cli.yml

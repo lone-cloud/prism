@@ -9,19 +9,33 @@ services:
       - API_KEY=${API_KEY:-}
       - VERBOSE_LOGGING=${VERBOSE_LOGGING:-false}
       - RATE_LIMIT=${RATE_LIMIT:-100}
+      - FEATURE_ENABLE_SIGNAL=${FEATURE_ENABLE_SIGNAL:-false}
+      - SIGNAL_SOCKET=/home/signal/.signal-cli/socket
+      - FEATURE_ENABLE_PROTON=${FEATURE_ENABLE_PROTON:-false}
       - PROTON_IMAP_USERNAME=${PROTON_IMAP_USERNAME:-}
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
-      - PROTON_BRIDGE_HOST=protonmail-bridge
-      - PROTON_BRIDGE_PORT=${PROTON_BRIDGE_PORT:-143}
+      - PROTON_BRIDGE_ADDR=${PROTON_BRIDGE_ADDR:-protonmail-bridge:143}
+      - FEATURE_ENABLE_TELEGRAM=${FEATURE_ENABLE_TELEGRAM:-false}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     volumes:
-      - signal-data:/root/.local/share/signal-cli
       - prism-data:/root/.local/share/prism
+      - signal-socket:/home/signal/.signal-cli:ro
+    restart: unless-stopped
+
+  signal-cli:
+    container_name: signal-cli
+    image: ghcr.io/lone-cloud/prism-signal-cli:latest
+    profiles: ['signal']
+    volumes:
+      - signal-data:/home/.local/share/signal-cli
+      - signal-socket:/home/signal/.signal-cli
     restart: unless-stopped
 
   protonmail-bridge:
     container_name: protonmail-bridge
     image: shenxn/protonmail-bridge:build
-    profiles: ['protonmail']
+    profiles: ['proton']
     volumes:
       - proton-bridge-data:/root
       - /tmp/bridge-updates:/root/.local/share/protonmail/bridge-v3/updates:ro
@@ -29,5 +43,6 @@ services:
 
 volumes:
   signal-data:
+  signal-socket:
   prism-data:
   proton-bridge-data:

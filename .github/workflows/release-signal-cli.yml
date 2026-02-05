@@ -1,4 +1,4 @@
-name: Release
+name: Release Signal CLI
 
 on:
   workflow_dispatch:
@@ -19,17 +19,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Extract version
-      id: version
-      run: |
-        echo "tag=$(cat VERSION)" >> $GITHUB_OUTPUT
-    
-    - name: Build and push Docker image
+    - name: Build and push signal-cli Docker image
       uses: docker/build-push-action@v6
       with:
         context: .
+        file: ./Dockerfile.signal-cli
         platforms: linux/amd64,linux/arm64
         push: true
         tags: |
-          ghcr.io/lone-cloud/prism:${{ steps.version.outputs.tag }}
-          ghcr.io/lone-cloud/prism:latest
+          ghcr.io/lone-cloud/prism-signal-cli:latest

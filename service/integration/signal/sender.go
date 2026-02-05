@@ -1,0 +1,83 @@
+package signal
+
+import (
+	"fmt"
+	"log/slog"
+
+	"prism/service/notification"
+)
+
+type Sender struct {
+	client *Client
+	store  *notification.Store
+	logger *slog.Logger
+}
+
+func NewSender(client *Client, store *notification.Store, logger *slog.Logger) *Sender {
+	return &Sender{
+		client: client,
+		store:  store,
+		logger: logger,
+	}
+}
+
+func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
+	if s.client == nil {
+		return fmt.Errorf("signal integration not enabled")
+	}
+
+	account, err := s.client.GetLinkedAccount()
+	if err != nil {
+		s.logger.Error("Failed to get linked account", "error", err)
+		return fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		s.logger.Error("No linked Signal account found")
+		return fmt.Errorf("no linked Signal account")
+	}
+
+	var signalGroupID string
+	needsNewGroup := mapping.Signal == nil || mapping.Signal.GroupID == ""
+
+	if !needsNewGroup && mapping.Signal.Account != account.Number {
+		s.logger.Info("Signal account changed, recreating group",
+			"app", mapping.AppName,
+			"oldAccount", mapping.Signal.Account,
+			"newAccount", account.Number)
+		needsNewGroup = true
+	}
+
+	if needsNewGroup {
+		s.logger.Info("Creating new group", "app", mapping.AppName, "account", account.Number)
+
+		newGroupID, accountNumber, err := s.client.CreateGroup(mapping.AppName)
+		if err != nil {
+			s.logger.Error("Failed to create group", "app", mapping.AppName, "error", err)
+			return fmt.Errorf("failed to create group: %w", err)
+		}
+		signalGroupID = newGroupID
+
+		s.logger.Info("Created new group", "app", mapping.AppName, "groupID", signalGroupID, "account", accountNumber)
+
+		if err := s.store.UpdateSignal(mapping.AppName, &notification.SignalSubscription{
+			GroupID: signalGroupID,
+			Account: accountNumber,
+		}); err != nil {
+			s.logger.Warn("Failed to update signal subscription", "error", err)
+		}
+	} else {
+		signalGroupID = mapping.Signal.GroupID
+	}
+
+	message := notif.Message
+	if notif.Title != "" {
+		message = fmt.Sprintf("%s\n\n%s", notif.Title, notif.Message)
+	}
+
+	if err := s.client.SendGroupMessage(signalGroupID, message); err != nil {
+		s.logger.Error("Failed to send group message", "groupID", signalGroupID, "error", err)
+		return err
+	}
+
+	return nil
+}

@@ -39,7 +39,7 @@ func (s *Server) handleToggleChannelAction(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if channel != string(notification.ChannelSignal) && channel != string(notification.ChannelWebPush) {
+	if !s.dispatcher.IsValidChannel(notification.Channel(channel)) {
 		http.Error(w, "Invalid channel", http.StatusBadRequest)
 		return
 	}

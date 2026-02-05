@@ -18,33 +18,31 @@ const (
 )
 
 type ColorHandler struct {
-	handler slog.Handler
-	w       io.Writer
+	w     io.Writer
+	level slog.Level
 }
 
 func NewColorHandler(w io.Writer, opts *slog.HandlerOptions) *ColorHandler {
+	level := slog.LevelInfo
+	if opts != nil && opts.Level != nil {
+		level = opts.Level.Level()
+	}
 	return &ColorHandler{
-		handler: slog.NewTextHandler(w, opts),
-		w:       w,
+		w:     w,
+		level: level,
 	}
 }
 
 func (h *ColorHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.handler.Enabled(ctx, level)
+	return level >= h.level
 }
 
 func (h *ColorHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &ColorHandler{
-		handler: h.handler.WithAttrs(attrs),
-		w:       h.w,
-	}
+	return h
 }
 
 func (h *ColorHandler) WithGroup(name string) slog.Handler {
-	return &ColorHandler{
-		handler: h.handler.WithGroup(name),
-		w:       h.w,
-	}
+	return h
 }
 
 func (h *ColorHandler) Handle(ctx context.Context, r slog.Record) error {

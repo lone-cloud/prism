@@ -9,7 +9,7 @@ import (
 )
 
 func (m *Monitor) sendNotification() error {
-	selectData, err := m.client.Select(m.cfg.IMAPInbox, nil).Wait()
+	selectData, err := m.client.Select(imapInbox, nil).Wait()
 	if err != nil {
 		m.logger.Error("Failed to select inbox", "error", err)
 		return err
@@ -49,6 +49,14 @@ func (m *Monitor) sendNotification() error {
 		return nil
 	}
 
+	if msgData.Envelope.Date.Before(m.monitorStartTime) {
+		m.logger.Debug("Skipping notification for old email",
+			"subject", msgData.Envelope.Subject,
+			"date", msgData.Envelope.Date,
+			"monitorStart", m.monitorStartTime)
+		return nil
+	}
+
 	var from string
 	if len(msgData.Envelope.From) > 0 {
 		addr := msgData.Envelope.From[0]
@@ -81,7 +89,7 @@ func (m *Monitor) sendNotification() error {
 		},
 	}
 
-	if err := m.dispatcher.Send(m.cfg.ProtonPrismTopic, notif); err != nil {
+	if err := m.dispatcher.Send(prismTopic, notif); err != nil {
 		m.logger.Error("Failed to send notification", "error", err)
 		return err
 	}

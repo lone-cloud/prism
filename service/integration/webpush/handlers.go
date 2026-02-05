@@ -1,7 +1,8 @@
-package server
+package webpush
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -10,7 +11,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type registerWebPushRequest struct {
+type Handlers struct {
+	store  *notification.Store
+	logger *slog.Logger
+}
+
+func NewHandlers(store *notification.Store, logger *slog.Logger) *Handlers {
+	return &Handlers{
+		store:  store,
+		logger: logger,
+	}
+}
+
+type registerRequest struct {
 	AppName         string  `json:"appName"`
 	PushEndpoint    string  `json:"pushEndpoint"`
 	P256dh          *string `json:"p256dh,omitempty"`
@@ -18,8 +31,8 @@ type registerWebPushRequest struct {
 	VapidPrivateKey *string `json:"vapidPrivateKey,omitempty"`
 }
 
-func (s *Server) handleWebPushRegister(w http.ResponseWriter, r *http.Request) {
-	var req registerWebPushRequest
+func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
+	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -28,20 +41,20 @@ func (s *Server) handleWebPushRegister(w http.ResponseWriter, r *http.Request) {
 	if req.AppName == "" || req.PushEndpoint == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "appName and pushEndpoint are required"}) //nolint:errcheck
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "appName and pushEndpoint are required"})
 		return
 	}
 
 	if _, err := url.Parse(req.PushEndpoint); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid pushEndpoint URL"}) //nolint:errcheck
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid pushEndpoint URL"})
 		return
 	}
 
-	existing, err := s.store.GetApp(req.AppName)
+	existing, err := h.store.GetApp(req.AppName)
 	if err != nil {
-		s.logger.Error("Failed to check existing app", "error", err)
+		h.logger.Error("Failed to check existing app", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -61,20 +74,20 @@ func (s *Server) handleWebPushRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if existing != nil {
-		if err := s.store.UpdateWebPush(req.AppName, webPush); err != nil {
-			s.logger.Error("Failed to update webpush endpoint", "error", err)
+		if err := h.store.UpdateWebPush(req.AppName, webPush); err != nil {
+			h.logger.Error("Failed to update webpush endpoint", "error", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		s.logger.Info("Updated webpush for existing endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
+		h.logger.Info("Updated webpush for existing endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
 	} else {
 		channel := notification.ChannelWebPush
-		if err := s.store.Register(req.AppName, &channel, nil, webPush); err != nil {
-			s.logger.Error("Failed to register webpush endpoint", "error", err)
+		if err := h.store.Register(req.AppName, &channel, nil, webPush); err != nil {
+			h.logger.Error("Failed to register webpush endpoint", "error", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		s.logger.Info("Registered new webpush endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
+		h.logger.Info("Registered new webpush endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -82,32 +95,28 @@ func (s *Server) handleWebPushRegister(w http.ResponseWriter, r *http.Request) {
 		"appName": req.AppName,
 		"channel": "webpush",
 	}
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		s.logger.Error("Failed to encode response", "error", err)
-	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
-func (s *Server) handleWebPushUnregister(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) HandleUnregister(w http.ResponseWriter, r *http.Request) {
 	appName := chi.URLParam(r, "appName")
 	if appName == "" {
 		http.Error(w, "appName is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := s.store.ClearWebPush(appName); err != nil {
-		s.logger.Error("Failed to clear webpush endpoint", "error", err)
+	if err := h.store.ClearWebPush(appName); err != nil {
+		h.logger.Error("Failed to clear webpush endpoint", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	s.logger.Info("Cleared webpush subscription", "app", appName)
+	h.logger.Info("Cleared webpush subscription", "app", appName)
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
 		"status":  "unregistered",
 		"appName": appName,
 	}
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		s.logger.Error("Failed to encode response", "error", err)
-	}
+	_ = json.NewEncoder(w).Encode(response)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,22 +30,22 @@ func main() {
 		return
 	}
 
-	if err := runServer(); err != nil {
-		logger := util.NewLogger(false)
-		logger.Error("Fatal error", "error", err)
-		os.Exit(1)
-	}
-}
-
-func runServer() error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
 	}
 
 	logger := util.NewLogger(cfg.VerboseLogging)
 	logger.Info("Starting Prism", "version", version)
 
+	if err := runServer(cfg, logger); err != nil {
+		logger.Error("Fatal error", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runServer(cfg *config.Config, logger *slog.Logger) error {
 	srv, err := server.New(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

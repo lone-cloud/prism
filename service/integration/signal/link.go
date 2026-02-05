@@ -1,21 +1,19 @@
 package signal
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"time"
 )
 
 type LinkDevice struct {
-	client      *Client
-	deviceName  string
-	qrCode      string
-	generatedAt time.Time
-	ttl         time.Duration
+	client        *Client
+	deviceName    string
+	qrCode        string
+	deviceLinkUri string
+	generatedAt   time.Time
+	ttl           time.Duration
 }
 
 func NewLinkDevice(client *Client, deviceName string) *LinkDevice {
@@ -31,10 +29,15 @@ type StartLinkResponse struct {
 }
 
 func (l *LinkDevice) GenerateQR() (string, error) {
+	if l.client == nil {
+		return "", fmt.Errorf("signal client not initialized")
+	}
+
 	if l.qrCode != "" && time.Since(l.generatedAt) < l.ttl {
 		return l.qrCode, nil
 	}
 
+	// Call signal-cli's startLink JSON-RPC method directly
 	result, err := l.client.Call("startLink", nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to start link: %w", err)
@@ -50,31 +53,18 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 		return "", fmt.Errorf("empty device link URI")
 	}
 
+	l.deviceLinkUri = uri
 	qrURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=%s", url.QueryEscape(uri))
-	//nolint:gosec
-	resp, err := http.Get(qrURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch QR code: %w", err)
-	}
-	defer resp.Body.Close()
-
-	qrData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read QR code: %w", err)
-	}
-
-	base64Data := base64.StdEncoding.EncodeToString(qrData)
-	l.qrCode = fmt.Sprintf("data:image/png;base64,%s", base64Data)
+	l.qrCode = qrURL
 	l.generatedAt = time.Now()
-
-	go l.finishLink(uri)
+	go l.finishLink()
 
 	return l.qrCode, nil
 }
 
-func (l *LinkDevice) finishLink(uri string) {
+func (l *LinkDevice) finishLink() {
 	params := map[string]interface{}{
-		"deviceLinkUri": uri,
+		"deviceLinkUri": l.deviceLinkUri,
 		"deviceName":    l.deviceName,
 	}
 

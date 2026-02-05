@@ -10,11 +10,13 @@ import (
 var rpcID int32
 
 type Client struct {
-	socketPath string
+	SocketPath string
 }
 
 func NewClient(socketPath string) *Client {
-	return &Client{socketPath: socketPath}
+	return &Client{
+		SocketPath: socketPath,
+	}
 }
 
 type RPCRequest struct {
@@ -37,7 +39,7 @@ type RPCError struct {
 }
 
 func (c *Client) Call(method string, params map[string]interface{}) (json.RawMessage, error) {
-	conn, err := net.Dial("unix", c.socketPath)
+	conn, err := net.Dial("unix", c.SocketPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
@@ -79,7 +81,15 @@ type AccountInfo struct {
 	Name   string `json:"name,omitempty"`
 }
 
-func (c *Client) GetLinkedAccount() (*AccountInfo, error) {
+type Account struct {
+	Number string
+}
+
+func (c *Client) GetLinkedAccount() (*Account, error) {
+	if c == nil {
+		return nil, nil
+	}
+
 	result, err := c.Call("listAccounts", nil)
 	if err != nil {
 		return nil, err
@@ -94,5 +104,67 @@ func (c *Client) GetLinkedAccount() (*AccountInfo, error) {
 		return nil, nil
 	}
 
-	return &accounts[0], nil
+	return &Account{Number: accounts[0].Number}, nil
+}
+
+// CreateGroup creates a Signal group using updateGroup JSON-RPC method
+func (c *Client) CreateGroup(name string) (string, string, error) {
+	if c == nil {
+		return "", "", fmt.Errorf("signal client not initialized")
+	}
+
+	account, err := c.GetLinkedAccount()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		return "", "", fmt.Errorf("no linked Signal account")
+	}
+
+	params := map[string]interface{}{
+		"name":   name,
+		"member": []string{}, // Empty group
+	}
+
+	result, err := c.CallWithAccount("updateGroup", params, account.Number)
+	if err != nil {
+		return "", "", err
+	}
+
+	var response struct {
+		GroupID string `json:"groupId"`
+	}
+	if err := json.Unmarshal(result, &response); err != nil {
+		return "", "", fmt.Errorf("failed to parse updateGroup response: %w", err)
+	}
+
+	if response.GroupID == "" {
+		return "", "", fmt.Errorf("empty groupId in response")
+	}
+
+	return response.GroupID, account.Number, nil
+}
+
+// SendGroupMessage sends a message to a Signal group
+func (c *Client) SendGroupMessage(groupID, message string) error {
+	if c == nil {
+		return fmt.Errorf("signal client not initialized")
+	}
+
+	account, err := c.GetLinkedAccount()
+	if err != nil {
+		return fmt.Errorf("failed to get account: %w", err)
+	}
+	if account == nil {
+		return fmt.Errorf("no linked account")
+	}
+
+	params := map[string]interface{}{
+		"groupId":     groupID,
+		"message":     message,
+		"notify-self": true,
+	}
+
+	_, err = c.CallWithAccount("send", params, account.Number)
+	return err
 }
