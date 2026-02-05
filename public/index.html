@@ -7,34 +7,15 @@
   <meta name="theme-color" content="#8159b8">
   <link rel="icon" type="image/webp" href="/favicon.webp">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css?v={{.Version}}">
   <script src="/htmx.min.js"></script>
-  <script src="/theme.js"></script>
+  <script src="/theme.js?v={{.Version}}"></script>
 </head>
 <body>
-  <div class="card">
-    <div id="health-status" 
-         hx-get="/fragment/health" 
-         hx-trigger="load, every 10s">
-      <div class="loading">
-        <div class="spinner"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Signal</h2>
-    <div id="signal-info"
-         hx-get="/fragment/signal-info"
-         hx-trigger="load">
-      <div class="loading">
-        <div class="spinner"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Registered Applications</h2>
+  <details class="card" open>
+    <summary class="card-header">
+      <span class="integration-name">Registered Applications</span>
+    </summary>
     <div id="apps-list" 
          hx-get="/fragment/apps" 
          hx-trigger="load">
@@ -42,6 +23,11 @@
         <div class="spinner"></div>
       </div>
     </div>
+  </details>
+
+  <div id="integrations"
+       hx-get="/fragment/integrations"
+       hx-trigger="load">
   </div>
 
   <button id="theme-toggle" class="theme-toggle"></button>

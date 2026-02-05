@@ -11,6 +11,14 @@ import (
 	"github.com/emersion/go-imap/v2/imapclient"
 )
 
+const (
+	imapInbox                = "INBOX"
+	imapReconnectBaseDelay   = 10 * time.Second
+	imapMaxReconnectDelay    = 5 * time.Minute
+	imapMaxReconnectAttempts = 50
+	prismTopic               = "Proton Mail"
+)
+
 type Monitor struct {
 	cfg              *config.Config
 	dispatcher       *notification.Dispatcher
@@ -31,7 +39,6 @@ func NewMonitor(cfg *config.Config, dispatcher *notification.Dispatcher, logger 
 
 func (m *Monitor) Start(ctx context.Context) error {
 	if !m.cfg.IsProtonEnabled() {
-		m.logger.Info("Proton Mail monitoring disabled")
 		return nil
 	}
 
@@ -44,7 +51,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 		default:
 			if err := m.connect(); err != nil {
 				m.logger.Error("Failed to connect to IMAP", "error", err)
-				time.Sleep(time.Duration(m.cfg.IMAPReconnectBaseDelay) * time.Millisecond)
+				time.Sleep(imapReconnectBaseDelay)
 				continue
 			}
 
@@ -59,7 +66,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 				m.client = nil
 			}
 
-			time.Sleep(time.Duration(m.cfg.IMAPReconnectBaseDelay) * time.Millisecond)
+			time.Sleep(imapReconnectBaseDelay)
 		}
 	}
 }

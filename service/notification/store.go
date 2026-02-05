@@ -42,7 +42,7 @@ func (s *Store) createTables() error {
 			appName TEXT PRIMARY KEY,
 			signalGroupId TEXT,
 			signalAccount TEXT,
-			channel TEXT NOT NULL DEFAULT 'signal',
+			channel TEXT NOT NULL DEFAULT 'webpush',
 			pushEndpoint TEXT,
 			p256dh TEXT,
 			auth TEXT,
@@ -75,7 +75,7 @@ func (s *Store) Register(appName string, channel *Channel, signal *SignalSubscri
 		vapidPrivateKey = &webPush.VapidPrivateKey
 	}
 
-	ch := ChannelSignal
+	ch := ChannelWebPush
 	if channel != nil {
 		ch = *channel
 	}
@@ -96,8 +96,15 @@ func (s *Store) Register(appName string, channel *Channel, signal *SignalSubscri
 	return err
 }
 
-func (s *Store) RegisterDefault(appName string) error {
-	return s.Register(appName, nil, nil, nil)
+func (s *Store) RegisterDefault(appName string, availableChannels []Channel) error {
+	var channel Channel
+	if len(availableChannels) > 0 {
+		channel = availableChannels[0]
+	} else {
+		channel = ChannelWebPush
+	}
+
+	return s.Register(appName, &channel, nil, nil)
 }
 
 func (s *Store) GetApp(appName string) (*Mapping, error) {

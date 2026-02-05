@@ -11,6 +11,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var noisyPaths = map[string]bool{
+	"/.well-known/appspecific/com.chrome.devtools.json": true,
+}
+
 func authMiddleware(apiKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,13 +36,15 @@ func loggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(wrapped, r)
 
-			logger.Debug("HTTP request",
-				"method", r.Method,
-				"path", r.URL.Path,
-				"status", wrapped.statusCode,
-				"duration", time.Since(start),
-				"ip", util.GetClientIP(r),
-			)
+			if !noisyPaths[r.URL.Path] {
+				logger.Debug("HTTP request",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", wrapped.statusCode,
+					"duration", time.Since(start),
+					"ip", util.GetClientIP(r),
+				)
+			}
 		})
 	}
 }
@@ -49,7 +55,9 @@ type responseWriter struct {
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
+	if rw.statusCode == http.StatusOK {
+		rw.statusCode = code
+	}
 	rw.ResponseWriter.WriteHeader(code)
 }
 
@@ -58,7 +66,7 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.qrserver.com; form-action 'self'; frame-ancestors 'none'; object-src 'none'")
 
 			next.ServeHTTP(w, r)
 		})

@@ -9,7 +9,7 @@ import (
 )
 
 func (m *Monitor) connect() error {
-	addr := fmt.Sprintf("%s:%d", m.cfg.ProtonBridgeHost, m.cfg.ProtonBridgePort)
+	addr := m.cfg.ProtonBridgeAddr
 
 	options := &imapclient.Options{
 		UnilateralDataHandler: &imapclient.UnilateralDataHandler{
@@ -41,7 +41,7 @@ func (m *Monitor) connect() error {
 }
 
 func (m *Monitor) monitor(ctx context.Context) error {
-	selectCmd := m.client.Select(m.cfg.IMAPInbox, nil)
+	selectCmd := m.client.Select(imapInbox, nil)
 	_, err := selectCmd.Wait()
 	if err != nil {
 		return fmt.Errorf("failed to select inbox: %w", err)
@@ -66,9 +66,7 @@ func (m *Monitor) monitor(ctx context.Context) error {
 		case <-m.newMessagesChan:
 			idleCmd.Close()
 
-			if err := m.sendNotification(); err != nil {
-				m.logger.Error("Failed to send notification", "error", err)
-			}
+			m.sendNotification() // Errors already logged in sendNotification()
 
 			idleCmd, err = m.client.Idle()
 			if err != nil {

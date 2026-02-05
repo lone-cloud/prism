@@ -14,48 +14,40 @@ type Config struct {
 
 	DeviceName          string
 	PrismEndpointPrefix string
-	SignalCLISocketPath string
-	SignalCLIDataPath   string
-	SignalCLIBinaryPath string
+	EnableSignal        bool
+	SignalSocket        string
 
+	EnableProton       bool
 	ProtonIMAPUsername string
 	ProtonIMAPPassword string
-	ProtonBridgeHost   string
-	ProtonBridgePort   int
-	ProtonPrismTopic   string
+	ProtonBridgeAddr   string
 
-	IMAPInbox                string
-	IMAPSeenFlag             string
-	IMAPReconnectBaseDelay   int
-	IMAPMaxReconnectDelay    int
-	IMAPMaxReconnectAttempts int
+	EnableTelegram   bool
+	TelegramBotToken string
+	TelegramChatID   int64
 
 	StoragePath string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:           getEnvInt("PORT", 8080),
 		APIKey:         os.Getenv("API_KEY"),
+		Port:           getEnvInt("PORT", 8080),
 		VerboseLogging: getEnvBool("VERBOSE_LOGGING", false),
 		RateLimit:      getEnvInt("RATE_LIMIT", 100),
+		DeviceName:     getEnvString("DEVICE_NAME", "Prism"),
 
-		DeviceName:          getEnvString("DEVICE_NAME", "Prism"),
-		SignalCLISocketPath: getEnvString("SIGNAL_CLI_SOCKET", "./data/signal-cli.sock"),
-		SignalCLIDataPath:   getEnvString("SIGNAL_CLI_DATA", "./data/prism"),
-		SignalCLIBinaryPath: getEnvString("SIGNAL_CLI_BINARY", "./signal-cli/bin/signal-cli"),
+		EnableSignal: getEnvBool("FEATURE_ENABLE_SIGNAL", false),
+		SignalSocket: getEnvString("SIGNAL_SOCKET", "/run/signal-cli/socket"),
 
+		EnableProton:       getEnvBool("FEATURE_ENABLE_PROTON", false),
 		ProtonIMAPUsername: os.Getenv("PROTON_IMAP_USERNAME"),
 		ProtonIMAPPassword: os.Getenv("PROTON_IMAP_PASSWORD"),
-		ProtonBridgeHost:   getEnvString("PROTON_BRIDGE_HOST", "protonmail-bridge"),
-		ProtonBridgePort:   getEnvInt("PROTON_BRIDGE_PORT", 143),
-		ProtonPrismTopic:   "Proton Mail",
+		ProtonBridgeAddr:   getEnvString("PROTON_BRIDGE_ADDR", "protonmail-bridge:143"),
 
-		IMAPInbox:                "INBOX",
-		IMAPSeenFlag:             "\\Seen",
-		IMAPReconnectBaseDelay:   10000,
-		IMAPMaxReconnectDelay:    300000,
-		IMAPMaxReconnectAttempts: 50,
+		EnableTelegram:   getEnvBool("FEATURE_ENABLE_TELEGRAM", false),
+		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:   getEnvInt64("TELEGRAM_CHAT_ID", 0),
 
 		StoragePath: getEnvString("STORAGE_PATH", "./data/prism.db"),
 	}
@@ -77,7 +69,15 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) IsProtonEnabled() bool {
-	return c.ProtonIMAPUsername != "" && c.ProtonIMAPPassword != ""
+	return c.EnableProton && c.ProtonIMAPUsername != "" && c.ProtonIMAPPassword != "" && c.ProtonBridgeAddr != ""
+}
+
+func (c *Config) IsSignalEnabled() bool {
+	return c.EnableSignal
+}
+
+func (c *Config) IsTelegramEnabled() bool {
+	return c.EnableTelegram
 }
 
 func getEnvString(key, defaultValue string) string {
@@ -90,6 +90,15 @@ func getEnvString(key, defaultValue string) string {
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if i, err := strconv.Atoi(value); err == nil {
+			return i
+		}
+	}
+	return defaultValue
+}
+
+func getEnvInt64(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.ParseInt(value, 10, 64); err == nil {
 			return i
 		}
 	}

@@ -45,7 +45,7 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Channel == "" {
-		req.Channel = notification.ChannelSignal
+		req.Channel = notification.ChannelWebPush
 	}
 
 	if req.Channel == notification.ChannelWebPush && req.PushEndpoint == nil {

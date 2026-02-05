@@ -1,0 +1,12 @@
+FROM alpine:latest
+
+RUN apk add --no-cache signal-cli openjdk21-jre bash su-exec
+
+RUN adduser -D -u 1000 signal && \
+    mkdir -p /home/signal/.signal-cli /home/.local/share/signal-cli && \
+    chown -R signal:signal /home/signal /home/.local/share/signal-cli
+
+RUN printf '#!/bin/bash\nset -e\nmkdir -p /home/signal/.signal-cli\nchown signal:signal /home/signal/.signal-cli\nchmod 755 /home/signal/.signal-cli\nexec su-exec signal signal-cli --config /home/.local/share/signal-cli daemon --socket /home/signal/.signal-cli/socket\n' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

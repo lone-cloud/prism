@@ -16,9 +16,23 @@ type Notification struct {
 type Channel string
 
 const (
-	ChannelSignal  Channel = "signal"
-	ChannelWebPush Channel = "webpush"
+	ChannelSignal   Channel = "signal"
+	ChannelWebPush  Channel = "webpush"
+	ChannelTelegram Channel = "telegram"
 )
+
+func (c Channel) IsAvailable(signalEnabled bool, telegramEnabled bool) bool {
+	switch c {
+	case ChannelWebPush:
+		return true
+	case ChannelSignal:
+		return signalEnabled
+	case ChannelTelegram:
+		return telegramEnabled
+	default:
+		return false
+	}
+}
 
 type WebPushSubscription struct {
 	Endpoint        string

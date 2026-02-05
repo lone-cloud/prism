@@ -3,14 +3,16 @@ package server
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"prism/service/config"
+	"prism/service/integration"
 	"prism/service/notification"
-	"prism/service/proton"
-	"prism/service/signal"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
@@ -18,18 +20,16 @@ import (
 )
 
 type Server struct {
-	cfg              *config.Config
-	store            *notification.Store
-	dispatcher       *notification.Dispatcher
-	protonMonitor    *proton.Monitor
-	signalDaemon     *signal.Daemon
-	linkDevice       *signal.LinkDevice
-	logger           *slog.Logger
-	router           *chi.Mux
-	httpServer       *http.Server
-	startTime        time.Time
-	lastSignalLinked *bool // Track signal linked status for change detection
-	lastAppsCount    *int  // Track apps count for change detection
+	cfg          *config.Config
+	store        *notification.Store
+	dispatcher   *notification.Dispatcher
+	integrations *integration.Integrations
+	logger       *slog.Logger
+	router       *chi.Mux
+	httpServer   *http.Server
+	startTime    time.Time
+	version      string
+	indexTmpl    *template.Template
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -40,23 +40,27 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to create store: %w", err)
 	}
 
-	signalClient := signal.NewClient(cfg.SignalCLISocketPath)
-	dispatcher := notification.NewDispatcher(store, signalClient, logger)
+	integrations := integration.Initialize(cfg, store, logger)
 
-	protonMonitor := proton.NewMonitor(cfg, dispatcher, logger)
+	version := "dev"
+	if versionBytes, err := os.ReadFile("VERSION"); err == nil {
+		version = strings.TrimSpace(string(versionBytes))
+	}
 
-	signalDaemon := signal.NewDaemon(cfg.SignalCLIBinaryPath, cfg.SignalCLIDataPath, cfg.SignalCLISocketPath)
-	linkDevice := signal.NewLinkDevice(signalClient, cfg.DeviceName)
+	tmpl, err := template.ParseFiles("public/index.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse index template: %w", err)
+	}
 
 	s := &Server{
-		cfg:           cfg,
-		store:         store,
-		dispatcher:    dispatcher,
-		protonMonitor: protonMonitor,
-		signalDaemon:  signalDaemon,
-		linkDevice:    linkDevice,
-		logger:        logger,
-		startTime:     time.Now(),
+		cfg:          cfg,
+		store:        store,
+		dispatcher:   integrations.Dispatcher,
+		integrations: integrations,
+		logger:       logger,
+		startTime:    time.Now(),
+		version:      version,
+		indexTmpl:    tmpl,
 	}
 
 	s.setupRoutes()
@@ -76,14 +80,13 @@ func (s *Server) setupRoutes() {
 	r.Use(middleware.StripSlashes)
 	r.Use(rateLimitMiddleware(s.cfg.RateLimit))
 
+	r.Get("/", s.handleIndex)
 	r.Handle("/*", http.StripPrefix("/", http.FileServer(http.Dir("./public"))))
 
-	r.Route("/fragment", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Get("/health", s.handleFragmentHealth)
-		r.Get("/signal-info", s.handleFragmentSignalInfo)
-		r.Get("/apps", s.handleFragmentApps)
-	})
+	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
+
+	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/apps", s.handleFragmentApps)
+	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/integrations", s.handleFragmentIntegrations)
 
 	r.Route("/action", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
@@ -100,33 +103,13 @@ func (s *Server) setupRoutes() {
 		r.Get("/stats", s.handleGetStats)
 	})
 
-	r.Route("/webpush/app", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Post("/", s.handleWebPushRegister)
-		r.Delete("/{appName}", s.handleWebPushUnregister)
-	})
-
-	r.Route("/api/proton-mail", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Post("/mark-read", s.handleProtonMarkRead)
-	})
-
 	r.With(authMiddleware(s.cfg.APIKey)).Post("/{topic}", s.handleNtfyPublish)
 
 	s.router = r
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("Starting Signal daemon")
-	if err := s.signalDaemon.Start(); err != nil {
-		return fmt.Errorf("failed to start signal daemon: %w", err)
-	}
-
-	go func() {
-		if err := s.protonMonitor.Start(ctx); err != nil && err != context.Canceled {
-			s.logger.Error("Proton monitor error", "error", err)
-		}
-	}()
+	s.integrations.Start(ctx, s.cfg, s.logger)
 
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	s.httpServer = &http.Server{
