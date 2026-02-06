@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,12 +14,18 @@ import (
 
 	"prism/service/config"
 	"prism/service/integration"
+	"prism/service/integration/proton"
+	"prism/service/integration/signal"
+	"prism/service/integration/telegram"
 	"prism/service/notification"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+//go:embed templates/*.html
+var fragmentTemplates embed.FS
 
 type Server struct {
 	cfg          *config.Config
@@ -30,9 +38,11 @@ type Server struct {
 	startTime    time.Time
 	version      string
 	indexTmpl    *template.Template
+	fragmentTmpl *template.Template
+	publicAssets embed.FS
 }
 
-func New(cfg *config.Config) (*Server, error) {
+func New(cfg *config.Config, publicAssets embed.FS) (*Server, error) {
 	logger := util.NewLogger(cfg.VerboseLogging)
 
 	store, err := notification.NewStore(cfg.StoragePath)
@@ -40,14 +50,33 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to create store: %w", err)
 	}
 
-	integrations := integration.Initialize(cfg, store, logger)
+	fragmentTmpl := template.New("")
+	fragmentTmpl, err = fragmentTmpl.ParseFS(fragmentTemplates, "templates/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse fragment templates: %w", err)
+	}
+	fragmentTmpl, err = fragmentTmpl.ParseFS(signal.GetTemplates(), "templates/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse signal templates: %w", err)
+	}
+	fragmentTmpl, err = fragmentTmpl.ParseFS(telegram.GetTemplates(), "templates/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse telegram templates: %w", err)
+	}
+	fragmentTmpl, err = fragmentTmpl.ParseFS(proton.GetTemplates(), "templates/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse proton templates: %w", err)
+	}
+
+	templateRenderer := util.NewTemplateRenderer(fragmentTmpl)
+	integrations := integration.Initialize(cfg, store, logger, templateRenderer)
 
 	version := "dev"
 	if versionBytes, err := os.ReadFile("VERSION"); err == nil {
 		version = strings.TrimSpace(string(versionBytes))
 	}
 
-	tmpl, err := template.ParseFiles("public/index.html")
+	tmpl, err := template.ParseFS(publicAssets, "public/index.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse index template: %w", err)
 	}
@@ -61,6 +90,8 @@ func New(cfg *config.Config) (*Server, error) {
 		startTime:    time.Now(),
 		version:      version,
 		indexTmpl:    tmpl,
+		fragmentTmpl: fragmentTmpl,
+		publicAssets: publicAssets,
 	}
 
 	s.setupRoutes()
@@ -81,7 +112,13 @@ func (s *Server) setupRoutes() {
 	r.Use(rateLimitMiddleware(s.cfg.RateLimit))
 
 	r.Get("/", s.handleIndex)
-	r.Handle("/*", http.StripPrefix("/", http.FileServer(http.Dir("./public"))))
+
+	publicFS, err := fs.Sub(s.publicAssets, "public")
+	if err != nil {
+		s.logger.Error("Failed to create public assets sub-filesystem", "error", err)
+	} else {
+		r.Handle("/*", http.FileServer(http.FS(publicFS)))
+	}
 
 	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
 

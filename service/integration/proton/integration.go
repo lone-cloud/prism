@@ -7,6 +7,7 @@ import (
 
 	"prism/service/config"
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -16,18 +17,20 @@ type Integration struct {
 	dispatcher *notification.Dispatcher
 	logger     *slog.Logger
 	handlers   *Handlers
+	tmpl       *util.TemplateRenderer
 }
 
-func NewIntegration(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger) *Integration {
+func NewIntegration(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
 	return &Integration{
 		cfg:        cfg,
 		dispatcher: dispatcher,
 		logger:     logger,
+		tmpl:       tmpl,
 	}
 }
 
 func (p *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
-	p.handlers = RegisterRoutes(router, p.cfg, p.dispatcher, p.logger, auth)
+	p.handlers = RegisterRoutes(router, p.cfg, p.dispatcher, p.logger, auth, p.tmpl)
 }
 
 func (p *Integration) Start(ctx context.Context, logger *slog.Logger) {

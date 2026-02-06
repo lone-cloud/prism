@@ -1,78 +1,97 @@
 package signal
 
 import (
-	"fmt"
+	"html/template"
+	"log/slog"
 	"net/http"
+
+	"prism/service/util"
 )
 
 type Handlers struct {
 	client     *Client
 	linkDevice *LinkDevice
+	tmpl       *util.TemplateRenderer
+	logger     *slog.Logger
 }
 
-func NewHandlers(client *Client, linkDevice *LinkDevice) *Handlers {
+type SignalContentData struct {
+	Linked     bool
+	DeviceName string
+	Error      string
+	QRCode     string
+}
+
+type IntegrationData struct {
+	Name          string
+	StatusClass   string
+	StatusText    string
+	StatusTooltip string
+	Content       template.HTML
+	Open          bool
+	PollAttrs     string
+}
+
+func NewHandlers(client *Client, linkDevice *LinkDevice, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		client:     client,
 		linkDevice: linkDevice,
+		tmpl:       tmpl,
+		logger:     logger,
 	}
 }
 
 func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	if h.client == nil {
-		return // Signal not enabled
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
 
 	account, _ := h.client.GetLinkedAccount()
-	var content string
-	var statusBadge string
-	var openAttr string
-	var pollAttrs string
+
+	var contentData SignalContentData
+	var integData IntegrationData
+	integData.Name = "Signal"
 
 	if account != nil {
-		statusBadge = fmt.Sprintf(`<span class="integration-status connected">Linked<span class="tooltip">%s</span></span>`, FormatPhoneNumber(account.Number))
-		content = fmt.Sprintf(`
-			<p><strong>Unlink Instructions:</strong></p>
-			<ol class="link-instructions">
-				<li>Open Signal on your phone</li>
-				<li>Go to Settings → Linked Devices</li>
-				<li>Find and remove <strong>%s</strong></li>
-			</ol>
-		`, h.linkDevice.deviceName)
-		openAttr = ""
-		pollAttrs = ""
+		integData.StatusClass = "connected"
+		integData.StatusText = "Linked"
+		integData.StatusTooltip = FormatPhoneNumber(account.Number)
+		integData.Open = false
+		integData.PollAttrs = ""
+
+		contentData.Linked = true
+		contentData.DeviceName = h.linkDevice.deviceName
 	} else {
-		statusBadge = `<span class="integration-status unlinked">Unlinked</span>`
+		integData.StatusClass = "unlinked"
+		integData.StatusText = "Unlinked"
+		integData.Open = true
+		integData.PollAttrs = `hx-get="/fragment/signal" hx-trigger="every 3s" hx-swap="outerHTML"`
+
+		contentData.Linked = false
 		qrCode, err := h.linkDevice.GenerateQR()
 		if err != nil {
-			content = fmt.Sprintf(`<p>Error generating QR code: %s</p>`, err)
+			contentData.Error = err.Error()
 		} else {
-			content = fmt.Sprintf(`
-				<p><strong>Link your Signal (or <a href="https://molly.im" target="_blank" rel="noopener">Molly</a>) account:</strong></p>
-				<ol class="link-instructions">
-					<li>Open Signal on your phone</li>
-					<li>Go to Settings → Linked Devices</li>
-					<li>Scan the QR code below</li>
-				</ol>
-				<div class="qr-code-container">
-					<img src="%s" alt="Signal QR Code" class="qr-code"/>
-				</div>
-			`, qrCode)
+			contentData.QRCode = qrCode
 		}
-		openAttr = " open"
-		pollAttrs = ` hx-get="/fragment/signal" hx-trigger="every 3s" hx-swap="outerHTML"`
 	}
 
-	html := fmt.Sprintf(`<details class="integration-card"%s%s>
-		<summary class="integration-header">
-			<span class="integration-name">Signal</span>
-			%s
-		</summary>
-		<div class="integration-content">%s</div>
-	</details>`, openAttr, pollAttrs, statusBadge, content)
+	content, err := h.tmpl.RenderHTML("signal-content.html", contentData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+	integData.Content = content
 
-	_, _ = fmt.Fprint(w, html)
+	html, err := h.tmpl.Render("integration.html", integData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write([]byte(html))
 }
 
 func (h *Handlers) IsEnabled() bool {

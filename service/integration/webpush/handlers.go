@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -54,8 +55,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	existing, err := h.store.GetApp(req.AppName)
 	if err != nil {
-		h.logger.Error("Failed to check existing app", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -75,8 +75,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	if existing != nil {
 		if err := h.store.UpdateWebPush(req.AppName, webPush); err != nil {
-			h.logger.Error("Failed to update webpush endpoint", "error", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
 			return
 		}
 		h.logger.Info("Updated webpush for existing endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
@@ -93,7 +92,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
 		"appName": req.AppName,
-		"channel": "webpush",
+		"channel": notification.ChannelWebPush.String(),
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }

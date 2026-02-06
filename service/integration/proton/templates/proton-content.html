@@ -1,0 +1,17 @@
+{{if .Connected}}
+<p><strong>Unlink Instructions:</strong></p>
+<ol class="link-instructions">
+	<li>Run: <code>docker compose run protonmail-bridge init</code></li>
+	<li>In the bridge CLI, use: <code>logout</code></li>
+	<li>Then: <code>exit</code> to close the bridge</li>
+</ol>
+{{else}}
+<p><strong>Setup Instructions:</strong></p>
+<ol class="link-instructions">
+	<li>Run: <code>docker compose run --rm protonmail-bridge init</code></li>
+	<li>At the prompt, use: <code>login</code> and enter your Proton Mail credentials</li>
+	<li>Run: <code>info</code> to get your IMAP username and password</li>
+	<li>Add credentials to <code>.env</code> and restart</li>
+</ol>
+<p class="text-muted">See <a href="https://github.com/lone-cloud/prism#proton-mail" target="_blank">full setup guide</a></p>
+{{end}}

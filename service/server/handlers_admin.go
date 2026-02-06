@@ -15,8 +15,7 @@ import (
 func (s *Server) handleGetMappings(w http.ResponseWriter, r *http.Request) {
 	mappings, err := s.store.GetAllMappings()
 	if err != nil {
-		s.logger.Error("Failed to get mappings", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -61,8 +60,7 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.Register(req.App, &req.Channel, nil, webPush); err != nil {
-		s.logger.Error("Failed to register mapping", "error", err)
-		http.Error(w, "Failed to create mapping", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to create mapping", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -80,8 +78,7 @@ func (s *Server) handleDeleteMapping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.RemoveApp(appName); err != nil {
-		s.logger.Error("Failed to delete mapping", "error", err)
-		http.Error(w, "Failed to delete mapping", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to delete mapping", http.StatusInternalServerError, err)
 		return
 	}
 

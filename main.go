@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,6 +15,9 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
+//go:embed public/*
+var publicAssets embed.FS
 
 var (
 	version = "dev"
@@ -46,7 +50,7 @@ func main() {
 }
 
 func runServer(cfg *config.Config, logger *slog.Logger) error {
-	srv, err := server.New(cfg)
+	srv, err := server.New(cfg, publicAssets)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}

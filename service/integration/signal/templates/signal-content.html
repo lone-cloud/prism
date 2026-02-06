@@ -1,0 +1,22 @@
+{{if .Linked}}
+<p><strong>Unlink Instructions:</strong></p>
+<ol class="link-instructions">
+	<li>Open Signal on your phone</li>
+	<li>Go to Settings → Linked Devices</li>
+	<li>Find and remove <strong>{{.DeviceName}}</strong></li>
+</ol>
+{{else}}
+	{{if .Error}}
+<p>Error generating QR code: {{.Error}}</p>
+	{{else}}
+<p><strong>Link your Signal (or <a href="https://molly.im" target="_blank" rel="noopener">Molly</a>) account:</strong></p>
+<ol class="link-instructions">
+	<li>Open Signal on your phone</li>
+	<li>Go to Settings → Linked Devices</li>
+	<li>Scan the QR code below</li>
+</ol>
+<div class="qr-code-container">
+	<img src="{{.QRCode}}" alt="Signal QR Code" class="qr-code"/>
+</div>
+	{{end}}
+{{end}}

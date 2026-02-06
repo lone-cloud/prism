@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -16,8 +17,7 @@ func (s *Server) handleDeleteAppAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.RemoveApp(app); err != nil {
-		s.logger.Error("Failed to delete app", "error", err)
-		http.Error(w, "Failed to delete app", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to delete app", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -45,8 +45,7 @@ func (s *Server) handleToggleChannelAction(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := s.store.UpdateChannel(app, notification.Channel(channel)); err != nil {
-		s.logger.Error("Failed to update channel", "error", err)
-		http.Error(w, "Failed to update channel", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to update channel", http.StatusInternalServerError, err)
 		return
 	}
 

@@ -1,6 +1,11 @@
-FROM alpine:latest
+FROM alpine:3.23
 
-RUN apk add --no-cache signal-cli openjdk21-jre bash su-exec
+ARG SIGNAL_CLI_VERSION=0.13.24
+
+RUN apk add --no-cache openjdk21-jre bash su-exec curl tar && \
+    curl -sSL https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}-Linux.tar.gz | tar xz -C /opt && \
+    ln -sf /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli /usr/local/bin/signal-cli && \
+    apk del curl tar
 
 RUN adduser -D -u 1000 signal && \
     mkdir -p /home/signal/.signal-cli /home/.local/share/signal-cli && \
