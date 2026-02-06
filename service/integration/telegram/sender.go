@@ -37,7 +37,9 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 		message = fmt.Sprintf("<b>%s</b>\n%s", notif.Title, notif.Message)
 	}
 
-	if err := s.client.SendMessage(s.DefaultChatID, message); err != nil {
+	fullMessage := fmt.Sprintf("📱 <b>%s</b>\n\n%s", mapping.AppName, message)
+
+	if err := s.client.SendMessage(s.DefaultChatID, fullMessage); err != nil {
 		s.logger.Error("Failed to send telegram message", "chatID", s.DefaultChatID, "error", err)
 		return err
 	}

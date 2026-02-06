@@ -2,70 +2,81 @@ package proton
 
 import (
 	"encoding/json"
-	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
+
+	"prism/service/util"
 )
 
 type Handlers struct {
 	monitor  *Monitor
 	username string
 	logger   *slog.Logger
+	tmpl     *util.TemplateRenderer
 }
 
-func NewHandlers(monitor *Monitor, username string, logger *slog.Logger) *Handlers {
+type ProtonContentData struct {
+	Connected bool
+}
+
+type IntegrationData struct {
+	Name          string
+	StatusClass   string
+	StatusText    string
+	StatusTooltip string
+	Content       template.HTML
+	Open          bool
+	PollAttrs     string
+}
+
+func NewHandlers(monitor *Monitor, username string, logger *slog.Logger, tmpl *util.TemplateRenderer) *Handlers {
 	return &Handlers{
 		monitor:  monitor,
 		username: username,
 		logger:   logger,
+		tmpl:     tmpl,
 	}
 }
 
 func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	if h.monitor == nil {
-		return // Proton not enabled
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
 
-	statusBadge := `<span class="integration-status disconnected">Unlinked</span>`
-	var content string
-	var openAttr string
+	var contentData ProtonContentData
+	var integData IntegrationData
+	integData.Name = "Proton Mail"
 
 	if h.monitor.IsConnected() {
-		statusBadge = fmt.Sprintf(`<span class="integration-status connected">Linked<span class="tooltip">%s</span></span>`, h.username)
-		content = `
-			<p><strong>Unlink Instructions:</strong></p>
-			<ol class="link-instructions">
-				<li>Run: <code>docker compose run protonmail-bridge init</code></li>
-				<li>In the bridge CLI, use: <code>logout</code></li>
-				<li>Then: <code>exit</code> to close the bridge</li>
-			</ol>
-		`
-		openAttr = ""
+		integData.StatusClass = "connected"
+		integData.StatusText = "Linked"
+		integData.StatusTooltip = h.username
+		integData.Open = false
+		contentData.Connected = true
 	} else {
-		content = `
-			<p><strong>Setup Instructions:</strong></p>
-			<ol class="link-instructions">
-				<li>Run: <code>docker compose run --rm protonmail-bridge init</code></li>
-				<li>At the prompt, use: <code>login</code> and enter your Proton Mail credentials</li>
-				<li>Run: <code>info</code> to get your IMAP username and password</li>
-				<li>Add credentials to <code>.env</code> and restart</li>
-			</ol>
-			<p class="text-muted">See <a href="https://github.com/lone-cloud/prism#proton-mail" target="_blank">full setup guide</a></p>
-		`
-		openAttr = " open"
+		integData.StatusClass = "disconnected"
+		integData.StatusText = "Unlinked"
+		integData.Open = true
+		contentData.Connected = false
 	}
 
-	html := fmt.Sprintf(`<details class="integration-card"%s>
-		<summary class="integration-header">
-			<span class="integration-name">Proton Mail</span>
-			%s
-		</summary>
-		<div class="integration-content">%s</div>
-	</details>`, openAttr, statusBadge, content)
+	content, err := h.tmpl.RenderHTML("proton-content.html", contentData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+	integData.Content = content
 
-	_, _ = fmt.Fprint(w, html)
+	html, err := h.tmpl.Render("integration.html", integData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write([]byte(html))
 }
 
 func (h *Handlers) IsEnabled() bool {

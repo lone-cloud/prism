@@ -11,6 +11,7 @@ import (
 	"prism/service/integration/telegram"
 	"prism/service/integration/webpush"
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,9 +28,9 @@ type Integrations struct {
 	integrations []Integration
 }
 
-func Initialize(cfg *config.Config, store *notification.Store, logger *slog.Logger) *Integrations {
-	signalIntegration := signal.NewIntegration(cfg, store, logger)
-	telegramIntegration := telegram.NewIntegration(cfg, store, logger)
+func Initialize(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmplRenderer *util.TemplateRenderer) *Integrations {
+	signalIntegration := signal.NewIntegration(cfg, store, logger, tmplRenderer)
+	telegramIntegration := telegram.NewIntegration(cfg, store, logger, tmplRenderer)
 	dispatcher := notification.NewDispatcher(store, logger)
 
 	if signalSender := signalIntegration.GetSender(); signalSender != nil {
@@ -43,7 +44,7 @@ func Initialize(cfg *config.Config, store *notification.Store, logger *slog.Logg
 	integrations := []Integration{
 		signalIntegration,
 		telegramIntegration,
-		proton.NewIntegration(cfg, dispatcher, logger),
+		proton.NewIntegration(cfg, dispatcher, logger, tmplRenderer),
 		webpush.NewIntegration(store, logger),
 	}
 

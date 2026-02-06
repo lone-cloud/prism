@@ -1,8 +1,8 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25-alpine3.23 AS builder
 
 WORKDIR /build
 
-RUN apk add --no-cache git ca-certificates gcc musl-dev
+RUN apk add --no-cache git ca-certificates gcc musl-dev upx
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -12,16 +12,16 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build \
     -trimpath \
     -ldflags="-w -s -X main.version=$(cat VERSION 2>/dev/null || echo dev) -X main.commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
-    -o prism .
+    -o prism . && \
+    upx --best --lzma prism
 
-FROM alpine:latest
+FROM alpine:3.23
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
 COPY --from=builder /build/prism .
-COPY public ./public
 
 RUN adduser -D -u 1000 prism && \
     mkdir -p /app/data && \

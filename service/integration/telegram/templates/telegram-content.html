@@ -1,0 +1,27 @@
+{{if .NotConfigured}}
+<p><strong>Setup Instructions:</strong></p>
+<ol class="link-instructions">
+	<li>Message <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram</li>
+	<li>Send <code>/newbot</code> and follow the prompts</li>
+	<li>Copy the bot token and add to <code>.env</code>: <code>TELEGRAM_BOT_TOKEN=your-token</code></li>
+	<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get your Chat ID</li>
+	<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
+	<li>Restart Prism</li>
+</ol>
+<p class="text-muted">See <a href="https://github.com/lone-cloud/prism#telegram" target="_blank">full setup guide</a></p>
+{{else if .Error}}
+<p>Error: {{.Error}}</p>
+{{else if .NeedsChatID}}
+<p><strong>Complete Setup:</strong></p>
+<ol class="link-instructions">
+	<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> on Telegram to get your Chat ID</li>
+	<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
+	<li>Restart Prism</li>
+</ol>
+{{else}}
+<p><strong>Unlink Instructions:</strong></p>
+<ol class="link-instructions">
+	<li>Remove <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> from <code>.env</code></li>
+	<li>Restart: <code>docker compose restart prism</code></li>
+</ol>
+{{end}}

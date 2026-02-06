@@ -1,0 +1,42 @@
+{{if .}}
+<ul class="app-list">
+{{range .}}
+	<li class="app-item">
+		<div class="app-info">
+			<div class="app-name"><strong>{{.AppName}}</strong></div>
+			<div class="app-channel">
+				{{if .ChannelConfigured}}
+					<span class="channel-badge channel-{{.Channel}}">
+						{{.ChannelBadge}}
+						{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
+					</span>
+				{{else}}
+					<span class="channel-badge channel-not-configured">
+						{{.ChannelBadge}}
+						{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
+					</span>
+				{{end}}
+				{{if .Hostname}}
+					<span class="app-detail">{{.Hostname}}</span>
+				{{end}}
+			</div>
+		</div>
+		<div class="app-actions">
+			{{if gt (len .ChannelOptions) 1}}
+			<form class="channel-form">
+				<input type="hidden" name="app" value="{{.AppName}}" />
+				<select class="channel-select" name="channel" hx-post="/action/toggle-channel" hx-target="#apps-list" hx-swap="innerHTML" hx-include="closest form">
+					{{range .ChannelOptions}}
+					<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>
+					{{end}}
+				</select>
+			</form>
+			{{end}}
+			<button class="btn-delete" hx-delete="/action/app/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML">Delete</button>
+		</div>
+	</li>
+{{end}}
+</ul>
+{{else}}
+<p>No apps registered yet. See <a href="https://github.com/lone-cloud/prism?tab=readme-ov-file#real-world-examples" target="_blank" rel="noopener noreferrer">real-world examples</a> to get started.</p>
+{{end}}

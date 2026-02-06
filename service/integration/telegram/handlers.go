@@ -1,83 +1,92 @@
 package telegram
 
 import (
-	"fmt"
+	"html/template"
+	"log/slog"
 	"net/http"
+
+	"prism/service/util"
 )
 
 type Handlers struct {
 	client *Client
 	chatID int64
+	tmpl   *util.TemplateRenderer
+	logger *slog.Logger
 }
 
-func NewHandlers(client *Client, chatID int64) *Handlers {
+type TelegramContentData struct {
+	NotConfigured bool
+	Error         string
+	NeedsChatID   bool
+}
+
+type IntegrationData struct {
+	Name          string
+	StatusClass   string
+	StatusText    string
+	StatusTooltip string
+	Content       template.HTML
+	Open          bool
+	PollAttrs     string
+}
+
+func NewHandlers(client *Client, chatID int64, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		client: client,
 		chatID: chatID,
+		tmpl:   tmpl,
+		logger: logger,
 	}
 }
 
 func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
-	var content string
-	var statusBadge string
-	var openAttr string
+	var contentData TelegramContentData
+	var integData IntegrationData
+	integData.Name = "Telegram"
 
 	if h.client == nil {
-		statusBadge = `<span class="integration-status disconnected">Not Configured</span>`
-		content = `
-			<p><strong>Setup Instructions:</strong></p>
-			<ol class="link-instructions">
-				<li>Message <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram</li>
-				<li>Send <code>/newbot</code> and follow the prompts</li>
-				<li>Copy the bot token and add to <code>.env</code>: <code>TELEGRAM_BOT_TOKEN=your-token</code></li>
-				<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get your Chat ID</li>
-				<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
-				<li>Restart Prism</li>
-			</ol>
-			<p class="text-muted">See <a href="https://github.com/lone-cloud/prism#telegram" target="_blank">full setup guide</a></p>
-		`
-		openAttr = " open"
+		integData.StatusClass = "disconnected"
+		integData.StatusText = "Not Configured"
+		integData.Open = true
+		contentData.NotConfigured = true
 	} else {
 		bot, err := h.client.GetMe()
 		if err != nil {
-			statusBadge = `<span class="integration-status disconnected">Error</span>`
-			content = fmt.Sprintf(`<p>Error: %s</p>`, err)
-			openAttr = " open"
+			integData.StatusClass = "disconnected"
+			integData.StatusText = "Error"
+			integData.Open = true
+			contentData.Error = err.Error()
 		} else if h.chatID == 0 {
-			statusBadge = fmt.Sprintf(`<span class="integration-status disconnected">Needs Chat ID<span class="tooltip">@%s</span></span>`, bot.Username)
-			content = `
-				<p><strong>Complete Setup:</strong></p>
-				<ol class="link-instructions">
-					<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> on Telegram to get your Chat ID</li>
-					<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
-					<li>Restart Prism</li>
-				</ol>
-			`
-			openAttr = " open"
+			integData.StatusClass = "disconnected"
+			integData.StatusText = "Needs Chat ID"
+			integData.StatusTooltip = "@" + bot.Username
+			integData.Open = true
+			contentData.NeedsChatID = true
 		} else {
-			statusBadge = fmt.Sprintf(`<span class="integration-status connected">Linked<span class="tooltip">@%s</span></span>`, bot.Username)
-			content = `
-				<p><strong>Unlink Instructions:</strong></p>
-				<ol class="link-instructions">
-					<li>Remove <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> from <code>.env</code></li>
-					<li>Restart: <code>docker compose restart prism</code></li>
-				</ol>
-			`
-			openAttr = ""
+			integData.StatusClass = "connected"
+			integData.StatusText = "Linked"
+			integData.StatusTooltip = "@" + bot.Username
+			integData.Open = false
 		}
 	}
 
-	html := fmt.Sprintf(`<details class="integration-card"%s>
-		<summary class="integration-header">
-			<span class="integration-name">Telegram</span>
-			%s
-		</summary>
-		<div class="integration-content">%s</div>
-	</details>`, openAttr, statusBadge, content)
+	content, err := h.tmpl.RenderHTML("telegram-content.html", contentData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+	integData.Content = content
 
-	_, _ = fmt.Fprint(w, html)
+	html, err := h.tmpl.Render("integration.html", integData)
+	if err != nil {
+		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write([]byte(html))
 }
 
 func (h *Handlers) IsEnabled() bool {

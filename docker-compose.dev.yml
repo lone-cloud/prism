@@ -24,9 +24,7 @@ services:
 
   signal-cli:
     container_name: signal-cli
-    build:
-      context: .
-      dockerfile: Dockerfile.signal-cli
+    image: ghcr.io/lone-cloud/prism-signal-cli:latest
     profiles: ['signal']
     volumes:
       - signal-data:/home/.local/share/signal-cli

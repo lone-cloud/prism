@@ -7,6 +7,7 @@ import (
 
 	"prism/service/config"
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -15,9 +16,11 @@ type Integration struct {
 	cfg      *config.Config
 	handlers *Handlers
 	sender   *Sender
+	tmpl     *util.TemplateRenderer
+	logger   *slog.Logger
 }
 
-func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger) *Integration {
+func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
 	var sender *Sender
 	if cfg.IsSignalEnabled() {
 		client := NewClient(cfg.SignalSocket)
@@ -26,6 +29,8 @@ func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.
 	return &Integration{
 		cfg:    cfg,
 		sender: sender,
+		tmpl:   tmpl,
+		logger: logger,
 	}
 }
 
@@ -34,7 +39,7 @@ func (s *Integration) GetSender() *Sender {
 }
 
 func (s *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
-	s.handlers = RegisterRoutes(router, s.cfg, auth)
+	s.handlers = RegisterRoutes(router, s.cfg, auth, s.tmpl, s.logger)
 }
 
 func (s *Integration) Start(ctx context.Context, logger *slog.Logger) {
