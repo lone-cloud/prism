@@ -3,7 +3,9 @@ FROM alpine:3.23
 RUN apk add --no-cache signal-cli && \
     adduser -D -u 1000 signal && \
     mkdir -p /home/signal/.signal-cli /home/.local/share/signal-cli && \
-    chown -R signal:signal /home/signal /home/.local/share/signal-cli
+    chown -R signal:signal /home/signal /home/.local/share/signal-cli && \
+    echo -e '#!/bin/sh\nrm -f /home/signal/.signal-cli/socket\nexec signal-cli --config /home/.local/share/signal-cli daemon --socket /home/signal/.signal-cli/socket' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
 
 USER signal
-CMD ["signal-cli", "--config", "/home/.local/share/signal-cli", "daemon", "--socket", "/home/signal/.signal-cli/socket"]
+ENTRYPOINT ["/entrypoint.sh"]
