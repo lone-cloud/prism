@@ -23,7 +23,7 @@ curl -L -O https://raw.githubusercontent.com/lone-cloud/prism/master/docker-comp
 # Download .env.example
 curl -L -O https://raw.githubusercontent.com/lone-cloud/prism/master/.env.example
 
-# Configure your API key
+# Configure your API key (eg. admin password)
 cp .env.example .env
 nano .env  # Set API_KEY=your-secret-key-here
 
@@ -47,11 +47,10 @@ Send notifications through Signal groups instead of WebPush.
 FEATURE_ENABLE_SIGNAL=true
 ```
 
-**2. Restart Prism:**
+**2. Start Prism with Signal:**
 
 ```bash
-docker compose down
-docker compose up -d
+docker compose --profile signal up -d
 ```
 
 **3. Link your Signal account:**
@@ -81,28 +80,21 @@ FEATURE_ENABLE_TELEGRAM=true
 TELEGRAM_BOT_TOKEN=your-bot-token-here
 ```
 
-**3. Restart Prism:**
-
-```bash
-docker compose down
-docker compose up -d
-```
-
-**4. Get your chat ID:**
+**3. Get your chat ID:**
 
 - Message [@userinfobot](https://t.me/userinfobot) on Telegram
 - Copy your Chat ID from the bot's response
 
-**5. Add chat ID to `.env`:**
+**4. Add chat ID to `.env`:**
 
 ```bash
 TELEGRAM_CHAT_ID=123456789
 ```
 
-**6. Restart Prism:**
+**5. Start Prism:**
 
 ```bash
-docker compose down
+# Telegram runs in the main Prism service (no profile needed)
 docker compose up -d
 ```
 
@@ -145,10 +137,14 @@ PROTON_IMAP_USERNAME=username-from-info-command
 PROTON_IMAP_PASSWORD=password-from-info-command
 ```
 
-**5. Start with Proton profile:**
+**5. Start Prism with Proton Mail:**
 
 ```bash
+# Start only Prism + Proton Mail
 docker compose --profile proton up -d
+
+# Or with Signal + Proton Mail
+docker compose --profile signal --profile proton up -d
 ```
 
 Prism will now forward Proton Mail notifications to your configured channel (Signal, Telegram, or WebPush).
