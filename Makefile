@@ -57,13 +57,10 @@ docker-down:
 	docker compose -f docker-compose.dev.yml down
 
 docker-up-proton:
-	docker compose -f docker-compose.dev.yml up -d --build protonmail-bridge
+	docker compose -f docker-compose.dev.yml up -d protonmail-bridge
 
 docker-up-signal:
-	docker compose -f docker-compose.dev.yml up -d --build signal-cli
-
-docker-up-telegram:
-	docker compose -f docker-compose.dev.yml up -d --build telegram-bot
+	docker compose -f docker-compose.dev.yml up -d signal-cli
 
 release:
 	@if [ ! -f VERSION ]; then \
