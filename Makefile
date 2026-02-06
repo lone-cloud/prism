@@ -73,6 +73,10 @@ release:
 	git push origin "v$$VERSION"; \
 	gh workflow run release.yml
 
+release-dev:
+	@echo "Triggering dev Docker image build..."
+	gh workflow run release-dev.yml
+
 release-signal:
 	@echo "Triggering signal-cli image release via GitHub Actions..."
 	gh workflow run release-signal-cli.yml
