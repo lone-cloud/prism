@@ -123,6 +123,8 @@ func (s *Server) setupRoutes() {
 
 	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
 
+	r.Get("/health", s.handleHealthCheck)
+
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/apps", s.handleFragmentApps)
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/integrations", s.handleFragmentIntegrations)
 

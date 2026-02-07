@@ -9,6 +9,7 @@ import (
 )
 
 type healthResponse struct {
+	Version  string             `json:"version"`
 	Uptime   string             `json:"uptime"`
 	Signal   *integrationHealth `json:"signal,omitempty"`
 	Proton   *integrationHealth `json:"proton,omitempty"`
@@ -19,11 +20,16 @@ type integrationHealth struct {
 	Linked bool `json:"linked"`
 }
 
+func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	uptime := time.Since(s.startTime)
 
 	resp := healthResponse{
-		Uptime: util.FormatUptime(uptime),
+		Version: s.version,
+		Uptime:  util.FormatUptime(uptime),
 	}
 
 	if s.integrations.Signal != nil && s.integrations.Signal.IsEnabled() {
