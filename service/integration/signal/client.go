@@ -20,10 +20,10 @@ func NewClient(socketPath string) *Client {
 }
 
 type RPCRequest struct {
-	JSONRPC string                 `json:"jsonrpc"`
-	ID      int32                  `json:"id"`
-	Method  string                 `json:"method"`
-	Params  map[string]interface{} `json:"params"`
+	JSONRPC string         `json:"jsonrpc"`
+	ID      int32          `json:"id"`
+	Method  string         `json:"method"`
+	Params  map[string]any `json:"params"`
 }
 
 type RPCResponse struct {
@@ -38,7 +38,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func (c *Client) Call(method string, params map[string]interface{}) (json.RawMessage, error) {
+func (c *Client) Call(method string, params map[string]any) (json.RawMessage, error) {
 	conn, err := net.Dial("unix", c.SocketPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
@@ -68,9 +68,9 @@ func (c *Client) Call(method string, params map[string]interface{}) (json.RawMes
 	return response.Result, nil
 }
 
-func (c *Client) CallWithAccount(method string, params map[string]interface{}, account string) (json.RawMessage, error) {
+func (c *Client) CallWithAccount(method string, params map[string]any, account string) (json.RawMessage, error) {
 	if params == nil {
-		params = make(map[string]interface{})
+		params = make(map[string]any)
 	}
 	params["account"] = account
 	return c.Call(method, params)
@@ -120,7 +120,7 @@ func (c *Client) CreateGroup(name string) (string, string, error) {
 		return "", "", fmt.Errorf("no linked Signal account")
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"name":   name,
 		"member": []string{},
 	}
@@ -157,7 +157,7 @@ func (c *Client) SendGroupMessage(groupID, message string) error {
 		return fmt.Errorf("no linked account")
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"groupId":    groupID,
 		"message":    message,
 		"notifySelf": true,

@@ -21,8 +21,7 @@ func (s *Server) handleFragmentApps(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	if err := s.fragmentTmpl.ExecuteTemplate(&buf, "app-list.html", s.buildAppListData(mappings)); err != nil {
-		s.logger.Error("Failed to execute template", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to execute template", http.StatusInternalServerError, err)
 		return
 	}
 

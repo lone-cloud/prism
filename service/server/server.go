@@ -28,6 +28,8 @@ import (
 var fragmentTemplates embed.FS
 
 type Server struct {
+	startTime    time.Time
+	publicAssets embed.FS
 	cfg          *config.Config
 	store        *notification.Store
 	dispatcher   *notification.Dispatcher
@@ -35,11 +37,9 @@ type Server struct {
 	logger       *slog.Logger
 	router       *chi.Mux
 	httpServer   *http.Server
-	startTime    time.Time
-	version      string
 	indexTmpl    *template.Template
 	fragmentTmpl *template.Template
-	publicAssets embed.FS
+	version      string
 }
 
 func New(cfg *config.Config, publicAssets embed.FS) (*Server, error) {
@@ -110,6 +110,7 @@ func (s *Server) setupRoutes() {
 	r.Use(middleware.Compress(5))
 	r.Use(middleware.StripSlashes)
 	r.Use(rateLimitMiddleware(s.cfg.RateLimit))
+	r.Use(maxBodySizeMiddleware(1 << 20))
 
 	r.Get("/", s.handleIndex)
 
@@ -140,7 +141,9 @@ func (s *Server) setupRoutes() {
 		r.Get("/stats", s.handleGetStats)
 	})
 
-	r.With(authMiddleware(s.cfg.APIKey)).Post("/{topic}", s.handleNtfyPublish)
+	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/health", s.handleHealth)
+
+	r.With(authMiddleware(s.cfg.APIKey)).Post("/{appName}", s.handleNtfyPublish)
 
 	s.router = r
 }

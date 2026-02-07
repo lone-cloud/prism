@@ -82,7 +82,7 @@ func (m *Monitor) sendNotification() error {
 				ID:       "mark-read",
 				Endpoint: "/api/proton-mail/mark-read",
 				Method:   "POST",
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"uid": msgData.UID,
 				},
 			},

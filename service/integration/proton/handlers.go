@@ -94,31 +94,23 @@ type markReadRequest struct {
 func (h *Handlers) HandleMarkRead(w http.ResponseWriter, r *http.Request) {
 	var req markReadRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		util.JSONError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.UID == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "uid (number) is required"})
+		util.JSONError(w, "uid (number) is required", http.StatusBadRequest)
 		return
 	}
 
 	if h.monitor == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Proton integration not enabled"})
+		util.JSONError(w, "Proton integration not enabled", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.monitor.MarkAsRead(req.UID); err != nil {
 		h.logger.Error("failed to mark email as read", "uid", req.UID, "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to mark as read"})
+		util.JSONError(w, "failed to mark as read", http.StatusInternalServerError)
 		return
 	}
 
