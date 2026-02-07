@@ -107,7 +107,6 @@ func (c *Client) GetLinkedAccount() (*Account, error) {
 	return &Account{Number: accounts[0].Number}, nil
 }
 
-// CreateGroup creates a Signal group using updateGroup JSON-RPC method
 func (c *Client) CreateGroup(name string) (string, string, error) {
 	if c == nil {
 		return "", "", fmt.Errorf("signal client not initialized")
@@ -123,7 +122,7 @@ func (c *Client) CreateGroup(name string) (string, string, error) {
 
 	params := map[string]interface{}{
 		"name":   name,
-		"member": []string{}, // Empty group
+		"member": []string{},
 	}
 
 	result, err := c.CallWithAccount("updateGroup", params, account.Number)
@@ -145,7 +144,6 @@ func (c *Client) CreateGroup(name string) (string, string, error) {
 	return response.GroupID, account.Number, nil
 }
 
-// SendGroupMessage sends a message to a Signal group
 func (c *Client) SendGroupMessage(groupID, message string) error {
 	if c == nil {
 		return fmt.Errorf("signal client not initialized")
@@ -160,9 +158,9 @@ func (c *Client) SendGroupMessage(groupID, message string) error {
 	}
 
 	params := map[string]interface{}{
-		"groupId":     groupID,
-		"message":     message,
-		"notify-self": true,
+		"groupId":    groupID,
+		"message":    message,
+		"notifySelf": true,
 	}
 
 	_, err = c.CallWithAccount("send", params, account.Number)

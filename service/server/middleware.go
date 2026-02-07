@@ -51,14 +51,16 @@ func loggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode    int
+	headerWritten bool
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
-	if rw.statusCode == http.StatusOK {
+	if !rw.headerWritten {
 		rw.statusCode = code
+		rw.ResponseWriter.WriteHeader(code)
+		rw.headerWritten = true
 	}
-	rw.ResponseWriter.WriteHeader(code)
 }
 
 func securityHeadersMiddleware() func(http.Handler) http.Handler {

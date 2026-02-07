@@ -66,7 +66,7 @@ func (m *Monitor) monitor(ctx context.Context) error {
 		case <-m.newMessagesChan:
 			idleCmd.Close()
 
-			m.sendNotification() // Errors already logged in sendNotification()
+			m.sendNotification()
 
 			idleCmd, err = m.client.Idle()
 			if err != nil {

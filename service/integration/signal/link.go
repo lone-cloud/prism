@@ -37,7 +37,6 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 		return l.qrCode, nil
 	}
 
-	// Call signal-cli's startLink JSON-RPC method directly
 	result, err := l.client.Call("startLink", nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to start link: %w", err)
