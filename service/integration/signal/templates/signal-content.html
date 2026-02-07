@@ -15,7 +15,11 @@
 	<li>Go to Settings → Linked Devices</li>
 	<li>Scan the QR code below</li>
 </ol>
-<div class="qr-code-container">
+<div class="qr-code-container" 
+     hx-get="/fragment/signal" 
+     hx-trigger="every 3s" 
+     hx-swap="outerHTML" 
+     hx-target="closest .integration-card">
 	<img src="{{.QRCode}}" alt="Signal QR Code" class="qr-code"/>
 </div>
 	{{end}}
