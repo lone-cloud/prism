@@ -29,14 +29,14 @@ jobs:
         COMMIT=$(git rev-parse --short HEAD)
         
         # Linux AMD64
-        CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+          -trimpath \
           -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
           -o prism-linux-amd64 .
         
         # Linux ARM64
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
-        CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build \
+        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+          -trimpath \
           -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
           -o prism-linux-arm64 .
     
