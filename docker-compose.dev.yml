@@ -1,9 +1,7 @@
 services:
   prism:
     container_name: prism
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/lone-cloud/prism:dev
     ports:
       - '8080:8080'
     environment:

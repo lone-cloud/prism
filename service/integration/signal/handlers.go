@@ -67,7 +67,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 		integData.StatusClass = "unlinked"
 		integData.StatusText = "Unlinked"
 		integData.Open = true
-		integData.PollAttrs = `hx-get="/fragment/signal" hx-trigger="every 3s" hx-swap="outerHTML"`
+		integData.PollAttrs = ""
 
 		contentData.Linked = false
 		qrCode, err := h.linkDevice.GenerateQR()
