@@ -16,7 +16,7 @@ services:
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_ADDR=${PROTON_BRIDGE_ADDR:-protonmail-bridge:143}
     volumes:
-      - prism-data:/root/.local/share/prism
+      - prism-data:/app/data
       - signal-socket:/home/signal/.signal-cli:ro
     restart: unless-stopped
 
