@@ -9,12 +9,17 @@ services:
       - API_KEY=${API_KEY:-}
       - VERBOSE_LOGGING=${VERBOSE_LOGGING:-false}
       - RATE_LIMIT=${RATE_LIMIT:-100}
+      - DEVICE_NAME=${DEVICE_NAME:-Prism}
+      - STORAGE_PATH=${STORAGE_PATH:-./data/prism.db}
       - FEATURE_ENABLE_SIGNAL=${FEATURE_ENABLE_SIGNAL:-false}
       - SIGNAL_SOCKET=/home/signal/.signal-cli/socket
       - FEATURE_ENABLE_PROTON=${FEATURE_ENABLE_PROTON:-false}
       - PROTON_IMAP_USERNAME=${PROTON_IMAP_USERNAME:-}
       - PROTON_IMAP_PASSWORD=${PROTON_IMAP_PASSWORD:-}
       - PROTON_BRIDGE_ADDR=${PROTON_BRIDGE_ADDR:-protonmail-bridge:143}
+      - FEATURE_ENABLE_TELEGRAM=${FEATURE_ENABLE_TELEGRAM:-false}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     volumes:
       - prism-data:/app/data
       - signal-socket:/home/signal/.signal-cli:ro

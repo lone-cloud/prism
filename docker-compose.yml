@@ -9,6 +9,8 @@ services:
       - API_KEY=${API_KEY:-}
       - VERBOSE_LOGGING=${VERBOSE_LOGGING:-false}
       - RATE_LIMIT=${RATE_LIMIT:-100}
+      - DEVICE_NAME=${DEVICE_NAME:-Prism}
+      - STORAGE_PATH=${STORAGE_PATH:-./data/prism.db}
       - FEATURE_ENABLE_SIGNAL=${FEATURE_ENABLE_SIGNAL:-false}
       - SIGNAL_SOCKET=/home/signal/.signal-cli/socket
       - FEATURE_ENABLE_PROTON=${FEATURE_ENABLE_PROTON:-false}
