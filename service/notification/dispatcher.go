@@ -3,6 +3,8 @@ package notification
 import (
 	"fmt"
 	"log/slog"
+
+	"prism/service/util"
 )
 
 type NotificationSender interface {
@@ -56,8 +58,7 @@ func (d *Dispatcher) IsValidChannel(channel Channel) bool {
 func (d *Dispatcher) Send(appName string, notif Notification) error {
 	mapping, err := d.store.GetApp(appName)
 	if err != nil {
-		d.logger.Error("Failed to get app mapping", "app", appName, "error", err)
-		return fmt.Errorf("failed to get mapping: %w", err)
+		return util.LogError(d.logger, "Failed to get app mapping", err, "app", appName)
 	}
 
 	if mapping == nil {
@@ -65,14 +66,16 @@ func (d *Dispatcher) Send(appName string, notif Notification) error {
 
 		availableChannels := d.GetAvailableChannels()
 		if err := d.store.RegisterDefault(appName, availableChannels); err != nil {
-			d.logger.Error("Failed to register app", "app", appName, "error", err)
-			return fmt.Errorf("failed to register app: %w", err)
+			return util.LogError(d.logger, "Failed to register app", err, "app", appName)
 		}
 
 		mapping, err = d.store.GetApp(appName)
 		if err != nil {
-			d.logger.Error("Failed to get mapping after registration", "app", appName, "error", err)
-			return fmt.Errorf("failed to get mapping after registration: %w", err)
+			return util.LogError(d.logger, "Failed to get mapping after registration", err, "app", appName)
+		}
+
+		if mapping == nil {
+			return fmt.Errorf("mapping still nil after registration for app: %s", appName)
 		}
 	}
 

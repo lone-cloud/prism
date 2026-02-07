@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"prism/service/notification"
+	"prism/service/util"
 )
 
 type Sender struct {
@@ -28,8 +29,7 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 
 	account, err := s.client.GetLinkedAccount()
 	if err != nil {
-		s.logger.Error("Failed to get linked account", "error", err)
-		return fmt.Errorf("failed to get linked account: %w", err)
+		return util.LogError(s.logger, "Failed to get linked account", err)
 	}
 	if account == nil {
 		s.logger.Error("No linked Signal account found")
@@ -52,8 +52,7 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 
 		newGroupID, accountNumber, err := s.client.CreateGroup(mapping.AppName)
 		if err != nil {
-			s.logger.Error("Failed to create group", "app", mapping.AppName, "error", err)
-			return fmt.Errorf("failed to create group: %w", err)
+			return util.LogError(s.logger, "Failed to create group", err, "app", mapping.AppName)
 		}
 		signalGroupID = newGroupID
 
@@ -63,7 +62,7 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 			GroupID: signalGroupID,
 			Account: accountNumber,
 		}); err != nil {
-			s.logger.Warn("Failed to update signal subscription", "error", err)
+			return util.LogError(s.logger, "Failed to persist signal group", err)
 		}
 	} else {
 		signalGroupID = mapping.Signal.GroupID

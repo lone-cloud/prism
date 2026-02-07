@@ -89,3 +89,9 @@ func NewLogger(verbose bool) *slog.Logger {
 
 	return slog.New(handler)
 }
+
+func LogError(logger *slog.Logger, msg string, err error, attrs ...any) error {
+	allAttrs := append([]any{"error", err}, attrs...)
+	logger.Error(msg, allAttrs...)
+	return fmt.Errorf("%s: %w", msg, err)
+}
