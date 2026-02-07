@@ -19,10 +19,12 @@ func NewStore(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath+"?_busy_timeout=5000&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
@@ -85,18 +87,23 @@ func (s *Store) Register(appName string, channel *Channel, signal *SignalSubscri
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(appName) DO UPDATE SET
 			channel = excluded.channel,
-			signalGroupId = excluded.signalGroupId,
-			signalAccount = excluded.signalAccount,
-			pushEndpoint = excluded.pushEndpoint,
-			p256dh = excluded.p256dh,
-			auth = excluded.auth,
-			vapidPrivateKey = excluded.vapidPrivateKey
+			signalGroupId = COALESCE(excluded.signalGroupId, mappings.signalGroupId),
+			signalAccount = COALESCE(excluded.signalAccount, mappings.signalAccount),
+			pushEndpoint = COALESCE(excluded.pushEndpoint, mappings.pushEndpoint),
+			p256dh = COALESCE(excluded.p256dh, mappings.p256dh),
+			auth = COALESCE(excluded.auth, mappings.auth),
+			vapidPrivateKey = COALESCE(excluded.vapidPrivateKey, mappings.vapidPrivateKey)
 	`
 	_, err := s.db.Exec(query, appName, signalGroupID, signalAccount, ch, pushEndpoint, p256dh, auth, vapidPrivateKey)
 	return err
 }
 
 func (s *Store) RegisterDefault(appName string, availableChannels []Channel) error {
+	existing, _ := s.GetApp(appName)
+	if existing != nil && (existing.Signal != nil || existing.WebPush != nil) {
+		return fmt.Errorf("app %s already exists with subscriptions, refusing to overwrite", appName)
+	}
+
 	var channel Channel
 	if len(availableChannels) > 0 {
 		channel = availableChannels[0]
