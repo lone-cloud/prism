@@ -23,11 +23,6 @@ jobs:
       run: |
         echo "tag=$(cat VERSION)" >> $GITHUB_OUTPUT
     
-    - name: Install UPX
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y upx-ucl
-    
     - name: Build binaries
       run: |
         VERSION=$(cat VERSION)
@@ -37,14 +32,13 @@ jobs:
         CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
           -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
           -o prism-linux-amd64 .
-        upx --best --lzma prism-linux-amd64
         
         # Linux ARM64
+        sudo apt-get update
         sudo apt-get install -y gcc-aarch64-linux-gnu
         CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build \
           -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
           -o prism-linux-arm64 .
-        upx --best --lzma prism-linux-arm64
     
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
