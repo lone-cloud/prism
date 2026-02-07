@@ -19,7 +19,7 @@ func NewStore(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath+"?_busy_timeout=5000&cache=shared")
+	db, err := sql.Open("sqlite", dbPath+"?_busy_timeout=5000&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
