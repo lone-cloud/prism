@@ -1,4 +1,4 @@
-.PHONY: all build build-linux run dev fmt lint vet clean install-tools deps docker-build docker-run docker-down release
+.PHONY: all build build-linux run dev fmt lint vet clean install-tools deps check-updates update update-all docker-build docker-run docker-down release
 
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")
@@ -45,7 +45,15 @@ deps:
 	go mod tidy
 
 check-updates:
-	@go list -u -m all | grep -v "indirect" | grep "=>" || echo "All dependencies are up to date"
+	@go list -u -m -f '{{if not .Indirect}}{{.Path}} {{.Version}}{{if .Update}} [{{.Update.Version}}]{{end}}{{end}}' all | grep "\[" || echo "All dependencies are up to date"
+
+update:
+	go get -u ./...
+	go mod tidy
+
+update-all:
+	go get -u all
+	go mod tidy
 
 docker-build:
 	docker build -t prism:$(VERSION) .
