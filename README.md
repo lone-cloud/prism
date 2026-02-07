@@ -105,6 +105,7 @@ All notifications will now be sent to your Telegram chat. Unlike Signal, Telegra
 Receive notifications when new Proton Mail emails arrive.
 Unlike other integrations, this one will generate new messages to be delivered by one of the configured transports.
 Note that using this integration requires a paid Proton Mail account to be able to use the Proton Mail Bridge that this integration relies on.
+Also note that the Proton Mail Bridge is RAM hungry.
 
 > **Note:** The default image (`shenxn/protonmail-bridge:build`) used by Prism compiles from source and supports all architectures. For x86_64 only, you can use `shenxn/protonmail-bridge:latest` (smaller, faster).
 
@@ -246,8 +247,25 @@ curl -X DELETE http://localhost:8080/webpush/app/my-app \
 
 The health of the system can be viewed in the same admin UI used for linking Signal. Prism uses [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) - provide your `API_KEY` as the password (username can be anything).
 
-For API-based monitoring, call `/api/health` which returns JSON:
+### Health Endpoints
+
+#### GET /health
+
+Public health check endpoint (no authentication required). Returns `200 OK` when the service is running. Used for Docker health checks and load balancer health probes.
+
+```bash
+curl http://localhost:8080/health
+```
+
+#### GET /api/health
+
+Detailed health endpoint (requires authentication). Returns JSON with uptime and integration status:
+
+```bash
+curl http://localhost:8080/api/health \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
 
 ```json
-{"uptime":"3s","signal":{"linked":true},"proton":{"linked":true},"telegram":{"linked":true}}
+{"version":"1.0.0","uptime":"3s","signal":{"linked":true},"proton":{"linked":true},"telegram":{"linked":true}}
 ```
