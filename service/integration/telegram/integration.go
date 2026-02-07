@@ -44,6 +44,10 @@ func (t *Integration) GetSender() *Sender {
 	return t.sender
 }
 
+func (t *Integration) GetHandlers() *Handlers {
+	return t.handlers
+}
+
 func (t *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
 	RegisterRoutes(router, t.handlers, auth)
 }

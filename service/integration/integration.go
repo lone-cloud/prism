@@ -25,6 +25,7 @@ type Integration interface {
 type Integrations struct {
 	Dispatcher   *notification.Dispatcher
 	Signal       *signal.Integration
+	Telegram     *telegram.Integration
 	integrations []Integration
 }
 
@@ -51,6 +52,7 @@ func Initialize(cfg *config.Config, store *notification.Store, logger *slog.Logg
 	return &Integrations{
 		Dispatcher:   dispatcher,
 		Signal:       signalIntegration,
+		Telegram:     telegramIntegration,
 		integrations: integrations,
 	}
 }
