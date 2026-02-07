@@ -17,7 +17,8 @@ type healthResponse struct {
 }
 
 type integrationHealth struct {
-	Linked bool `json:"linked"`
+	Linked  bool   `json:"linked"`
+	Account string `json:"account,omitempty"`
 }
 
 func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
@@ -35,20 +36,35 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if s.integrations.Signal != nil && s.integrations.Signal.IsEnabled() {
 		signalClient := s.integrations.Signal.GetHandlers().GetClient()
 		account, _ := signalClient.GetLinkedAccount()
-		resp.Signal = &integrationHealth{
-			Linked: account != nil,
+		if account != nil {
+			resp.Signal = &integrationHealth{
+				Linked:  true,
+				Account: account.Number,
+			}
+		} else {
+			resp.Signal = &integrationHealth{
+				Linked: false,
+			}
 		}
 	}
 
 	if s.cfg.IsProtonEnabled() {
 		resp.Proton = &integrationHealth{
-			Linked: true,
+			Linked:  true,
+			Account: s.cfg.ProtonIMAPUsername,
 		}
 	}
 
-	if s.cfg.IsTelegramEnabled() {
-		resp.Telegram = &integrationHealth{
-			Linked: true,
+	if s.integrations.Telegram != nil && s.integrations.Telegram.IsEnabled() {
+		telegramClient := s.integrations.Telegram.GetHandlers().GetClient()
+		if telegramClient != nil {
+			bot, err := telegramClient.GetMe()
+			if err == nil {
+				resp.Telegram = &integrationHealth{
+					Linked:  true,
+					Account: "@" + bot.Username,
+				}
+			}
 		}
 	}
 
