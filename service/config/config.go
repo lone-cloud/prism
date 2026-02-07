@@ -7,26 +7,22 @@ import (
 )
 
 type Config struct {
-	Port           int
-	APIKey         string
-	VerboseLogging bool
-	RateLimit      int
-
+	TelegramChatID      int64
+	Port                int
+	RateLimit           int
+	APIKey              string
 	DeviceName          string
 	PrismEndpointPrefix string
-	EnableSignal        bool
 	SignalSocket        string
-
-	EnableProton       bool
-	ProtonIMAPUsername string
-	ProtonIMAPPassword string
-	ProtonBridgeAddr   string
-
-	EnableTelegram   bool
-	TelegramBotToken string
-	TelegramChatID   int64
-
-	StoragePath string
+	ProtonIMAPUsername  string
+	ProtonIMAPPassword  string
+	ProtonBridgeAddr    string
+	TelegramBotToken    string
+	StoragePath         string
+	VerboseLogging      bool
+	EnableSignal        bool
+	EnableProton        bool
+	EnableTelegram      bool
 }
 
 func Load() (*Config, error) {

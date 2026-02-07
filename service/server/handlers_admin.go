@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,7 +20,7 @@ func (s *Server) handleGetMappings(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(mappings); err != nil {
-		slog.Error("Failed to encode response", "error", err)
+		s.logger.Error("Failed to encode response", "error", err)
 	}
 }
 
@@ -109,8 +108,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.UpdateChannel(appName, req.Channel); err != nil {
-		s.logger.Error("Failed to update channel", "error", err)
-		http.Error(w, "Failed to update channel", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to update channel", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -123,14 +121,13 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGetStats(w http.ResponseWriter, r *http.Request) {
 	mappings, err := s.store.GetAllMappings()
 	if err != nil {
-		s.logger.Error("Failed to get mappings", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.LogAndError(w, s.logger, "Failed to get mappings", http.StatusInternalServerError, err)
 		return
 	}
 
 	uptime := time.Since(s.startTime)
 
-	stats := map[string]interface{}{
+	stats := map[string]any{
 		"uptime":        util.FormatUptime(uptime),
 		"uptimeSeconds": int(uptime.Seconds()),
 		"mappingsCount": len(mappings),

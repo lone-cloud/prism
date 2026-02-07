@@ -9,18 +9,19 @@ import (
 	"time"
 
 	"prism/service/notification"
+	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
-	topic := chi.URLParam(r, "endpoint")
-	if topic == "" {
-		topic = chi.URLParam(r, "topic")
+	appName := chi.URLParam(r, "appName")
+	if appName == "" {
+		appName = chi.URLParam(r, "endpoint")
 	}
-	topic, _ = url.QueryUnescape(topic)
-	if topic == "" || strings.Contains(topic, "/") {
-		http.Error(w, "Invalid topic", http.StatusBadRequest)
+	appName, _ = url.QueryUnescape(appName)
+	if appName == "" || strings.Contains(appName, "/") {
+		http.Error(w, "Invalid app name", http.StatusBadRequest)
 		return
 	}
 
@@ -30,24 +31,25 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := string(body)
-	if message == "" {
-		http.Error(w, "Message required", http.StatusBadRequest)
-		return
-	}
-	title := r.Header.Get("X-Title")
-	if title == "" {
-		title = r.Header.Get("Title")
-	}
-	if title == "" {
-		title = r.Header.Get("t")
-	}
-
+	var message, title string
 	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
-		if values, err := url.ParseQuery(message); err == nil {
-			if m := values.Get("message"); m != "" {
-				message = m
+
+	if strings.Contains(contentType, "application/json") {
+		var payload struct {
+			Title   string `json:"title"`
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(body, &payload); err == nil {
+			message = payload.Message
+			title = payload.Title
+		} else {
+			message = string(body)
+		}
+	} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		if values, err := url.ParseQuery(string(body)); err == nil {
+			message = values.Get("message")
+			if message == "" {
+				message = string(body)
 			}
 			if title == "" {
 				if t := values.Get("title"); t != "" {
@@ -56,10 +58,29 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 					title = t
 				}
 			}
+		} else {
+			message = string(body)
+		}
+	} else {
+		message = string(body)
+	}
+
+	if title == "" {
+		title = r.Header.Get("X-Title")
+		if title == "" {
+			title = r.Header.Get("Title")
+		}
+		if title == "" {
+			title = r.Header.Get("t")
 		}
 	}
 
-	if title == topic {
+	if message == "" {
+		http.Error(w, "Message required", http.StatusBadRequest)
+		return
+	}
+
+	if title == appName {
 		title = ""
 	}
 
@@ -68,20 +89,20 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		Message: message,
 	}
 
-	if err := s.dispatcher.Send(topic, notif); err != nil {
-		s.logger.Error("Failed to send notification", "app", topic, "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	if err := s.dispatcher.Send(appName, notif); err != nil {
+		util.LogAndError(w, s.logger, "Failed to send notification", http.StatusInternalServerError, err, "app", appName)
 		return
 	}
 
-	s.logger.Debug("Sent ntfy message", "topic", topic, "preview", truncate(message, 50))
+	s.logger.Debug("Sent ntfy message", "app", appName, "preview", truncate(message, 50))
 
+	now := time.Now()
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{
-		"id":      time.Now().UnixNano(),
-		"time":    time.Now().Unix(),
+	response := map[string]any{
+		"id":      now.UnixNano(),
+		"time":    now.Unix(),
 		"event":   "message",
-		"topic":   topic,
+		"topic":   appName,
 		"message": message,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {

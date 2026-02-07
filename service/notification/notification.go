@@ -1,10 +1,10 @@
 package notification
 
 type Action struct {
-	ID       string                 `json:"id"`
-	Endpoint string                 `json:"endpoint"`
-	Method   string                 `json:"method"`
-	Data     map[string]interface{} `json:"data,omitempty"`
+	ID       string         `json:"id"`
+	Endpoint string         `json:"endpoint"`
+	Method   string         `json:"method"`
+	Data     map[string]any `json:"data,omitempty"`
 }
 
 type Notification struct {
@@ -68,8 +68,8 @@ type SignalSubscription struct {
 }
 
 type Mapping struct {
-	AppName string
-	Channel Channel
 	Signal  *SignalSubscription
 	WebPush *WebPushSubscription
+	AppName string
+	Channel Channel
 }

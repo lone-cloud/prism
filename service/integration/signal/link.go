@@ -62,7 +62,7 @@ func (l *LinkDevice) GenerateQR() (string, error) {
 }
 
 func (l *LinkDevice) finishLink() {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"deviceLinkUri": l.deviceLinkUri,
 		"deviceName":    l.deviceName,
 	}

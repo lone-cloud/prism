@@ -4,15 +4,15 @@
 
 # Prism
 
-**Self-hosted notification gateway using WebPush and optional Signal for transport**
+**Self-hosted notification gateway**
 
-[Setup](#setup) • [Real-World Examples](#real-world-examples) • [Architecture](#architecture)
+[Setup](#setup) • [Real-World Examples](#real-world-examples)
 
 </div>
 
 <!-- markdownlint-enable MD033 -->
 
-Prism is a self-hosted notification gateway that receives HTTP requests and routes them through WebPush apps or optionally through Signal groups. Route notifications through Signal to avoid exposing unique network fingerprints, or forward them to your own WebPush apps for custom handling.
+Prism is a self-hosted notification gateway. Prism can receive messages and route them to Signal, Telegram or WebPush URLs. Messages can be sent via Webhooks or from an optional Proton Mail integration.
 
 ## Setup
 
@@ -31,7 +31,7 @@ nano .env  # Set API_KEY=your-secret-key-here
 docker compose up -d
 ```
 
-Prism is now running at <http://localhost:8080>. By default, all notifications use WebPush (encrypted push notifications or plain HTTP webhooks). Enable optional integrations below for Signal or Telegram delivery, or Proton Mail monitoring.
+Prism is now running at <http://localhost:8080>. Enable optional integrations below for custom functionality.
 
 ## Integrations
 
@@ -39,7 +39,8 @@ All integrations are optional. Enable only what you need.
 
 ### Signal
 
-Send notifications through Signal groups instead of WebPush.
+Send notifications through Signal groups.
+Each registered app will route messages to private Signal groups matching the app name.
 
 **1. Enable Signal in `.env`:**
 
@@ -47,7 +48,7 @@ Send notifications through Signal groups instead of WebPush.
 FEATURE_ENABLE_SIGNAL=true
 ```
 
-**2. Start Prism with Signal:**
+**2. Start Prism with the Signal service:**
 
 ```bash
 docker compose --profile signal up -d
@@ -59,13 +60,12 @@ Visit <http://localhost:8080>, authenticate with your API_KEY, and scan the QR c
 
 **Settings → Linked Devices → Link New Device**
 
-![QR code linking screen](assets/screenshots/2.webp)
-
 Once linked, new apps will default to Signal delivery.
 
 ### Telegram
 
-Send notifications through Telegram instead of WebPush.
+Send notifications through Telegram instead.
+Unlike the Signal integration, Telegram relies on creating a Telegram bot as it will serve as the notifications messenger.
 
 **1. Create a Telegram bot:**
 
@@ -103,10 +103,12 @@ All notifications will now be sent to your Telegram chat. Unlike Signal, Telegra
 ### Proton Mail
 
 Receive notifications when new Proton Mail emails arrive.
+Unlike other integrations, this one will generate new messages to be delivered by one of the configured transports.
+Note that using this integration requires a paid Proton Mail account to be able to use the Proton Mail Bridge that this integration relies on.
 
-> **Note:** The default image (`shenxn/protonmail-bridge:build`) compiles from source and supports all architectures. For x86_64 only, you can use `shenxn/protonmail-bridge:latest` (smaller, faster).
+> **Note:** The default image (`shenxn/protonmail-bridge:build`) used by Prism compiles from source and supports all architectures. For x86_64 only, you can use `shenxn/protonmail-bridge:latest` (smaller, faster).
 
-**1. Initialize the bridge:**
+**1. Initialize the Proton Mail Bridge:**
 
 ```bash
 docker compose run --rm protonmail-bridge init
@@ -140,14 +142,8 @@ PROTON_IMAP_PASSWORD=password-from-info-command
 **5. Start Prism with Proton Mail:**
 
 ```bash
-# Start only Prism + Proton Mail
 docker compose --profile proton up -d
-
-# Or with Signal + Proton Mail
-docker compose --profile signal --profile proton up -d
 ```
-
-Prism will now forward Proton Mail notifications to your configured channel (Signal, Telegram, or WebPush).
 
 ## Real-World Examples
 
@@ -185,9 +181,9 @@ Reboot your Home Assistant system and you'll then be able to send Signal notific
 
 ### Send Notification
 
-#### POST /{topic}
+#### POST /{appName}
 
-Send a notification to a registered app/topic. Compatible with ntfy format.
+Send a notification. Compatible with ntfy format.
 
 ```bash
 curl -X POST http://localhost:8080/my-app \
@@ -253,18 +249,5 @@ The health of the system can be viewed in the same admin UI used for linking Sig
 For API-based monitoring, call `/api/health` which returns JSON:
 
 ```json
-{"uptime":"3s","signal":{"daemon":"running","linked":true},"protonMail":"connected"}
+{"uptime":"3s","signal":{"linked":true},"proton":{"linked":true},"telegram":{"linked":true}}
 ```
-
-## Architecture
-
-Prism accepts notifications via HTTP POST requests and routes them based on your configured delivery method:
-
-- **WebPush** (default): Supports both encrypted WebPush (with VAPID signing and payload encryption) and plain HTTP webhooks
-  - **Encrypted WebPush**: Full WebPush protocol with end-to-end encryption - requires `appName`, `pushEndpoint`, `p256dh`, `auth`, and `vapidPrivateKey`
-  - **Plain webhooks**: Simple JSON POST to any HTTP endpoint - only requires `appName` and `pushEndpoint`
-- **Signal groups** (optional): Uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) to create a Signal group for each app and send notifications as messages
-
-Each app can be independently configured to use either delivery method through the admin UI.
-
-For the optional Proton Mail integration, Prism requires a server that runs Proton's official [proton-bridge](https://github.com/ProtonMail/proton-bridge). Prism's docker compose process will run an image from [protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker). Once authenticated, the communication between Prism and proton-bridge will be over IMAP.

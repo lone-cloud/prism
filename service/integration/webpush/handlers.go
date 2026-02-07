@@ -40,16 +40,12 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.AppName == "" || req.PushEndpoint == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "appName and pushEndpoint are required"})
+		util.JSONError(w, "appName and pushEndpoint are required", http.StatusBadRequest)
 		return
 	}
 
 	if _, err := url.Parse(req.PushEndpoint); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid pushEndpoint URL"})
+		util.JSONError(w, "Invalid pushEndpoint URL", http.StatusBadRequest)
 		return
 	}
 
@@ -82,8 +78,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	} else {
 		channel := notification.ChannelWebPush
 		if err := h.store.Register(req.AppName, &channel, nil, webPush); err != nil {
-			h.logger.Error("Failed to register webpush endpoint", "error", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			util.LogAndError(w, h.logger, "Failed to register webpush endpoint", http.StatusInternalServerError, err)
 			return
 		}
 		h.logger.Info("Registered new webpush endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
@@ -105,8 +100,7 @@ func (h *Handlers) HandleUnregister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.ClearWebPush(appName); err != nil {
-		h.logger.Error("Failed to clear webpush endpoint", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.LogAndError(w, h.logger, "Failed to clear webpush endpoint", http.StatusInternalServerError, err)
 		return
 	}
 

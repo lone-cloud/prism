@@ -3,6 +3,7 @@ package notification
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"prism/service/util"
 )
@@ -85,5 +86,31 @@ func (d *Dispatcher) Send(appName string, notif Notification) error {
 		return fmt.Errorf("no sender for channel: %s", mapping.Channel)
 	}
 
-	return sender.Send(mapping, notif)
+	return d.sendWithRetry(sender, mapping, notif, appName)
+}
+
+func (d *Dispatcher) sendWithRetry(sender NotificationSender, mapping *Mapping, notif Notification, appName string) error {
+	maxRetries := 3
+	baseDelay := 100 * time.Millisecond
+
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := sender.Send(mapping, notif)
+		if err == nil {
+			if attempt > 0 {
+				d.logger.Info("Notification sent after retry", "app", appName, "attempt", attempt+1)
+			}
+			return nil
+		}
+
+		lastErr = err
+		if attempt < maxRetries-1 {
+			delay := baseDelay * time.Duration(1<<uint(attempt))
+			d.logger.Warn("Failed to send notification, retrying", "app", appName, "attempt", attempt+1, "error", err, "retryIn", delay)
+			time.Sleep(delay)
+		}
+	}
+
+	d.logger.Error("Failed to send notification after retries", "app", appName, "attempts", maxRetries, "error", lastErr)
+	return lastErr
 }
