@@ -19,7 +19,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     volumes:
-      - prism-data:/root/.local/share/prism
+      - prism-data:/app/data
       - signal-socket:/home/signal/.signal-cli:ro
     restart: unless-stopped
 
