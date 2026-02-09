@@ -99,12 +99,12 @@ func (s *Server) setupRoutes() {
 	r.Use(rateLimitMiddleware(s.cfg.RateLimit))
 	r.Use(maxBodySizeMiddleware(1 << 20))
 
+	r.Get("/health", s.handleHealthCheck)
+	r.Head("/health", s.handleHealthCheck)
 	r.Get("/", s.handleIndex)
 	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/favicon.webp", http.StatusMovedPermanently)
 	})
-
-	r.Get("/health", s.handleHealthCheck)
 
 	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
 
