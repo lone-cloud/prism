@@ -1,26 +1,26 @@
 {{if .Linked}}
-<p><strong>Unlink Instructions:</strong></p>
+<p><strong>To unlink:</strong></p>
 <ol class="link-instructions">
 	<li>Open Signal on your phone</li>
 	<li>Go to Settings → Linked Devices</li>
-	<li>Find and remove <strong>{{.DeviceName}}</strong></li>
+	<li>Find and remove this device</li>
 </ol>
 {{else}}
 	{{if .Error}}
-<p>Error generating QR code: {{.Error}}</p>
+<p class="channel-not-configured">{{.Error}}</p>
 	{{else}}
-<p><strong>Link your Signal (or <a href="https://molly.im" target="_blank" rel="noopener">Molly</a>) account:</strong></p>
-<ol class="link-instructions">
-	<li>Open Signal on your phone</li>
-	<li>Go to Settings → Linked Devices</li>
-	<li>Scan the QR code below</li>
-</ol>
-<div class="qr-code-container" 
-     hx-get="/fragment/signal" 
-     hx-trigger="every 3s" 
-     hx-swap="outerHTML" 
-     hx-target="closest .integration-card">
-	<img src="{{.QRCode}}" alt="Signal QR Code" class="qr-code"/>
+<button id="signal-link-btn" class="btn-primary">Link Device</button>
+<div id="signal-qr-container" class="qr-container" style="display:none;">
+	<p><strong>Scan this QR code with Signal:</strong></p>
+	<ol class="link-instructions">
+		<li>Open Signal on your phone</li>
+		<li>Go to Settings → Linked Devices</li>
+		<li>Tap "+" or "Link New Device"</li>
+		<li>Scan the QR code below</li>
+	</ol>
+	<div class="qr-code-wrapper">
+		<img id="signal-qr-code" alt="Signal QR Code">
+	</div>
 </div>
 	{{end}}
 {{end}}

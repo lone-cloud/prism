@@ -14,9 +14,6 @@ import (
 
 	"prism/service/config"
 	"prism/service/integration"
-	"prism/service/integration/proton"
-	"prism/service/integration/signal"
-	"prism/service/integration/telegram"
 	"prism/service/notification"
 	"prism/service/util"
 
@@ -55,21 +52,11 @@ func New(cfg *config.Config, publicAssets embed.FS) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse fragment templates: %w", err)
 	}
-	fragmentTmpl, err = fragmentTmpl.ParseFS(signal.GetTemplates(), "templates/*.html")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse signal templates: %w", err)
-	}
-	fragmentTmpl, err = fragmentTmpl.ParseFS(telegram.GetTemplates(), "templates/*.html")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse telegram templates: %w", err)
-	}
-	fragmentTmpl, err = fragmentTmpl.ParseFS(proton.GetTemplates(), "templates/*.html")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse proton templates: %w", err)
-	}
 
-	templateRenderer := util.NewTemplateRenderer(fragmentTmpl)
-	integrations := integration.Initialize(cfg, store, logger, templateRenderer)
+	integrations, fragmentTmpl, err := integration.Initialize(cfg, store, logger, fragmentTmpl)
+	if err != nil {
+		return nil, err
+	}
 
 	version := "dev"
 	if versionBytes, err := os.ReadFile("VERSION"); err == nil {

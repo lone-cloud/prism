@@ -56,6 +56,11 @@ func (d *Dispatcher) IsValidChannel(channel Channel) bool {
 	return channel.IsAvailable(d.HasSignal(), d.HasTelegram())
 }
 
+func (d *Dispatcher) RegisterApp(appName string) error {
+	availableChannels := d.GetAvailableChannels()
+	return d.store.RegisterDefault(appName, availableChannels)
+}
+
 func (d *Dispatcher) Send(appName string, notif Notification) error {
 	mapping, err := d.store.GetApp(appName)
 	if err != nil {
@@ -90,8 +95,8 @@ func (d *Dispatcher) Send(appName string, notif Notification) error {
 }
 
 func (d *Dispatcher) sendWithRetry(sender NotificationSender, mapping *Mapping, notif Notification, appName string) error {
-	maxRetries := 3
-	baseDelay := 100 * time.Millisecond
+	maxRetries := 10
+	baseDelay := 500 * time.Millisecond
 
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {

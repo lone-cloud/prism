@@ -1,4 +1,4 @@
-.PHONY: all build build-linux run dev fmt lint vet clean install-tools deps check-updates update update-all docker-build docker-run docker-down release
+.PHONY: all build build-linux run dev lint fix vet clean install-tools deps check-updates update update-all docker-build docker-run docker-down release
 
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")
@@ -6,7 +6,7 @@ COMMIT?=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GOBIN?=$(shell command -v go >/dev/null 2>&1 && go env GOPATH || echo "${HOME}/go")/bin
 export PATH := $(GOBIN):$(PATH)
 
-all: fmt lint build
+all: fix build
 
 build:
 	go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) .
@@ -18,15 +18,11 @@ dev:
 	@which air > /dev/null || (echo "Installing air..." && go install github.com/air-verse/air@latest)
 	air
 
-fmt:
+fix:
 	gofmt -s -w .
 	goimports -w .
-
-lint:
-	golangci-lint run
-
-fix:
 	golangci-lint run --fix
+	npx @biomejs/biome@latest check --write --unsafe .
 
 vet:
 	go vet ./...
@@ -39,6 +35,24 @@ install-tools:
 	@echo "Installing Go tools to $(GOBIN)..."
 	go install golang.org/x/tools/cmd/goimports@latest
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.8.0
+	@echo "Installing signal-cli native binary..."
+	@ARCH=$$(uname -m); \
+	case $$ARCH in \
+		x86_64) SIGNAL_ARCH=amd64 ;; \
+		aarch64) SIGNAL_ARCH=arm64 ;; \
+		*) echo "Unsupported architecture: $$ARCH"; exit 1 ;; \
+	esac; \
+	TMP_DIR=$$(mktemp -d); \
+	cd $$TMP_DIR && \
+	curl -L -o signal-cli.gz \
+		https://media.projektzentrisch.de/temp/signal-cli/signal-cli_ubuntu2004_$${SIGNAL_ARCH}.gz && \
+	gunzip signal-cli.gz && \
+	sudo mv signal-cli /usr/local/bin/signal-cli && \
+	sudo chmod +x /usr/local/bin/signal-cli && \
+	cd - && \
+	rm -rf $$TMP_DIR && \
+	signal-cli --version && \
+	echo "signal-cli installed successfully to /usr/local/bin/signal-cli"
 
 deps:
 	go mod download
@@ -55,20 +69,8 @@ update-all:
 	go get -u all
 	go mod tidy
 
-docker-build:
-	docker build -t prism:$(VERSION) .
-
 docker-up:
 	docker compose -f docker-compose.dev.yml up -d
-
-docker-down:
-	docker compose -f docker-compose.dev.yml down
-
-docker-up-proton:
-	docker compose -f docker-compose.dev.yml up -d protonmail-bridge
-
-docker-up-signal:
-	docker compose -f docker-compose.dev.yml up -d signal-cli
 
 release:
 	@if [ ! -f VERSION ]; then \
@@ -84,7 +86,3 @@ release:
 release-dev:
 	@echo "Triggering dev Docker image build..."
 	gh workflow run release-dev.yml
-
-release-signal:
-	@echo "Triggering signal-cli image release via GitHub Actions..."
-	gh workflow run release-signal-cli.yml

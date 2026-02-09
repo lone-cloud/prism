@@ -32,7 +32,7 @@
 				</select>
 			</form>
 			{{end}}
-			<button class="btn-delete" hx-delete="/action/app/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML">Delete</button>
+			<button class="btn-delete" hx-delete="/action/app/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}}?">Delete</button>
 		</div>
 	</li>
 {{end}}

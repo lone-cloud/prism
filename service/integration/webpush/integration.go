@@ -2,6 +2,7 @@ package webpush
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 
@@ -22,7 +23,7 @@ func NewIntegration(store *notification.Store, logger *slog.Logger) *Integration
 	}
 }
 
-func (w *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
+func (w *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger) {
 	RegisterRoutes(router, w.store, w.logger, auth)
 }
 

@@ -41,17 +41,31 @@ func (s *Server) buildAppListData(mappings []notification.Mapping) []AppListItem
 			signalLinked = account != nil
 		}
 	}
-	telegramConfigured := s.cfg.IsTelegramEnabled() && s.cfg.TelegramChatID != 0
+
+	telegramLinked := false
+	var telegramInfo string
+	if s.integrations.Telegram != nil {
+		handlers := s.integrations.Telegram.GetHandlers()
+		if handlers != nil && handlers.GetClient() != nil {
+			chatID := handlers.GetChatID()
+			telegramLinked = chatID != 0
+			if telegramLinked {
+				if bot, err := handlers.GetClient().GetMe(); err == nil {
+					telegramInfo = "@" + bot.Username
+				}
+			}
+		}
+	}
 
 	items := make([]AppListItem, 0, len(mappings))
 	for _, m := range mappings {
-		item := s.buildAppListItem(m, signalLinked, telegramConfigured)
+		item := s.buildAppListItem(m, signalLinked, telegramLinked, telegramInfo)
 		items = append(items, item)
 	}
 	return items
 }
 
-func (s *Server) buildAppListItem(m notification.Mapping, signalLinked, telegramConfigured bool) AppListItem {
+func (s *Server) buildAppListItem(m notification.Mapping, signalLinked, telegramLinked bool, telegramInfo string) AppListItem {
 	isSignal := m.Channel == notification.ChannelSignal
 	isWebPush := m.Channel == notification.ChannelWebPush
 	isTelegram := m.Channel == notification.ChannelTelegram
@@ -72,11 +86,12 @@ func (s *Server) buildAppListItem(m notification.Mapping, signalLinked, telegram
 		if u, err := url.Parse(m.WebPush.Endpoint); err == nil {
 			item.Hostname = u.Hostname()
 		}
-	} else if isTelegram && telegramConfigured {
+	} else if isTelegram && telegramLinked {
 		item.ChannelBadge = m.Channel.Label()
+		item.Tooltip = telegramInfo
 		item.ChannelConfigured = true
 	} else {
-		item.ChannelBadge = "Not Configured"
+		item.ChannelBadge = "Unlinked"
 		item.ChannelConfigured = false
 		if isSignal {
 			item.Tooltip = "No Signal group created yet. Will auto-create on first notification."
@@ -87,7 +102,7 @@ func (s *Server) buildAppListItem(m notification.Mapping, signalLinked, telegram
 		}
 	}
 
-	item.ChannelOptions = s.buildChannelOptions(m, signalLinked, telegramConfigured)
+	item.ChannelOptions = s.buildChannelOptions(m, signalLinked, telegramLinked)
 	return item
 }
 
@@ -98,14 +113,14 @@ func (s *Server) buildChannelOptions(m notification.Mapping, signalLinked, teleg
 
 	var options []SelectOption
 
-	if signalLinked {
+	if s.integrations.Signal != nil {
 		options = append(options, SelectOption{
 			Value:    notification.ChannelSignal.String(),
 			Label:    notification.ChannelSignal.Label(),
 			Selected: isSignal,
 		})
 	}
-	if telegramConfigured {
+	if s.integrations.Telegram != nil {
 		options = append(options, SelectOption{
 			Value:    notification.ChannelTelegram.String(),
 			Label:    notification.ChannelTelegram.Label(),

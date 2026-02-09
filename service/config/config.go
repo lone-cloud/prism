@@ -7,22 +7,14 @@ import (
 )
 
 type Config struct {
-	TelegramChatID      int64
-	Port                int
-	RateLimit           int
-	APIKey              string
-	DeviceName          string
-	PrismEndpointPrefix string
-	SignalSocket        string
-	ProtonIMAPUsername  string
-	ProtonIMAPPassword  string
-	ProtonBridgeAddr    string
-	TelegramBotToken    string
-	StoragePath         string
-	VerboseLogging      bool
-	EnableSignal        bool
-	EnableProton        bool
-	EnableTelegram      bool
+	Port           int
+	RateLimit      int
+	APIKey         string
+	StoragePath    string
+	VerboseLogging bool
+	EnableSignal   bool
+	EnableTelegram bool
+	EnableProton   bool
 }
 
 func Load() (*Config, error) {
@@ -31,24 +23,11 @@ func Load() (*Config, error) {
 		Port:           getEnvInt("PORT", 8080),
 		VerboseLogging: getEnvBool("VERBOSE_LOGGING", false),
 		RateLimit:      getEnvInt("RATE_LIMIT", 100),
-		DeviceName:     getEnvString("DEVICE_NAME", "Prism"),
-
-		EnableSignal: getEnvBool("FEATURE_ENABLE_SIGNAL", false),
-		SignalSocket: getEnvString("SIGNAL_SOCKET", "/run/signal-cli/socket"),
-
-		EnableProton:       getEnvBool("FEATURE_ENABLE_PROTON", false),
-		ProtonIMAPUsername: os.Getenv("PROTON_IMAP_USERNAME"),
-		ProtonIMAPPassword: os.Getenv("PROTON_IMAP_PASSWORD"),
-		ProtonBridgeAddr:   getEnvString("PROTON_BRIDGE_ADDR", "protonmail-bridge:143"),
-
-		EnableTelegram:   getEnvBool("FEATURE_ENABLE_TELEGRAM", false),
-		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
-		TelegramChatID:   getEnvInt64("TELEGRAM_CHAT_ID", 0),
-
-		StoragePath: getEnvString("STORAGE_PATH", "./data/prism.db"),
+		StoragePath:    getEnvString("STORAGE_PATH", "./data/prism.db"),
+		EnableSignal:   getEnvBool("ENABLE_SIGNAL", false),
+		EnableTelegram: getEnvBool("ENABLE_TELEGRAM", false),
+		EnableProton:   getEnvBool("ENABLE_PROTON", false),
 	}
-
-	cfg.PrismEndpointPrefix = fmt.Sprintf("[%s:", cfg.DeviceName)
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -64,18 +43,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) IsProtonEnabled() bool {
-	return c.EnableProton && c.ProtonIMAPUsername != "" && c.ProtonIMAPPassword != "" && c.ProtonBridgeAddr != ""
-}
-
-func (c *Config) IsSignalEnabled() bool {
-	return c.EnableSignal
-}
-
-func (c *Config) IsTelegramEnabled() bool {
-	return c.EnableTelegram
-}
-
 func getEnvString(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -86,15 +53,6 @@ func getEnvString(key, defaultValue string) string {
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if i, err := strconv.Atoi(value); err == nil {
-			return i
-		}
-	}
-	return defaultValue
-}
-
-func getEnvInt64(key string, defaultValue int64) int64 {
-	if value := os.Getenv(key); value != "" {
-		if i, err := strconv.ParseInt(value, 10, 64); err == nil {
 			return i
 		}
 	}

@@ -1,11 +1,13 @@
 package proton
 
 import (
+	"database/sql"
 	"encoding/json"
 	"html/template"
 	"log/slog"
 	"net/http"
 
+	"prism/service/credentials"
 	"prism/service/util"
 )
 
@@ -14,6 +16,8 @@ type Handlers struct {
 	username string
 	logger   *slog.Logger
 	tmpl     *util.TemplateRenderer
+	db       *sql.DB
+	apiKey   string
 }
 
 type ProtonContentData struct {
@@ -36,31 +40,61 @@ func NewHandlers(monitor *Monitor, username string, logger *slog.Logger, tmpl *u
 		username: username,
 		logger:   logger,
 		tmpl:     tmpl,
+		db:       nil,
+		apiKey:   "",
 	}
 }
 
-func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
-	if h.monitor == nil {
-		return
+func (h *Handlers) SetDB(db *sql.DB, apiKey string) {
+	h.db = db
+	h.apiKey = apiKey
+}
+
+func (h *Handlers) LoadFreshCredentials() (string, bool) {
+	if h.db == nil || h.apiKey == "" {
+		return "", false
 	}
 
+	credStore, err := credentials.NewStore(h.db, h.apiKey)
+	if err != nil {
+		return "", false
+	}
+
+	creds, err := credStore.GetProton()
+	if err != nil || creds == nil {
+		return "", false
+	}
+
+	return creds.Email, true
+}
+
+func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
+
+	email, hasCredentials := h.LoadFreshCredentials()
 
 	var contentData ProtonContentData
 	var integData IntegrationData
 	integData.Name = "Proton Mail"
 
-	if h.monitor.IsConnected() {
-		integData.StatusClass = "connected"
-		integData.StatusText = "Linked"
-		integData.StatusTooltip = h.username
-		integData.Open = false
-		contentData.Connected = true
-	} else {
+	if !hasCredentials {
 		integData.StatusClass = "disconnected"
 		integData.StatusText = "Unlinked"
+		integData.StatusTooltip = "Enter credentials to link"
 		integData.Open = true
-		contentData.Connected = false
+	} else if h.monitor == nil || !h.monitor.IsConnected() {
+		integData.StatusClass = "disconnected"
+		integData.StatusText = "Connecting…"
+		integData.StatusTooltip = email
+		integData.Open = false
+		integData.PollAttrs = `hx-get="/fragment/integrations/proton" hx-trigger="every 2s"`
+		contentData.Connected = true
+	} else {
+		integData.StatusClass = "connected"
+		integData.StatusText = "Linked"
+		integData.StatusTooltip = email
+		integData.Open = false
+		contentData.Connected = true
 	}
 
 	content, err := h.tmpl.RenderHTML("proton-content.html", contentData)
@@ -88,7 +122,7 @@ func (h *Handlers) GetMonitor() *Monitor {
 }
 
 type markReadRequest struct {
-	UID uint32 `json:"uid"`
+	UID string `json:"uid"`
 }
 
 func (h *Handlers) HandleMarkRead(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +132,7 @@ func (h *Handlers) HandleMarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UID == 0 {
+	if req.UID == "" {
 		util.JSONError(w, "uid (number) is required", http.StatusBadRequest)
 		return
 	}
@@ -115,6 +149,41 @@ func (h *Handlers) HandleMarkRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Info("marked email as read", "uid", req.UID)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+type archiveRequest struct {
+	UID string `json:"uid"`
+}
+
+func (h *Handlers) HandleArchive(w http.ResponseWriter, r *http.Request) {
+	var req archiveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		util.JSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.UID == "" {
+		util.JSONError(w, "uid is required", http.StatusBadRequest)
+		return
+	}
+
+	if h.monitor == nil {
+		util.JSONError(w, "Proton integration not enabled", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.monitor.Archive(req.UID); err != nil {
+		h.logger.Error("failed to archive email", "uid", req.UID, "error", err)
+		util.JSONError(w, "failed to archive", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("archived email", "uid", req.UID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {

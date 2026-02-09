@@ -2,6 +2,7 @@ package signal
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 
@@ -14,6 +15,7 @@ import (
 
 type Integration struct {
 	cfg      *config.Config
+	client   *Client
 	handlers *Handlers
 	sender   *Sender
 	tmpl     *util.TemplateRenderer
@@ -21,13 +23,11 @@ type Integration struct {
 }
 
 func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
-	var sender *Sender
-	if cfg.IsSignalEnabled() {
-		client := NewClient(cfg.SignalSocket)
-		sender = NewSender(client, store, logger)
-	}
+	client := NewClient()
+	sender := NewSender(client, store, logger)
 	return &Integration{
 		cfg:    cfg,
+		client: client,
 		sender: sender,
 		tmpl:   tmpl,
 		logger: logger,
@@ -38,8 +38,8 @@ func (s *Integration) GetSender() *Sender {
 	return s.sender
 }
 
-func (s *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
-	s.handlers = RegisterRoutes(router, s.cfg, auth, s.tmpl, s.logger)
+func (s *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger) {
+	s.handlers = RegisterRoutes(router, s.cfg, auth, s.tmpl, s.logger, s.client)
 }
 
 func (s *Integration) Start(ctx context.Context, logger *slog.Logger) {
@@ -51,11 +51,16 @@ func (s *Integration) Start(ctx context.Context, logger *slog.Logger) {
 		} else {
 			logger.Info("Signal enabled", "status", "unlinked", "action", "visit admin UI to link")
 		}
+	} else {
+		logger.Info("Signal disabled", "reason", "signal-cli not found in PATH")
 	}
 }
 
 func (s *Integration) IsEnabled() bool {
-	return s.cfg.IsSignalEnabled()
+	if s.handlers == nil {
+		return false
+	}
+	return s.handlers.IsEnabled()
 }
 
 func (s *Integration) GetHandlers() *Handlers {

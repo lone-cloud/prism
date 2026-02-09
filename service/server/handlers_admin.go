@@ -133,7 +133,6 @@ func (s *Server) handleGetStats(w http.ResponseWriter, r *http.Request) {
 		"mappingsCount": len(mappings),
 		"signalCount":   countByChannel(mappings, notification.ChannelSignal),
 		"webpushCount":  countByChannel(mappings, notification.ChannelWebPush),
-		"protonEnabled": s.cfg.IsProtonEnabled(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
