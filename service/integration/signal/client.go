@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -19,11 +18,8 @@ const (
 )
 
 type Client struct {
-	ConfigPath       string
-	enabled          bool
-	accountCache     *Account
-	accountCacheTime time.Time
-	accountCacheMu   sync.RWMutex
+	ConfigPath string
+	enabled    bool
 }
 
 func NewClient() *Client {
@@ -76,25 +72,8 @@ func (c *Client) GetLinkedAccount() (*Account, error) {
 		return nil, nil
 	}
 
-	c.accountCacheMu.RLock()
-	if time.Since(c.accountCacheTime) < 30*time.Second {
-		cached := c.accountCache
-		c.accountCacheMu.RUnlock()
-		return cached, nil
-	}
-	c.accountCacheMu.RUnlock()
-
-	c.accountCacheMu.Lock()
-	defer c.accountCacheMu.Unlock()
-
-	if time.Since(c.accountCacheTime) < 30*time.Second {
-		return c.accountCache, nil
-	}
-
 	accountsFile := filepath.Join(c.ConfigPath, "data", "accounts.json")
 	if _, err := os.Stat(accountsFile); os.IsNotExist(err) {
-		c.accountCache = nil
-		c.accountCacheTime = time.Now()
 		return nil, nil
 	}
 
@@ -115,8 +94,6 @@ func (c *Client) GetLinkedAccount() (*Account, error) {
 	}
 
 	if len(accountsData.Accounts) == 0 {
-		c.accountCache = nil
-		c.accountCacheTime = time.Now()
 		return nil, nil
 	}
 
@@ -130,14 +107,10 @@ func (c *Client) GetLinkedAccount() (*Account, error) {
 	if err != nil {
 		errStr := strings.ToLower(string(output))
 		if strings.Contains(errStr, "not registered") || strings.Contains(errStr, "authorization failed") {
-			c.accountCache = nil
-			c.accountCacheTime = time.Now()
 			return nil, nil
 		}
 	}
 
-	c.accountCache = account
-	c.accountCacheTime = time.Now()
 	return account, nil
 }
 

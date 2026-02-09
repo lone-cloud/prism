@@ -30,6 +30,10 @@ func (d *Dispatcher) RegisterSender(channel Channel, sender NotificationSender) 
 	d.senders[channel] = sender
 }
 
+func (d *Dispatcher) GetStore() *Store {
+	return d.store
+}
+
 func (d *Dispatcher) HasSignal() bool {
 	_, ok := d.senders[ChannelSignal]
 	return ok
