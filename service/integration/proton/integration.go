@@ -2,10 +2,12 @@ package proton
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 
 	"prism/service/config"
+	"prism/service/credentials"
 	"prism/service/notification"
 	"prism/service/util"
 
@@ -18,35 +20,64 @@ type Integration struct {
 	logger     *slog.Logger
 	handlers   *Handlers
 	tmpl       *util.TemplateRenderer
+	monitor    *Monitor
+	db         *sql.DB
+	apiKey     string
 }
 
-func NewIntegration(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
+func NewIntegration(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger, tmpl *util.TemplateRenderer, db *sql.DB, apiKey string) *Integration {
+	monitor := NewMonitor(cfg, dispatcher, logger)
+	handlers := NewHandlers(monitor, "", logger, tmpl)
 	return &Integration{
 		cfg:        cfg,
 		dispatcher: dispatcher,
 		logger:     logger,
+		handlers:   handlers,
 		tmpl:       tmpl,
+		monitor:    monitor,
+		db:         db,
+		apiKey:     apiKey,
 	}
 }
 
-func (p *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler) {
-	p.handlers = RegisterRoutes(router, p.cfg, p.dispatcher, p.logger, auth, p.tmpl)
+func (p *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger) {
+	credStore, err := credentials.NewStore(db, apiKey)
+	if err == nil {
+		if creds, err := credStore.GetProton(); err == nil {
+			p.handlers.username = creds.Email
+		}
+	}
+
+	RegisterRoutes(router, p.handlers, auth, db, apiKey, logger, p)
 }
 
 func (p *Integration) Start(ctx context.Context, logger *slog.Logger) {
-	if p.handlers != nil && p.handlers.IsEnabled() {
-		logger.Info("Proton Mail configured", "status", "connecting in background", "bridge", p.cfg.ProtonBridgeAddr)
-		go func() {
-			monitor := p.handlers.GetMonitor()
-			if err := monitor.Start(ctx); err != nil && ctx.Err() == nil {
-				logger.Error("Proton monitor error", "error", err)
-			}
-		}()
+	credStore, err := credentials.NewStore(p.db, p.apiKey)
+	if err != nil {
+		logger.Error("Failed to initialize credentials store for Proton", "error", err)
+		return
 	}
+
+	creds, err := credStore.GetProton()
+	if err != nil {
+		logger.Debug("Proton credentials not configured", "error", err)
+		return
+	}
+
+	if err := p.monitor.Start(ctx, credStore); err != nil {
+		logger.Error("Failed to start Proton monitor", "error", err)
+		return
+	}
+
+	if p.handlers != nil {
+		p.handlers.username = creds.Email
+	}
+
+	logger.Info("Proton Mail enabled", "email", creds.Email)
 }
 
 func (p *Integration) IsEnabled() bool {
-	return p.cfg.IsProtonEnabled()
+	return p.cfg.EnableProton
 }
 
 func (p *Integration) GetHandlers() *Handlers {

@@ -1,4 +1,3 @@
-signal-cli/
 data/
 *.db
 .env

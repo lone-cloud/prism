@@ -10,13 +10,14 @@
   <link rel="stylesheet" href="/index.css?v={{.Version}}">
   <script src="/htmx.min.js"></script>
   <script src="/theme.js?v={{.Version}}"></script>
+  <script src="/integration.js?v={{.Version}}"></script>
 </head>
 <body>
   <details class="card" open>
     <summary class="card-header">
       <span class="integration-name">Registered Applications</span>
     </summary>
-    <div id="apps-list" 
+    <div id="apps-list" class="card-content"
          hx-get="/fragment/apps" 
          hx-trigger="load">
       <div class="loading">

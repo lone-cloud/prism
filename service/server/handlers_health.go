@@ -48,13 +48,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if s.cfg.IsProtonEnabled() {
-		resp.Proton = &integrationHealth{
-			Linked:  true,
-			Account: s.cfg.ProtonIMAPUsername,
-		}
-	}
-
 	if s.integrations.Telegram != nil && s.integrations.Telegram.IsEnabled() {
 		telegramClient := s.integrations.Telegram.GetHandlers().GetClient()
 		if telegramClient != nil {
@@ -63,6 +56,19 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 				resp.Telegram = &integrationHealth{
 					Linked:  true,
 					Account: "@" + bot.Username,
+				}
+			}
+		}
+	}
+
+	if s.integrations.Proton != nil && s.integrations.Proton.IsEnabled() {
+		protonHandlers := s.integrations.Proton.GetHandlers()
+		if protonHandlers != nil && protonHandlers.IsEnabled() {
+			email, hasCredentials := protonHandlers.LoadFreshCredentials()
+			if hasCredentials {
+				resp.Proton = &integrationHealth{
+					Linked:  true,
+					Account: email,
 				}
 			}
 		}

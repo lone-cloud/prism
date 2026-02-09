@@ -1,114 +1,148 @@
 package signal
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
-	"sync/atomic"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
 )
 
-var rpcID int32
+const (
+	DefaultDeviceName = "Prism"
+	DefaultConfigPath = ".local/share/signal-cli"
+)
 
 type Client struct {
-	SocketPath string
+	ConfigPath       string
+	enabled          bool
+	accountCache     *Account
+	accountCacheTime time.Time
+	accountCacheMu   sync.RWMutex
 }
 
-func NewClient(socketPath string) *Client {
+func NewClient() *Client {
+	configPath := filepath.Join(os.Getenv("HOME"), DefaultConfigPath)
+
+	enabled := false
+	if _, err := exec.LookPath("signal-cli"); err == nil {
+		enabled = true
+	}
+
 	return &Client{
-		SocketPath: socketPath,
+		ConfigPath: configPath,
+		enabled:    enabled,
 	}
 }
 
-type RPCRequest struct {
-	JSONRPC string         `json:"jsonrpc"`
-	ID      int32          `json:"id"`
-	Method  string         `json:"method"`
-	Params  map[string]any `json:"params"`
-}
-
-type RPCResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      int32           `json:"id"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *RPCError       `json:"error,omitempty"`
-}
-
-type RPCError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (c *Client) Call(method string, params map[string]any) (json.RawMessage, error) {
-	conn, err := net.Dial("unix", c.SocketPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect: %w", err)
-	}
-	defer conn.Close()
-
-	request := RPCRequest{
-		JSONRPC: "2.0",
-		ID:      atomic.AddInt32(&rpcID, 1),
-		Method:  method,
-		Params:  params,
-	}
-
-	if err := json.NewEncoder(conn).Encode(&request); err != nil {
-		return nil, fmt.Errorf("failed to encode request: %w", err)
-	}
-
-	var response RPCResponse
-	if err := json.NewDecoder(conn).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if response.Error != nil {
-		return nil, fmt.Errorf("signal-cli error: %s", response.Error.Message)
-	}
-
-	return response.Result, nil
-}
-
-func (c *Client) CallWithAccount(method string, params map[string]any, account string) (json.RawMessage, error) {
-	if params == nil {
-		params = make(map[string]any)
-	}
-	params["account"] = account
-	return c.Call(method, params)
-}
-
-type AccountInfo struct {
-	Number string `json:"number"`
-	Name   string `json:"name,omitempty"`
+func (c *Client) IsEnabled() bool {
+	return c.enabled
 }
 
 type Account struct {
 	Number string
+	UUID   string
+}
+
+func (c *Client) exec(args ...string) ([]byte, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("signal-cli not found in PATH")
+	}
+
+	baseArgs := []string{"--config", c.ConfigPath, "--output=json"}
+	cmd := exec.Command("signal-cli", append(baseArgs, args...)...)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if stderr.Len() > 0 {
+			return nil, fmt.Errorf("signal-cli: %s", strings.TrimSpace(stderr.String()))
+		}
+		return nil, err
+	}
+
+	return stdout.Bytes(), nil
 }
 
 func (c *Client) GetLinkedAccount() (*Account, error) {
-	if c == nil {
+	if c == nil || !c.enabled {
 		return nil, nil
 	}
 
-	result, err := c.Call("listAccounts", nil)
+	c.accountCacheMu.RLock()
+	if time.Since(c.accountCacheTime) < 30*time.Second {
+		cached := c.accountCache
+		c.accountCacheMu.RUnlock()
+		return cached, nil
+	}
+	c.accountCacheMu.RUnlock()
+
+	c.accountCacheMu.Lock()
+	defer c.accountCacheMu.Unlock()
+
+	if time.Since(c.accountCacheTime) < 30*time.Second {
+		return c.accountCache, nil
+	}
+
+	accountsFile := filepath.Join(c.ConfigPath, "data", "accounts.json")
+	if _, err := os.Stat(accountsFile); os.IsNotExist(err) {
+		c.accountCache = nil
+		c.accountCacheTime = time.Now()
+		return nil, nil
+	}
+
+	data, err := os.ReadFile(accountsFile)
 	if err != nil {
 		return nil, err
 	}
 
-	var accounts []AccountInfo
-	if err := json.Unmarshal(result, &accounts); err != nil {
+	var accountsData struct {
+		Accounts []struct {
+			Number string `json:"number"`
+			UUID   string `json:"uuid"`
+		} `json:"accounts"`
+	}
+
+	if err := json.Unmarshal(data, &accountsData); err != nil {
 		return nil, err
 	}
 
-	if len(accounts) == 0 {
+	if len(accountsData.Accounts) == 0 {
+		c.accountCache = nil
+		c.accountCacheTime = time.Now()
 		return nil, nil
 	}
 
-	return &Account{Number: accounts[0].Number}, nil
+	account := &Account{
+		Number: accountsData.Accounts[0].Number,
+		UUID:   accountsData.Accounts[0].UUID,
+	}
+
+	cmd := exec.Command("signal-cli", "-a", account.Number, "receive", "--timeout", "0")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		errStr := strings.ToLower(string(output))
+		if strings.Contains(errStr, "not registered") || strings.Contains(errStr, "authorization failed") {
+			c.accountCache = nil
+			c.accountCacheTime = time.Now()
+			return nil, nil
+		}
+	}
+
+	c.accountCache = account
+	c.accountCacheTime = time.Now()
+	return account, nil
 }
 
 func (c *Client) CreateGroup(name string) (string, string, error) {
-	if c == nil {
+	if c == nil || !c.enabled {
 		return "", "", fmt.Errorf("signal client not initialized")
 	}
 
@@ -120,49 +154,157 @@ func (c *Client) CreateGroup(name string) (string, string, error) {
 		return "", "", fmt.Errorf("no linked Signal account")
 	}
 
-	params := map[string]any{
-		"name":   name,
-		"member": []string{},
-	}
-
-	result, err := c.CallWithAccount("updateGroup", params, account.Number)
+	output, err := c.exec("-o", "json", "-a", account.Number, "updateGroup", "-n", name)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to create group: %w", err)
 	}
 
 	var response struct {
 		GroupID string `json:"groupId"`
 	}
-	if err := json.Unmarshal(result, &response); err != nil {
-		return "", "", fmt.Errorf("failed to parse updateGroup response: %w", err)
+
+	lines := bytes.Split(output, []byte("\n"))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		if err := json.Unmarshal(line, &response); err == nil && response.GroupID != "" {
+			return response.GroupID, account.Number, nil
+		}
 	}
 
-	if response.GroupID == "" {
-		return "", "", fmt.Errorf("empty groupId in response")
-	}
-
-	return response.GroupID, account.Number, nil
+	return "", "", fmt.Errorf("failed to parse group creation response")
 }
 
 func (c *Client) SendGroupMessage(groupID, message string) error {
-	if c == nil {
+	if c == nil || !c.enabled {
 		return fmt.Errorf("signal client not initialized")
 	}
 
 	account, err := c.GetLinkedAccount()
 	if err != nil {
-		return fmt.Errorf("failed to get account: %w", err)
+		return fmt.Errorf("failed to get linked account: %w", err)
 	}
 	if account == nil {
-		return fmt.Errorf("no linked account")
+		return fmt.Errorf("no linked Signal account")
 	}
 
-	params := map[string]any{
-		"groupId":    groupID,
-		"message":    message,
-		"notifySelf": true,
-	}
-
-	_, err = c.CallWithAccount("send", params, account.Number)
+	_, err = c.exec("-a", account.Number, "send", "-g", groupID, "--notify-self", "-m", message)
 	return err
+}
+
+func (c *Client) LinkDevice(deviceName string) (string, error) {
+	if c == nil || !c.enabled {
+		return "", fmt.Errorf("signal-cli not found in PATH")
+	}
+
+	if deviceName == "" {
+		deviceName = DefaultDeviceName
+	}
+
+	if err := os.MkdirAll(c.ConfigPath, 0755); err != nil {
+		return "", fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	dataDir := filepath.Join(c.ConfigPath, "data")
+	if entries, err := os.ReadDir(c.ConfigPath); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() && strings.HasPrefix(entry.Name(), "+") {
+				accountDir := filepath.Join(c.ConfigPath, entry.Name())
+				os.RemoveAll(accountDir)
+			}
+		}
+	}
+	os.RemoveAll(dataDir)
+
+	cmd := exec.Command("signal-cli", "--config", c.ConfigPath, "link", "-n", deviceName)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return "", fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("failed to start link command: %w", err)
+	}
+
+	var output bytes.Buffer
+	buf := make([]byte, 8192)
+
+	done := make(chan string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		for {
+			n, err := stdout.Read(buf)
+			if n > 0 {
+				output.Write(buf[:n])
+				text := output.String()
+
+				if idx := strings.Index(text, "sgnl://linkdevice"); idx != -1 {
+					end := strings.IndexAny(text[idx:], " \n\r\t")
+					var url string
+					if end == -1 {
+						url = text[idx:]
+					} else {
+						url = text[idx : idx+end]
+					}
+					done <- strings.TrimSpace(url)
+					return
+				}
+			}
+			if err != nil {
+				if err != io.EOF {
+					errChan <- err
+				}
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			n, err := stderr.Read(buf)
+			if n > 0 {
+				output.Write(buf[:n])
+				text := output.String()
+
+				if idx := strings.Index(text, "sgnl://linkdevice"); idx != -1 {
+					end := strings.IndexAny(text[idx:], " \n\r\t")
+					var url string
+					if end == -1 {
+						url = text[idx:]
+					} else {
+						url = text[idx : idx+end]
+					}
+					done <- strings.TrimSpace(url)
+					return
+				}
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	select {
+	case url := <-done:
+		go func() {
+			io.Copy(io.Discard, stdout)
+			io.Copy(io.Discard, stderr)
+			cmd.Wait()
+		}()
+		return url, nil
+	case err := <-errChan:
+		cmd.Process.Kill()
+		return "", err
+	case <-time.After(5 * time.Minute):
+		cmd.Process.Kill()
+		return "", fmt.Errorf("timeout waiting for QR code URL")
+	}
 }

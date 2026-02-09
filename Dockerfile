@@ -14,15 +14,26 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s -X main.version=$(cat VERSION 2>/dev/null || echo dev) -X main.commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
     -o prism .
 
-FROM alpine:3.23
+FROM debian:trixie-slim
 
-RUN apk --no-cache add ca-certificates
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates wget curl && \
+    curl -L -o signal-cli.gz \
+        https://media.projektzentrisch.de/temp/signal-cli/signal-cli_ubuntu2004_${TARGETARCH}.gz && \
+    gunzip signal-cli.gz && \
+    mv signal-cli /usr/local/bin/signal-cli && \
+    chmod +x /usr/local/bin/signal-cli && \
+    apt-get remove -y curl && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=builder /build/prism .
 
-RUN adduser -D -u 1000 prism && \
+RUN useradd -m -u 1000 prism && \
     mkdir -p /app/data && \
     chown -R prism:prism /app
 

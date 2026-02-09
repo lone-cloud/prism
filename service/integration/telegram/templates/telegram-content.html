@@ -1,27 +1,39 @@
 {{if .NotConfigured}}
-<p><strong>Setup Instructions:</strong></p>
+<p><strong>Setup Telegram Bot:</strong></p>
 <ol class="link-instructions">
 	<li>Message <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram</li>
 	<li>Send <code>/newbot</code> and follow the prompts</li>
-	<li>Copy the bot token and add to <code>.env</code>: <code>TELEGRAM_BOT_TOKEN=your-token</code></li>
+	<li>Copy the bot token from BotFather</li>
 	<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get your Chat ID</li>
-	<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
-	<li>Restart Prism</li>
+	<li>Enter both below:</li>
 </ol>
-<p class="text-muted">See <a href="https://github.com/lone-cloud/prism#telegram" target="_blank">full setup guide</a></p>
+<form id="telegram-auth-form" class="auth-form">
+	<div class="form-group">
+		<label for="telegram-bot-token">Bot Token:</label>
+		<input type="text" id="telegram-bot-token" name="bot_token" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" required>
+	</div>
+	<div class="form-group">
+		<label for="telegram-chat-id">Chat ID:</label>
+		<input type="text" id="telegram-chat-id" name="chat_id" placeholder="123456789" required>
+	</div>
+	<button type="submit" class="btn-primary">Configure</button>
+	<div id="telegram-auth-status" class="auth-status"></div>
+</form>
 {{else if .Error}}
 <p>Error: {{.Error}}</p>
+<button class="btn-secondary reload-btn">Retry</button>
 {{else if .NeedsChatID}}
 <p><strong>Complete Setup:</strong></p>
-<ol class="link-instructions">
-	<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> on Telegram to get your Chat ID</li>
-	<li>Add to <code>.env</code>: <code>TELEGRAM_CHAT_ID=your-chat-id</code></li>
-	<li>Restart Prism</li>
-</ol>
+<p>Bot is configured, but Chat ID is missing.</p>
+<form id="telegram-chatid-form" class="auth-form" data-bot-token="{{.BotToken}}">
+	<div class="form-group">
+		<label for="telegram-chat-id-only">Chat ID:</label>
+		<input type="text" id="telegram-chat-id-only" name="chat_id" placeholder="Get from @userinfobot" required>
+	</div>
+	<button type="submit" class="btn-primary">Save Chat ID</button>
+	<div id="telegram-chatid-status" class="auth-status"></div>
+</form>
 {{else}}
-<p><strong>Unlink Instructions:</strong></p>
-<ol class="link-instructions">
-	<li>Remove <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> from <code>.env</code></li>
-	<li>Restart: <code>docker compose restart prism</code></li>
-</ol>
+<button class="btn-danger delete-telegram-btn">Unlink</button>
 {{end}}
+

@@ -18,16 +18,12 @@ func GetTemplates() embed.FS {
 	return templates
 }
 
-func RegisterRoutes(router *chi.Mux, cfg *config.Config, authMiddleware func(http.Handler) http.Handler, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {
-	if !cfg.IsSignalEnabled() {
-		return nil
-	}
-
-	client := NewClient(cfg.SignalSocket)
-	linkDevice := NewLinkDevice(client, cfg.DeviceName)
-	handlers := NewHandlers(client, linkDevice, tmpl, logger)
+func RegisterRoutes(router *chi.Mux, cfg *config.Config, authMiddleware func(http.Handler) http.Handler, tmpl *util.TemplateRenderer, logger *slog.Logger, client *Client) *Handlers {
+	handlers := NewHandlers(client, tmpl, logger)
 
 	router.With(authMiddleware).Get("/fragment/signal", handlers.HandleFragment)
+	router.With(authMiddleware).Post("/api/signal/link", handlers.HandleLinkDevice)
+	router.With(authMiddleware).Get("/api/signal/status", handlers.HandleLinkStatus)
 
 	return handlers
 }

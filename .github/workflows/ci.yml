@@ -45,5 +45,8 @@ jobs:
         version: v2.8.0
         args: --timeout=5m
     
+    - name: Check frontend
+      run: npx @biomejs/biome@latest check .
+    
     - name: Build
       run: go build -v .

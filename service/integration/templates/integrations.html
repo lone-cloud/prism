@@ -1,0 +1,17 @@
+{{if .EnableSignal}}
+<div id="signal-integration" class="integration-container" hx-get="/fragment/signal" hx-trigger="load">
+	<div class="loading"><div class="spinner"></div></div>
+</div>
+{{end}}
+
+{{if .EnableTelegram}}
+<div id="telegram-integration" class="integration-container" hx-get="/fragment/telegram" hx-trigger="load">
+	<div class="loading"><div class="spinner"></div></div>
+</div>
+{{end}}
+
+{{if .EnableProton}}
+<div id="proton-integration" class="integration-container" hx-get="/fragment/proton" hx-trigger="load">
+	<div class="loading"><div class="spinner"></div></div>
+</div>
+{{end}}

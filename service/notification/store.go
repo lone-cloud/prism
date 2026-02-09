@@ -62,6 +62,10 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+func (s *Store) GetDB() *sql.DB {
+	return s.db
+}
+
 func (s *Store) Register(appName string, channel *Channel, signal *SignalSubscription, webPush *WebPushSubscription) error {
 	var signalGroupID, signalAccount *string
 	if signal != nil {
