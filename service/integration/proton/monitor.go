@@ -316,6 +316,15 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 }
 
 func (m *Monitor) clearNotification(msgID string) {
+	mapping, err := m.dispatcher.GetStore().GetApp(prismTopic)
+	if err != nil || mapping == nil {
+		return
+	}
+
+	if mapping.Channel != notification.ChannelWebPush {
+		return
+	}
+
 	notif := notification.Notification{
 		Tag:     "proton-" + msgID,
 		Title:   "",
