@@ -100,17 +100,13 @@ func (s *Server) setupRoutes() {
 	r.Use(maxBodySizeMiddleware(1 << 20))
 
 	r.Get("/", s.handleIndex)
-
-	publicFS, err := fs.Sub(s.publicAssets, "public")
-	if err != nil {
-		s.logger.Error("Failed to create public assets sub-filesystem", "error", err)
-	} else {
-		r.Handle("/*", http.FileServer(http.FS(publicFS)))
-	}
-
-	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
+	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/favicon.webp", http.StatusMovedPermanently)
+	})
 
 	r.Get("/health", s.handleHealthCheck)
+
+	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/apps", s.handleFragmentApps)
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/integrations", s.handleFragmentIntegrations)
@@ -133,6 +129,13 @@ func (s *Server) setupRoutes() {
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/health", s.handleHealth)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Post("/{appName}", s.handleNtfyPublish)
+
+	publicFS, err := fs.Sub(s.publicAssets, "public")
+	if err != nil {
+		s.logger.Error("Failed to create public assets sub-filesystem", "error", err)
+	} else {
+		r.Handle("/*", http.FileServer(http.FS(publicFS)))
+	}
 
 	s.router = r
 }
