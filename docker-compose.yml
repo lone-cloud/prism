@@ -1,0 +1,13 @@
+services:
+  prism:
+    image: ghcr.io/lone-cloud/prism:dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - prism-data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  prism-data:
