@@ -13,6 +13,7 @@ import (
 
 var noisyPaths = map[string]bool{
 	"/.well-known/appspecific/com.chrome.devtools.json": true,
+	"/health": true,
 }
 
 func authMiddleware(apiKey string) func(http.Handler) http.Handler {
