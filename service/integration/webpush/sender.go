@@ -24,7 +24,7 @@ func NewSender(logger *slog.Logger) *Sender {
 
 func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
 	if mapping.WebPush == nil {
-		return fmt.Errorf("no push endpoint configured for %s", mapping.AppName)
+		return notification.NewPermanentError(fmt.Errorf("no push endpoint configured for %s", mapping.AppName))
 	}
 
 	payload, err := json.Marshal(notif)

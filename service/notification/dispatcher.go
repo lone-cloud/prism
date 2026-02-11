@@ -113,6 +113,12 @@ func (d *Dispatcher) sendWithRetry(sender NotificationSender, mapping *Mapping, 
 		}
 
 		lastErr = err
+
+		if IsPermanent(err) {
+			d.logger.Error("Permanent error, not retrying", "app", appName, "error", err)
+			return err
+		}
+
 		if attempt < maxRetries-1 {
 			delay := baseDelay * time.Duration(1<<uint(attempt))
 			d.logger.Warn("Failed to send notification, retrying", "app", appName, "attempt", attempt+1, "error", err, "retryIn", delay)

@@ -87,7 +87,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 		integData.StatusText = "Connecting…"
 		integData.StatusTooltip = email
 		integData.Open = false
-		integData.PollAttrs = `hx-get="/fragment/integrations/proton" hx-trigger="every 2s"`
+		integData.PollAttrs = `hx-get="/fragment/proton" hx-trigger="every 2s" hx-swap="outerHTML"`
 		contentData.Connected = true
 	} else {
 		integData.StatusClass = "connected"
