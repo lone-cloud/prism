@@ -6,9 +6,11 @@ services:
       - "${PORT:-8080}:${PORT:-8080}"
     volumes:
       - prism-data:/app/data
+      - signal-data:/home/prism/.local/share/signal-cli
     env_file:
       - .env
     restart: unless-stopped
 
 volumes:
+  signal-data:
   prism-data:
