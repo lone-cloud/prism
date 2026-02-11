@@ -29,6 +29,7 @@ docker run -d \
   --name prism \
   -p 8080:8080 \
   -v prism-data:/app/data \
+  -v signal-data:/home/prism/.local/share/signal-cli \
   --env-file .env \
   ghcr.io/lone-cloud/prism:latest
 ```
