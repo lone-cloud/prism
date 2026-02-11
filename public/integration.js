@@ -150,7 +150,8 @@ document.addEventListener('click', async (e) => {
 
 					if (statusData.linked) {
 						clearInterval(signalLinkingPoll);
-						qrContainer.innerHTML = '<p class="auth-status success">Linked! Refreshing...</p>';
+						qrContainer.innerHTML =
+							'<p class="auth-status success">Linked! Refreshing...</p>';
 						setTimeout(() => location.reload(), 1000);
 					}
 				} catch (err) {

@@ -24,7 +24,7 @@ func NewSender(client *Client, store *notification.Store, logger *slog.Logger) *
 
 func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
 	if s.client == nil {
-		return fmt.Errorf("signal integration not enabled")
+		return notification.NewPermanentError(fmt.Errorf("signal integration not enabled"))
 	}
 
 	account, err := s.client.GetLinkedAccount()
@@ -33,7 +33,7 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 	}
 	if account == nil {
 		s.logger.Error("No linked Signal account found")
-		return fmt.Errorf("no linked Signal account")
+		return notification.NewPermanentError(fmt.Errorf("no linked Signal account"))
 	}
 
 	var signalGroupID string

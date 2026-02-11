@@ -8,6 +8,7 @@ import (
 
 	"prism/service/util"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/time/rate"
 )
 
@@ -34,33 +35,19 @@ func loggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-			next.ServeHTTP(wrapped, r)
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
 
 			if !noisyPaths[r.URL.Path] {
 				logger.Debug("HTTP request",
 					"method", r.Method,
 					"path", r.URL.Path,
-					"status", wrapped.statusCode,
+					"status", ww.Status(),
 					"duration", time.Since(start),
 					"ip", util.GetClientIP(r),
 				)
 			}
 		})
-	}
-}
-
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode    int
-	headerWritten bool
-}
-
-func (rw *responseWriter) WriteHeader(code int) {
-	if !rw.headerWritten {
-		rw.statusCode = code
-		rw.ResponseWriter.WriteHeader(code)
-		rw.headerWritten = true
 	}
 }
 

@@ -25,11 +25,11 @@ func NewSender(client *Client, store *notification.Store, logger *slog.Logger, d
 
 func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
 	if s.client == nil {
-		return fmt.Errorf("telegram integration not enabled")
+		return notification.NewPermanentError(fmt.Errorf("telegram integration not enabled"))
 	}
 
 	if s.DefaultChatID == 0 {
-		return fmt.Errorf("no telegram chat configured (set TELEGRAM_CHAT_ID in .env)")
+		return notification.NewPermanentError(fmt.Errorf("no telegram chat configured (set TELEGRAM_CHAT_ID in .env)"))
 	}
 
 	message := notif.Message

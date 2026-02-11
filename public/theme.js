@@ -24,7 +24,8 @@ window.cycleTheme = () => {
 function updateButtonText(theme) {
 	const btn = document.getElementById('theme-toggle');
 	if (btn) {
-		btn.textContent = theme === 'system' ? '🌓' : theme === 'light' ? '☀️' : '🌙';
+		btn.textContent =
+			theme === 'system' ? '🌓' : theme === 'light' ? '☀️' : '🌙';
 	}
 }
 
