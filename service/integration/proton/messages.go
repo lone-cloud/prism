@@ -19,6 +19,8 @@ func (m *Monitor) processMessageEvents(events []*protonmail.EventMessage) {
 						m.unseenMessageIDs[msg.ID] = time.Now()
 						m.sendNotification(msg)
 					}
+				} else if msg.Unread == 0 && hasLabel(msg, protonmail.LabelInbox) && msg.Time.Time().After(m.startTime) {
+					m.logger.Debug("Skipping already-read message", "msgID", msg.ID, "subject", msg.Subject)
 				}
 			}
 		case protonmail.EventUpdate, protonmail.EventUpdateFlags:

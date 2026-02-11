@@ -48,15 +48,11 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 	}
 
 	if needsNewGroup {
-		s.logger.Info("Creating new group", "app", mapping.AppName, "account", account.Number)
-
 		newGroupID, accountNumber, err := s.client.CreateGroup(mapping.AppName)
 		if err != nil {
 			return util.LogError(s.logger, "Failed to create group", err, "app", mapping.AppName)
 		}
 		signalGroupID = newGroupID
-
-		s.logger.Info("Created new group", "app", mapping.AppName, "groupID", signalGroupID, "account", accountNumber)
 
 		if err := s.store.UpdateSignal(mapping.AppName, &notification.SignalSubscription{
 			GroupID: signalGroupID,
