@@ -28,4 +28,7 @@ jobs:
         context: .
         platforms: linux/amd64
         push: true
+        build-args: |
+          VERSION=dev
+          COMMIT=${{ github.sha }}
         tags: ghcr.io/lone-cloud/prism:dev

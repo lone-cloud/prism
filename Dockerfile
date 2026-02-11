@@ -1,5 +1,8 @@
 FROM golang:1.25-alpine3.23 AS builder
 
+ARG VERSION=dev
+ARG COMMIT=unknown
+
 WORKDIR /build
 
 RUN apk add --no-cache git ca-certificates
@@ -11,7 +14,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
-    -ldflags="-w -s -X main.version=$(cat VERSION 2>/dev/null || echo dev) -X main.commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT}" \
     -o prism .
 
 FROM debian:trixie-slim
@@ -35,7 +38,8 @@ COPY --from=builder /build/prism .
 
 RUN useradd -m -u 1000 prism && \
     mkdir -p /app/data && \
-    chown -R prism:prism /app
+    mkdir -p /home/prism/.local/share/signal-cli && \
+    chown -R prism:prism /app /home/prism
 
 USER prism
 
