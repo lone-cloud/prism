@@ -7,7 +7,7 @@
 	<li>Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get your Chat ID</li>
 	<li>Enter both below:</li>
 </ol>
-<form class="auth-form" onsubmit="submitTelegramAuth(event)">
+<form class="auth-form" data-handler="telegram">
 	<div class="form-group">
 		<label for="telegram-bot-token">Bot Token:</label>
 		<input type="text" id="telegram-bot-token" name="bot_token" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" required>
@@ -21,11 +21,11 @@
 </form>
 {{else if .Error}}
 <p>Error: {{.Error}}</p>
-<button class="btn-secondary" onclick="location.reload()">Retry</button>
+<button class="btn-secondary" data-action="reload">Retry</button>
 {{else if .NeedsChatID}}
 <p><strong>Complete Setup:</strong></p>
 <p>Bot is configured, but Chat ID is missing.</p>
-<form class="auth-form" data-bot-token="{{.BotToken}}" onsubmit="submitTelegramChatId(event)">
+<form class="auth-form" data-handler="telegram-chatid" data-bot-token="{{.BotToken}}">
 	<div class="form-group">
 		<label for="telegram-chat-id-only">Chat ID:</label>
 		<input type="text" id="telegram-chat-id-only" name="chat_id" placeholder="Get from @userinfobot" required>
@@ -34,6 +34,6 @@
 	<div id="telegram-chatid-status" class="auth-status"></div>
 </form>
 {{else}}
-<button class="btn-danger" onclick="deleteTelegram(this)">Unlink</button>
+<button class="btn-danger" data-action="delete-telegram">Unlink</button>
 {{end}}
 

@@ -35,14 +35,19 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 
 		_, err = c.Unlock(auth, creds.KeySalts, creds.Password)
 		if err != nil {
-			m.logger.Error("Failed to unlock keys - password may have changed", "error", err)
-			if deleteErr := credStore.DeleteIntegration(credentials.IntegrationProton); deleteErr != nil {
-				m.logger.Error("Failed to clear invalid credentials", "error", deleteErr)
-			}
-			return fmt.Errorf("failed to unlock keys (password changed?): %v", err)
-		}
+			m.logger.Warn("Stored access token expired, attempting refresh", "error", err)
 
-		m.logger.Info("Restored Proton session from stored tokens")
+			auth, err = m.refreshTokens(c, auth, creds)
+			if err != nil {
+				if deleteErr := credStore.DeleteIntegration(credentials.IntegrationProton); deleteErr != nil {
+					m.logger.Error("Failed to clear invalid credentials", "error", deleteErr)
+				}
+				return fmt.Errorf("failed to refresh expired tokens: %v", err)
+			}
+			m.logger.Info("Token refreshed successfully on startup")
+		} else {
+			m.logger.Info("Restored Proton session from stored tokens")
+		}
 	} else if creds.Password != "" {
 		authInfo, err := c.AuthInfo(creds.Email)
 		if err != nil {
@@ -96,40 +101,47 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 	return nil
 }
 
+func (m *Monitor) refreshTokens(c *protonmail.Client, auth *protonmail.Auth, creds *credentials.ProtonCredentials) (*protonmail.Auth, error) {
+	m.logger.Info("Refreshing Proton session tokens")
+	newAuth, err := c.AuthRefresh(auth)
+	if err != nil {
+		m.logger.Error("Token refresh failed", "error", err)
+		return nil, err
+	}
+
+	_, err = c.Unlock(newAuth, creds.KeySalts, creds.Password)
+	if err != nil {
+		m.logger.Error("Token refresh failed - cannot unlock keys", "error", err)
+		return nil, err
+	}
+
+	updatedCreds, err := m.credStore.GetProton()
+	if err != nil {
+		m.logger.Warn("Failed to get credentials for token update", "error", err)
+		return newAuth, nil
+	}
+
+	updatedCreds.UID = newAuth.UID
+	updatedCreds.AccessToken = newAuth.AccessToken
+	updatedCreds.RefreshToken = newAuth.RefreshToken
+	updatedCreds.Scope = newAuth.Scope
+
+	if err := m.credStore.SaveProton(updatedCreds); err != nil {
+		m.logger.Warn("Failed to save refreshed tokens", "error", err)
+	} else {
+		m.logger.Info("Proton tokens refreshed and saved")
+	}
+
+	return newAuth, nil
+}
+
 func (m *Monitor) setupTokenRefresh(c *protonmail.Client, auth *protonmail.Auth, creds *credentials.ProtonCredentials) {
 	c.ReAuth = func() error {
-		m.logger.Info("Refreshing Proton session tokens")
-		newAuth, err := c.AuthRefresh(auth)
+		newAuth, err := m.refreshTokens(c, auth, creds)
 		if err != nil {
-			m.logger.Error("Token refresh failed", "error", err)
 			return err
 		}
-
-		_, err = c.Unlock(newAuth, creds.KeySalts, creds.Password)
-		if err != nil {
-			m.logger.Error("Token refresh failed - cannot unlock keys", "error", err)
-			return err
-		}
-
 		auth = newAuth
-
-		updatedCreds, err := m.credStore.GetProton()
-		if err != nil {
-			m.logger.Warn("Failed to get credentials for token update", "error", err)
-			return nil
-		}
-
-		updatedCreds.UID = newAuth.UID
-		updatedCreds.AccessToken = newAuth.AccessToken
-		updatedCreds.RefreshToken = newAuth.RefreshToken
-		updatedCreds.Scope = newAuth.Scope
-
-		if err := m.credStore.SaveProton(updatedCreds); err != nil {
-			m.logger.Warn("Failed to save refreshed tokens", "error", err)
-		} else {
-			m.logger.Info("Proton tokens refreshed and saved")
-		}
-
 		return nil
 	}
 }

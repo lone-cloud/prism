@@ -124,17 +124,16 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.integration != nil {
-		go func() {
-			ctx := context.Background()
-			if err := h.integration.monitor.Start(ctx, credStore); err != nil {
-				h.logger.Error("Failed to start Proton monitor after auth", "error", err)
-			} else {
-				h.logger.Info("Proton monitor started after authentication")
-				if h.integration.handlers != nil {
-					h.integration.handlers.username = req.Email
-				}
-			}
-		}()
+		ctx := context.Background()
+		if err := h.integration.monitor.Start(ctx, credStore); err != nil {
+			h.logger.Error("Failed to start Proton monitor after auth", "error", err)
+			util.JSONError(w, "Authentication failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		h.logger.Info("Proton monitor started")
+		if h.integration.handlers != nil {
+			h.integration.handlers.username = req.Email
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

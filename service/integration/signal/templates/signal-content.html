@@ -9,7 +9,7 @@
 	{{if .Error}}
 <p class="channel-not-configured">{{.Error}}</p>
 	{{else}}
-<button class="btn-primary" onclick="linkSignal(this)">Link</button>
+<button class="btn-primary" data-action="link-signal">Link</button>
 <div id="signal-qr-container" class="qr-container" style="display:none;">
 	<p><strong>Scan this QR code with Signal:</strong></p>
 	<ol class="link-instructions">
