@@ -1,3 +1,4 @@
+/* Variables */
 :root {
 	--bg-primary: #f5f5f5;
 	--bg-secondary: #fdfdfd;
@@ -35,7 +36,7 @@
 	--spinner-track: #4a4a4a;
 }
 
-/* CSS Reset */
+/* Reset */
 *,
 *::before,
 *::after {
@@ -78,9 +79,11 @@ h6 {
 	overflow-wrap: break-word;
 }
 
-/* Styles */
+/* Base */
 body {
 	font-family: system-ui;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
 	max-width: 50rem;
 	margin: 1rem auto;
 	padding: 0 1.25rem 1.25rem;
@@ -88,6 +91,22 @@ body {
 	color: var(--text-primary);
 }
 
+h2 {
+	margin-bottom: 1.25rem;
+}
+
+a {
+	color: var(--accent);
+	text-decoration: underline;
+}
+
+a:hover {
+	opacity: 0.8;
+}
+
+/* Components */
+
+/* Cards */
 .card {
 	background: var(--bg-secondary);
 	border-radius: 0.5rem;
@@ -128,19 +147,7 @@ details[open] > .card-header::before {
 	padding: 0 1.25rem 1.25rem 1.25rem;
 }
 
-h2 {
-	margin-bottom: 1.25rem;
-}
-
-a {
-	color: var(--accent);
-	text-decoration: underline;
-}
-
-a:hover {
-	opacity: 0.8;
-}
-
+/* Tooltips */
 .channel-badge:has(.tooltip),
 .integration-status:has(.tooltip) {
 	cursor: help;
@@ -183,6 +190,7 @@ a:hover {
 	opacity: 1;
 }
 
+/* Theme Toggle */
 .theme-toggle {
 	position: fixed;
 	bottom: 1.5rem;
@@ -201,6 +209,7 @@ a:hover {
 	opacity: 1;
 }
 
+/* App List */
 .app-list {
 	list-style: none;
 	padding: 0;
@@ -300,6 +309,7 @@ a:hover {
 	filter: brightness(0.85);
 }
 
+/* Loading Spinner */
 .loading {
 	color: var(--text-secondary);
 	display: flex;
@@ -322,6 +332,7 @@ a:hover {
 	}
 }
 
+/* Integrations */
 .integration-card {
 	background: var(--bg-secondary);
 	border-radius: 0.5rem;
@@ -405,6 +416,7 @@ details[open] > .integration-header::before {
 	color: var(--text-on-color);
 }
 
+/* Forms */
 .auth-form {
 	margin-top: 1rem;
 	max-width: 400px;
@@ -433,6 +445,7 @@ details[open] > .integration-header::before {
 	font-size: 1rem;
 }
 
+/* Buttons */
 .btn-primary,
 .btn-secondary,
 .btn-danger {
@@ -500,6 +513,7 @@ details[open] > .integration-header::before {
 	color: var(--text-on-color);
 }
 
+/* QR Code */
 .qr-container {
 	margin-top: 1rem;
 }

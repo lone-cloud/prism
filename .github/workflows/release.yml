@@ -26,18 +26,17 @@ jobs:
     - name: Build binaries
       run: |
         VERSION=$(cat VERSION)
-        COMMIT=$(git rev-parse --short HEAD)
         
         # Linux AMD64
         CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
           -trimpath \
-          -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
+          -ldflags="-s -w -X main.version=$VERSION" \
           -o prism-linux-amd64 .
         
         # Linux ARM64
         CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
           -trimpath \
-          -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
+          -ldflags="-s -w -X main.version=$VERSION" \
           -o prism-linux-arm64 .
     
     - name: Create GitHub Release
@@ -72,7 +71,6 @@ jobs:
         push: true
         build-args: |
           VERSION=${{ steps.version.outputs.tag }}
-          COMMIT=${{ github.sha }}
         tags: |
           ghcr.io/lone-cloud/prism:${{ steps.version.outputs.tag }}
           ghcr.io/lone-cloud/prism:latest

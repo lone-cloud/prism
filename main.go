@@ -21,7 +21,6 @@ var publicAssets embed.FS
 
 var (
 	version = "dev"
-	commit  = "unknown"
 )
 
 func init() {
@@ -30,7 +29,7 @@ func init() {
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "version" {
-		fmt.Printf("Prism %s (%s)\n", version, commit)
+		fmt.Printf("Prism %s\n", version)
 		return
 	}
 

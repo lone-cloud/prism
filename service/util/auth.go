@@ -77,17 +77,8 @@ func isLocalIP(addr string) bool {
 }
 
 func GetClientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
-	}
-
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
-	}
-
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if host == "" {
 		return r.RemoteAddr
 	}
 	return host

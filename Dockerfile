@@ -1,7 +1,6 @@
 FROM golang:1.25-alpine3.23 AS builder
 
 ARG VERSION=dev
-ARG COMMIT=unknown
 
 WORKDIR /build
 
@@ -14,7 +13,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
-    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT}" \
+    -ldflags="-w -s -X main.version=${VERSION}" \
     -o prism .
 
 FROM debian:trixie-slim
