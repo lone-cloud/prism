@@ -1,3 +1,26 @@
+document.addEventListener('DOMContentLoaded', () => {
+	document.addEventListener('submit', (e) => {
+		const form = e.target;
+		if (form.classList.contains('auth-form')) {
+			e.preventDefault();
+			const handler = form.dataset.handler;
+			if (handler === 'telegram') submitTelegramAuth(e);
+			else if (handler === 'telegram-chatid') submitTelegramChatId(e);
+			else if (handler === 'proton') submitProtonAuth(e);
+		}
+	});
+
+	document.addEventListener('click', (e) => {
+		const btn = e.target.closest('[data-action]');
+		if (!btn) return;
+		const action = btn.dataset.action;
+		if (action === 'link-signal') linkSignal(btn);
+		else if (action === 'delete-telegram') deleteTelegram(btn);
+		else if (action === 'delete-proton') deleteProton(btn);
+		else if (action === 'reload') location.reload();
+	});
+});
+
 async function handleAuthForm(form, endpoint, statusId, getPayload) {
 	const status = document.getElementById(statusId);
 	const btn = form.querySelector('button[type="submit"]');
@@ -28,9 +51,7 @@ async function handleAuthForm(form, endpoint, statusId, getPayload) {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onsubmit
 async function submitTelegramAuth(e) {
-	e.preventDefault();
 	await handleAuthForm(
 		e.target,
 		'/api/telegram/auth',
@@ -42,9 +63,7 @@ async function submitTelegramAuth(e) {
 	);
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onsubmit
 async function submitTelegramChatId(e) {
-	e.preventDefault();
 	await handleAuthForm(
 		e.target,
 		'/api/telegram/auth',
@@ -56,9 +75,7 @@ async function submitTelegramChatId(e) {
 	);
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onsubmit
 async function submitProtonAuth(e) {
-	e.preventDefault();
 	await handleAuthForm(
 		e.target,
 		'/api/proton/auth',
@@ -73,7 +90,6 @@ async function submitProtonAuth(e) {
 
 let signalLinkingPoll = null;
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onclick
 async function linkSignal(btn) {
 	const qrContainer = document.getElementById('signal-qr-container');
 	const qrCode = document.getElementById('signal-qr-code');
@@ -124,7 +140,6 @@ async function linkSignal(btn) {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onclick
 async function deleteTelegram(btn) {
 	if (!confirm('Unlink Telegram integration?')) return;
 
@@ -146,7 +161,6 @@ async function deleteTelegram(btn) {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: called from HTML onclick
 async function deleteProton(btn) {
 	if (!confirm('Unlink Proton Mail integration?')) return;
 

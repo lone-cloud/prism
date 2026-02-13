@@ -29,7 +29,6 @@ type IntegrationData struct {
 	StatusTooltip string
 	Content       template.HTML
 	Open          bool
-	PollAttrs     string
 }
 
 func NewHandlers(client *Client, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {

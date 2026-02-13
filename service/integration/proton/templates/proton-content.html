@@ -1,8 +1,8 @@
 {{if .Connected}}
-<button class="btn-danger" onclick="deleteProton(this)">Unlink</button>
+<button class="btn-danger" data-action="delete-proton">Unlink</button>
 {{else}}
 <p><strong>Link Proton Account:</strong></p>
-<form class="auth-form" onsubmit="submitProtonAuth(event)">
+<form class="auth-form" data-handler="proton">
 	<div class="form-group">
 		<label for="proton-email">Email:</label>
 		<input type="email" id="proton-email" name="email" placeholder="your-email@proton.me" required>

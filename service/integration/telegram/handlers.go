@@ -33,7 +33,6 @@ type IntegrationData struct {
 	StatusTooltip string
 	Content       template.HTML
 	Open          bool
-	PollAttrs     string
 }
 
 func NewHandlers(client *Client, chatID int64, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {
