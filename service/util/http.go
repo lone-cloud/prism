@@ -7,12 +7,8 @@ import (
 )
 
 func LogAndError(w http.ResponseWriter, logger *slog.Logger, message string, code int, err error, attrs ...any) {
-	if err != nil {
-		logAttrs := append([]any{"error", err}, attrs...)
-		logger.Error(message, logAttrs...)
-	} else {
-		logger.Error(message, attrs...)
-	}
+	logAttrs := append([]any{"error", err}, attrs...)
+	logger.Error(message, logAttrs...)
 	http.Error(w, message, code)
 }
 

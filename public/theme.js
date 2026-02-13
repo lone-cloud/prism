@@ -1,8 +1,7 @@
-const themes = ['system', 'light', 'dark'];
-let currentIndex = 0;
-
 const savedTheme = localStorage.getItem('theme') || 'system';
-currentIndex = themes.indexOf(savedTheme);
+const themes = ['system', 'light', 'dark'];
+let currentIndex = themes.indexOf(savedTheme);
+
 if (currentIndex === -1) currentIndex = 0;
 
 function applyTheme(theme) {

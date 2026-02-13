@@ -101,7 +101,11 @@ func (s *Server) setupRoutes() {
 
 	r.Get("/health", s.handleHealthCheck)
 	r.Head("/health", s.handleHealthCheck)
-	r.Get("/", s.handleIndex)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		if err := s.indexTmpl.Execute(w, map[string]string{"Version": s.version}); err != nil {
+			util.LogAndError(w, s.logger, "Internal Server Error", http.StatusInternalServerError, err)
+		}
+	})
 	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/favicon.webp", http.StatusMovedPermanently)
 	})

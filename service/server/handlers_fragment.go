@@ -10,6 +10,22 @@ import (
 	"prism/service/util"
 )
 
+type AppListItem struct {
+	AppName           string
+	Channel           string
+	ChannelBadge      string
+	ChannelConfigured bool
+	Tooltip           string
+	Hostname          string
+	ChannelOptions    []SelectOption
+}
+
+type SelectOption struct {
+	Value    string
+	Label    string
+	Selected bool
+}
+
 func (s *Server) handleFragmentApps(w http.ResponseWriter, r *http.Request) {
 	mappings, err := s.store.GetAllMappings()
 	if err != nil {

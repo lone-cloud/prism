@@ -2,14 +2,13 @@
 
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")
-COMMIT?=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GOBIN?=$(shell command -v go >/dev/null 2>&1 && go env GOPATH || echo "${HOME}/go")/bin
 export PATH := $(GOBIN):$(PATH)
 
 all: fix build
 
 build:
-	go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)" -o $(BINARY_NAME) .
+	go build -ldflags="-s -w -X main.version=$(VERSION)" -o $(BINARY_NAME) .
 
 start: build
 	./$(BINARY_NAME)
