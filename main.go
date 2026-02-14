@@ -49,7 +49,7 @@ func main() {
 }
 
 func runServer(cfg *config.Config, logger *slog.Logger) error {
-	srv, err := server.New(cfg, publicAssets)
+	srv, err := server.New(cfg, publicAssets, version)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}

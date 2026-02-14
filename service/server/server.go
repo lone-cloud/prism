@@ -8,8 +8,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"prism/service/config"
@@ -39,7 +37,7 @@ type Server struct {
 	version      string
 }
 
-func New(cfg *config.Config, publicAssets embed.FS) (*Server, error) {
+func New(cfg *config.Config, publicAssets embed.FS, version string) (*Server, error) {
 	logger := util.NewLogger(cfg.VerboseLogging)
 
 	store, err := notification.NewStore(cfg.StoragePath)
@@ -56,11 +54,6 @@ func New(cfg *config.Config, publicAssets embed.FS) (*Server, error) {
 	integrations, fragmentTmpl, err := integration.Initialize(cfg, store, logger, fragmentTmpl)
 	if err != nil {
 		return nil, err
-	}
-
-	version := "dev"
-	if versionBytes, err := os.ReadFile("VERSION"); err == nil {
-		version = strings.TrimSpace(string(versionBytes))
 	}
 
 	tmpl, err := template.ParseFS(publicAssets, "public/index.html")
