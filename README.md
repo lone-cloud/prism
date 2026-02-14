@@ -276,5 +276,6 @@ curl http://localhost:8080/api/v1/health \
 }
 ```
 
+## API Key Security
 
-
+Your API_KEY is both the login password and the master encryption key for all integration credentials. Use a strong unique password. Changing it will make all encrypted credentials unrecoverable.
