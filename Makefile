@@ -41,7 +41,7 @@ install-tools:
 		aarch64) SIGNAL_ARCH=arm64 ;; \
 		*) echo "Unsupported architecture: $$ARCH"; exit 1 ;; \
 	esac; \
-	gunzip -c vendor/signal-cli-$${SIGNAL_ARCH}.gz > /tmp/signal-cli && \
+	gunzip -c signal-cli/signal-cli-$${SIGNAL_ARCH}.gz > /tmp/signal-cli && \
 	sudo mv /tmp/signal-cli /usr/local/bin/signal-cli && \
 	sudo chmod +x /usr/local/bin/signal-cli && \
 	signal-cli --version && \

@@ -25,28 +25,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     
-    - name: Download dependencies
-      run: go mod download
-    
-    - name: Run go vet
-      run: go vet ./...
-    
-    - name: Run gofmt
+    - name: Install tools
       run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted. Run 'make fmt'"
-          gofmt -s -l .
-          exit 1
-        fi
-    
-    - name: Install golangci-lint
-      uses: golangci/golangci-lint-action@v9
-      with:
-        version: v2.8.0
-        args: --timeout=5m
-    
-    - name: Check frontend
-      run: npx @biomejs/biome@latest check .
+        go install golang.org/x/tools/cmd/goimports@latest
+        curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
     
     - name: Build
-      run: go build -v .
+      run: make all
