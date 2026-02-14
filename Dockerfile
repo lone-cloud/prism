@@ -20,7 +20,7 @@ FROM debian:trixie-slim
 
 ARG TARGETARCH
 
-COPY vendor/signal-cli-${TARGETARCH}.gz /tmp/signal-cli.gz
+COPY signal-cli/signal-cli-${TARGETARCH}.gz /tmp/signal-cli.gz
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget && \
