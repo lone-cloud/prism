@@ -89,6 +89,6 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 	authH := &authHandler{db: db, apiKey: apiKey, logger: logger}
 
 	router.With(auth).Get("/fragment/telegram", handlers.HandleFragment)
-	router.With(auth).Post("/api/telegram/auth", authH.handleAuth)
-	router.With(auth).Delete("/api/telegram/auth", authH.handleDelete)
+	router.With(auth).Post("/api/v1/telegram/auth", authH.handleAuth)
+	router.With(auth).Delete("/api/v1/telegram/auth", authH.handleDelete)
 }

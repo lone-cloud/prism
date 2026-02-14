@@ -54,7 +54,7 @@ async function handleAuthForm(form, endpoint, statusId, getPayload) {
 async function submitTelegramAuth(e) {
 	await handleAuthForm(
 		e.target,
-		'/api/telegram/auth',
+		'/api/v1/telegram/auth',
 		'telegram-auth-status',
 		(fd) => ({
 			bot_token: fd.get('bot_token'),
@@ -66,7 +66,7 @@ async function submitTelegramAuth(e) {
 async function submitTelegramChatId(e) {
 	await handleAuthForm(
 		e.target,
-		'/api/telegram/auth',
+		'/api/v1/telegram/auth',
 		'telegram-chatid-status',
 		(fd, form) => ({
 			bot_token: form.dataset.botToken,
@@ -78,7 +78,7 @@ async function submitTelegramChatId(e) {
 async function submitProtonAuth(e) {
 	await handleAuthForm(
 		e.target,
-		'/api/proton/auth',
+		'/api/v1/proton/auth',
 		'proton-auth-status',
 		(fd) => ({
 			email: fd.get('email'),
@@ -103,7 +103,7 @@ async function linkSignal(btn) {
 	qrContainer.style.display = 'none';
 
 	try {
-		const response = await fetch('/api/signal/link', {
+		const response = await fetch('/api/v1/signal/link', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ device_name: 'Prism' }),
@@ -122,7 +122,7 @@ async function linkSignal(btn) {
 
 		signalLinkingPoll = setInterval(async () => {
 			try {
-				const statusResp = await fetch('/api/signal/status');
+				const statusResp = await fetch('/api/v1/signal/status');
 				const statusData = await statusResp.json();
 
 				if (statusData.linked) {
@@ -146,7 +146,7 @@ async function deleteTelegram(btn) {
 	btn.disabled = true;
 
 	try {
-		const response = await fetch('/api/telegram/auth', { method: 'DELETE' });
+		const response = await fetch('/api/v1/telegram/auth', { method: 'DELETE' });
 
 		if (response.ok) {
 			location.reload();
@@ -167,7 +167,7 @@ async function deleteProton(btn) {
 	btn.disabled = true;
 
 	try {
-		const response = await fetch('/api/proton/auth', { method: 'DELETE' });
+		const response = await fetch('/api/v1/proton/auth', { method: 'DELETE' });
 
 		if (response.ok) {
 			location.reload();

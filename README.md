@@ -205,14 +205,14 @@ curl -X POST http://localhost:8080/my-app \
 
 ### WebPush/Webhook Management
 
-#### POST /webpush/app
+#### POST /api/v1/webpush/app
 
 Register or update a WebPush subscription or plain webhook.
 
 Encrypted WebPush (all crypto fields required):
 
 ```bash
-curl -X POST http://localhost:8080/webpush/app \
+curl -X POST http://localhost:8080/api/v1/webpush/app \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -227,7 +227,7 @@ curl -X POST http://localhost:8080/webpush/app \
 Plain HTTP webhook (no encryption):
 
 ```bash
-curl -X POST http://localhost:8080/webpush/app \
+curl -X POST http://localhost:8080/api/v1/webpush/app \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -236,12 +236,12 @@ curl -X POST http://localhost:8080/webpush/app \
   }'
 ```
 
-#### DELETE /webpush/app/{appName}
+#### DELETE /api/v1/webpush/app/{appName}
 
 Unregister a WebPush subscription (clears WebPush settings, reverts to Signal).
 
 ```bash
-curl -X DELETE http://localhost:8080/webpush/app/my-app \
+curl -X DELETE http://localhost:8080/api/v1/webpush/app/my-app \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -257,12 +257,12 @@ Public health check endpoint (no authentication required). Returns `200 OK` when
 curl http://localhost:8080/health
 ```
 
-#### GET /api/health
+#### GET /api/v1/health
 
 Detailed health endpoint (requires authentication). Returns JSON with uptime and integration status:
 
 ```bash
-curl http://localhost:8080/api/health \
+curl http://localhost:8080/api/v1/health \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 

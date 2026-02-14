@@ -83,7 +83,7 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 			{
 				ID:       "archive",
 				Label:    "Archive",
-				Endpoint: "/api/proton/archive",
+				Endpoint: "/api/v1/proton/archive",
 				Method:   "POST",
 				Data: map[string]any{
 					"uid": msg.ID,
@@ -92,7 +92,7 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 			{
 				ID:       "mark-read",
 				Label:    "Mark as Read",
-				Endpoint: "/api/proton/mark-read",
+				Endpoint: "/api/v1/proton/mark-read",
 				Method:   "POST",
 				Data: map[string]any{
 					"uid": msg.ID,

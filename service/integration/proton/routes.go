@@ -175,7 +175,7 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 
 	router.With(auth).Get("/fragment/proton", handlers.HandleFragment)
 
-	router.Route("/api/proton", func(r chi.Router) {
+	router.Route("/api/v1/proton", func(r chi.Router) {
 		r.Use(auth)
 		r.Post("/mark-read", handlers.HandleMarkRead)
 		r.Post("/archive", handlers.HandleArchive)
