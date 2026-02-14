@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN VERSION=$(cat VERSION 2>/dev/null || echo "dev") && \
+RUN VERSION=$(cat VERSION 2>/dev/null | tr -d '\n' || echo "dev") && \
     CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags="-w -s -X main.version=${VERSION}" \
