@@ -22,8 +22,8 @@ func RegisterRoutes(router *chi.Mux, cfg *config.Config, authMiddleware func(htt
 	handlers := NewHandlers(client, tmpl, logger)
 
 	router.With(authMiddleware).Get("/fragment/signal", handlers.HandleFragment)
-	router.With(authMiddleware).Post("/api/signal/link", handlers.HandleLinkDevice)
-	router.With(authMiddleware).Get("/api/signal/status", handlers.HandleLinkStatus)
+	router.With(authMiddleware).Post("/api/v1/signal/link", handlers.HandleLinkDevice)
+	router.With(authMiddleware).Get("/api/v1/signal/status", handlers.HandleLinkStatus)
 
 	return handlers
 }

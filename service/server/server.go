@@ -121,7 +121,7 @@ func (s *Server) setupRoutes() {
 		r.Post("/toggle-channel", s.handleToggleChannelAction)
 	})
 
-	r.Route("/api/admin", func(r chi.Router) {
+	r.Route("/api/v1/admin", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
 		r.Get("/mappings", s.handleGetMappings)
 		r.Post("/mappings", s.handleCreateMapping)
@@ -130,7 +130,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/stats", s.handleGetStats)
 	})
 
-	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/health", s.handleHealth)
+	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/v1/health", s.handleHealth)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Post("/{appName}", s.handleNtfyPublish)
 
