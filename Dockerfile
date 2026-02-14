@@ -20,15 +20,13 @@ FROM debian:trixie-slim
 
 ARG TARGETARCH
 
+COPY vendor/signal-cli-${TARGETARCH}.gz /tmp/signal-cli.gz
+
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates wget curl && \
-    curl -L -o signal-cli.gz \
-        https://media.projektzentrisch.de/temp/signal-cli/signal-cli_ubuntu2004_${TARGETARCH}.gz && \
-    gunzip signal-cli.gz && \
-    mv signal-cli /usr/local/bin/signal-cli && \
+    apt-get install -y --no-install-recommends wget && \
+    gunzip /tmp/signal-cli.gz && \
+    mv /tmp/signal-cli /usr/local/bin/signal-cli && \
     chmod +x /usr/local/bin/signal-cli && \
-    apt-get remove -y curl && \
-    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
