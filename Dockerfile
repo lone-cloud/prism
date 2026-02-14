@@ -1,7 +1,5 @@
 FROM golang:1.26-alpine3.23 AS builder
 
-ARG VERSION=dev
-
 WORKDIR /build
 
 RUN apk add --no-cache git ca-certificates
@@ -11,7 +9,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN VERSION=$(cat VERSION 2>/dev/null || echo "dev") && \
+    CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o prism .
