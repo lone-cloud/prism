@@ -45,10 +45,16 @@ func (s *Sender) CreateDefaultSignalSubscription(appName string) (*notification.
 		return nil, err
 	}
 
-	return &notification.SignalSubscription{
+	signalSub := &notification.SignalSubscription{
 		GroupID: groupID,
 		Account: account,
-	}, nil
+	}
+
+	if err := s.store.SaveSignalGroup(appName, signalSub); err != nil {
+		s.logger.Warn("Failed to cache Signal group", "error", err)
+	}
+
+	return signalSub, nil
 }
 
 func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {

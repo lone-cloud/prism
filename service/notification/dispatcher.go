@@ -104,8 +104,7 @@ func (d *Dispatcher) Send(appName string, notif Notification) error {
 	for _, sub := range app.Subscriptions {
 		sender, ok := d.senders[sub.Channel]
 		if !ok {
-			d.logger.Error("No sender for channel", "channel", sub.Channel, "subscriptionID", sub.ID)
-			lastErr = fmt.Errorf("no sender for channel: %s", sub.Channel)
+			d.logger.Debug("Skipping subscription for disabled channel", "channel", sub.Channel, "subscriptionID", sub.ID)
 			continue
 		}
 
@@ -195,9 +194,21 @@ func (d *Dispatcher) trySignalAutoConfig(appName string) (*App, error) {
 		return nil, fmt.Errorf("sender does not implement signal auto-configuration")
 	}
 
-	signalSub, err := autoConfigurer.CreateDefaultSignalSubscription(appName)
+	var signalSub *SignalSubscription
+
+	cachedGroup, err := d.store.GetSignalGroup(appName)
 	if err != nil {
-		return nil, err
+		d.logger.Warn("Failed to check for cached Signal group", "error", err)
+	}
+
+	if cachedGroup != nil {
+		d.logger.Debug("Reusing cached Signal group", "app", appName)
+		signalSub = cachedGroup
+	} else {
+		signalSub, err = autoConfigurer.CreateDefaultSignalSubscription(appName)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	subID, err := GenerateSubscriptionID()
