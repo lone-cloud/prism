@@ -104,10 +104,6 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 					return
 				}
 				sub.Signal = signalSub
-
-				if err := s.store.SaveSignalGroup(appName, signalSub); err != nil {
-					s.logger.Warn("Failed to cache Signal group", "error", err)
-				}
 			}
 		}
 
