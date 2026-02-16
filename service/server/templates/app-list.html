@@ -1,38 +1,56 @@
 {{if .}}
 <ul class="app-list">
 {{range .}}
+	{{$app := .}}
 	<li class="app-item">
 		<div class="app-info">
 			<div class="app-name"><strong>{{.AppName}}</strong></div>
-			<div class="app-channel">
-				{{if .ChannelConfigured}}
-					<span class="channel-badge channel-{{.Channel}}">
-						{{.ChannelBadge}}
-						{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
-					</span>
-				{{else}}
-					<span class="channel-badge channel-not-configured">
-						{{.ChannelBadge}}
-						{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
-					</span>
-				{{end}}
-				{{if .Hostname}}
-					<span class="app-detail">{{.Hostname}}</span>
+			{{if .Channels}}
+			<div class="app-subscriptions">
+				{{range .Channels}}
+					{{$channel := .}}
+					{{if .Toggleable}}
+						{{if .Active}}
+							<button type="button" class="channel-badge channel-{{.Channel}} badge-active" 
+							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{(index .Subscriptions 0).ID}}" 
+								hx-target="#apps-list" 
+							hx-swap="innerHTML">
+								{{.Label}}
+								<span class="tooltip">{{if (index .Subscriptions 0).Tooltip}}{{(index .Subscriptions 0).Tooltip}}{{else}}Click to disable{{end}}</span>
+							</button>
+						{{else}}
+							<button type="button" class="channel-badge channel-{{.Channel}} badge-inactive" 
+							hx-post="/apps/{{$app.AppName}}/subscriptions" 
+								hx-target="#apps-list" 
+								hx-swap="innerHTML" 
+								hx-vals='{"channel":"{{.Channel}}"}'>
+								+ {{.Label}}
+								<span class="tooltip">Click to enable</span>
+							</button>
+						{{end}}
+					{{else}}
+						{{range .Subscriptions}}
+						<span class="channel-badge channel-{{$channel.Channel}} badge-subscribed">
+							{{$channel.Label}}{{if .Hostname}} ({{.Hostname}}){{end}}
+							{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
+							<button type="button" class="btn-delete-sub" 
+							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 
+								hx-target="#apps-list" 
+								hx-swap="innerHTML" 
+								hx-confirm="Delete this subscription?">×</button>
+						</span>
+						{{end}}
+					{{end}}
 				{{end}}
 			</div>
+			{{else}}
+			<div class="app-no-subscriptions">
+				<span class="channel-badge channel-not-configured">No channels enabled</span>
+			</div>
+			{{end}}
 		</div>
 		<div class="app-actions">
-			{{if gt (len .ChannelOptions) 1}}
-			<form class="channel-form">
-				<input type="hidden" name="app" value="{{.AppName}}" />
-				<select class="channel-select" name="channel" hx-post="/action/toggle-channel" hx-target="#apps-list" hx-swap="innerHTML" hx-include="closest form">
-					{{range .ChannelOptions}}
-					<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>
-					{{end}}
-				</select>
-			</form>
-			{{end}}
-			<button class="btn-delete" hx-delete="/action/app/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}}?">Delete</button>
+			<button type="button" class="btn-delete" hx-delete="/apps/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}} and all subscriptions?">Delete</button>
 		</div>
 	</li>
 {{end}}

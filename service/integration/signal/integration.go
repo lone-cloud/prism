@@ -24,7 +24,10 @@ type Integration struct {
 
 func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
 	client := NewClient()
-	sender := NewSender(client, store, logger)
+	var sender *Sender
+	if client.IsEnabled() {
+		sender = NewSender(client, store, logger)
+	}
 	return &Integration{
 		cfg:    cfg,
 		client: client,

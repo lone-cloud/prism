@@ -173,15 +173,11 @@ prism_api_key: "Bearer YOUR_API_KEY_HERE"
 
 Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
 
-## API Reference
+## Sending Notifications
 
-### Send Notification
+Send notifications via HTTP POST to `/{appName}`:
 
-#### POST /{appName}
-
-Send a notification to a specific app. Messages are routed based on your app configuration in the web UI.
-
-JSON format:
+**JSON format:**
 
 ```bash
 curl -X POST http://localhost:8080/my-app \
@@ -190,7 +186,7 @@ curl -X POST http://localhost:8080/my-app \
   -d '{"title": "Alert", "message": "Something happened"}'
 ```
 
-Plain text (ntfy-compatible):
+**Plain text (ntfy-compatible):**
 
 ```bash
 curl -X POST http://localhost:8080/my-app \
@@ -198,52 +194,7 @@ curl -X POST http://localhost:8080/my-app \
   -d "Simple message text"
 ```
 
-**App Routing:**
-- Configure which integration(s) receive messages from each app via the web UI
-- Apps can route to Signal, Telegram, WebPush, or multiple destinations
-- Special apps like "Proton Mail" are created automatically
-
-### WebPush/Webhook Management
-
-#### POST /api/v1/webpush/app
-
-Register or update a WebPush subscription or plain webhook.
-
-Encrypted WebPush (all crypto fields required):
-
-```bash
-curl -X POST http://localhost:8080/api/v1/webpush/app \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "appName": "my-app",
-    "pushEndpoint": "https://updates.push.services.mozilla.org/...",
-    "p256dh": "base64-encoded-key",
-    "auth": "base64-encoded-auth",
-    "vapidPrivateKey": "base64-encoded-vapid-key"
-  }'
-```
-
-Plain HTTP webhook (no encryption):
-
-```bash
-curl -X POST http://localhost:8080/api/v1/webpush/app \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "appName": "my-app",
-    "pushEndpoint": "https://your-server.com/webhook"
-  }'
-```
-
-#### DELETE /api/v1/webpush/app/{appName}
-
-Unregister a WebPush subscription (clears WebPush settings, reverts to Signal).
-
-```bash
-curl -X DELETE http://localhost:8080/api/v1/webpush/app/my-app \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
+Messages are routed based on your app's subscriptions configured in the web UI. Apps can have multiple subscriptions (Signal + WebPush + Telegram) and will receive notifications on all configured channels.
 
 ## Monitoring
 

@@ -63,7 +63,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 		} else if account == nil {
 			integData.StatusClass = "disconnected"
 			integData.StatusText = "Unlinked"
-			integData.StatusTooltip = "Click to link device with Signal"
+			integData.StatusTooltip = "Click Link button below to link"
 			integData.Open = true
 		} else {
 			integData.StatusClass = "connected"

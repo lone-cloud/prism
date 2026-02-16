@@ -77,10 +77,10 @@ func (c Channel) IsAvailable(signalEnabled bool, telegramEnabled bool) bool {
 }
 
 type WebPushSubscription struct {
-	Endpoint        string
-	P256dh          string
-	Auth            string
-	VapidPrivateKey string
+	Endpoint        string `json:"endpoint"`
+	P256dh          string `json:"p256dh,omitempty"`
+	Auth            string `json:"auth,omitempty"`
+	VapidPrivateKey string `json:"vapidPrivateKey,omitempty"`
 }
 
 func (w *WebPushSubscription) HasEncryption() bool {
@@ -88,13 +88,24 @@ func (w *WebPushSubscription) HasEncryption() bool {
 }
 
 type SignalSubscription struct {
-	GroupID string
-	Account string
+	GroupID string `json:"groupId"`
+	Account string `json:"account"`
 }
 
-type Mapping struct {
-	Signal  *SignalSubscription
-	WebPush *WebPushSubscription
-	AppName string
-	Channel Channel
+type TelegramSubscription struct {
+	ChatID string `json:"chatId"`
+}
+
+type Subscription struct {
+	ID       string                `json:"id"`
+	AppName  string                `json:"appName"`
+	Channel  Channel               `json:"channel"`
+	Signal   *SignalSubscription   `json:"signal,omitempty"`
+	WebPush  *WebPushSubscription  `json:"webPush,omitempty"`
+	Telegram *TelegramSubscription `json:"telegram,omitempty"`
+}
+
+type App struct {
+	AppName       string         `json:"appName"`
+	Subscriptions []Subscription `json:"subscriptions"`
 }

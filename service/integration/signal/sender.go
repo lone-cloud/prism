@@ -22,9 +22,42 @@ func NewSender(client *Client, store *notification.Store, logger *slog.Logger) *
 	}
 }
 
-func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
+func (s *Sender) IsLinked() (bool, error) {
+	if s.client == nil {
+		return false, nil
+	}
+
+	account, err := s.client.GetLinkedAccount()
+	if err != nil {
+		return false, err
+	}
+
+	return account != nil, nil
+}
+
+func (s *Sender) CreateDefaultSignalSubscription(appName string) (*notification.SignalSubscription, error) {
+	if s.client == nil {
+		return nil, fmt.Errorf("signal integration not enabled")
+	}
+
+	groupID, account, err := s.client.CreateGroup(appName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notification.SignalSubscription{
+		GroupID: groupID,
+		Account: account,
+	}, nil
+}
+
+func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
 	if s.client == nil {
 		return notification.NewPermanentError(fmt.Errorf("signal integration not enabled"))
+	}
+
+	if sub.Signal == nil {
+		return notification.NewPermanentError(fmt.Errorf("no signal subscription data"))
 	}
 
 	account, err := s.client.GetLinkedAccount()
@@ -37,32 +70,21 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 	}
 
 	var signalGroupID string
-	needsNewGroup := mapping.Signal == nil || mapping.Signal.GroupID == ""
+	needsNewGroup := sub.Signal.GroupID == ""
 
-	if !needsNewGroup && mapping.Signal.Account != account.Number {
+	if !needsNewGroup && sub.Signal.Account != account.Number {
 		s.logger.Info("Signal account changed, recreating group",
-			"app", mapping.AppName,
-			"oldAccount", mapping.Signal.Account,
+			"app", sub.AppName,
+			"oldAccount", sub.Signal.Account,
 			"newAccount", account.Number)
 		needsNewGroup = true
 	}
 
 	if needsNewGroup {
-		newGroupID, accountNumber, err := s.client.CreateGroup(mapping.AppName)
-		if err != nil {
-			return util.LogError(s.logger, "Failed to create group", err, "app", mapping.AppName)
-		}
-		signalGroupID = newGroupID
-
-		if err := s.store.UpdateSignal(mapping.AppName, &notification.SignalSubscription{
-			GroupID: signalGroupID,
-			Account: accountNumber,
-		}); err != nil {
-			return util.LogError(s.logger, "Failed to persist signal group", err)
-		}
-	} else {
-		signalGroupID = mapping.Signal.GroupID
+		return notification.NewPermanentError(fmt.Errorf("signal group not configured for subscription %s", sub.ID))
 	}
+
+	signalGroupID = sub.Signal.GroupID
 
 	message := notif.Message
 	if notif.Title != "" {

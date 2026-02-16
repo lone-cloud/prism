@@ -116,10 +116,10 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.dispatcher != nil {
-		if err := h.dispatcher.RegisterApp(prismTopic); err != nil {
-			h.logger.Warn("Failed to auto-create Proton Mail app mapping", "error", err)
+		if _, err := h.dispatcher.CreateAppWithDefaultSubscription(prismTopic); err != nil {
+			h.logger.Warn("Failed to auto-create Proton Mail app with subscription", "error", err)
 		} else {
-			h.logger.Info("Created Proton Mail app mapping")
+			h.logger.Info("Created Proton Mail app with default subscription")
 		}
 	}
 
@@ -136,6 +136,7 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	util.SetToast(w, "Proton Mail linked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
@@ -154,6 +155,7 @@ func (h *authHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	util.SetToast(w, "Proton Mail unlinked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }

@@ -22,9 +22,9 @@ func NewSender(logger *slog.Logger) *Sender {
 	}
 }
 
-func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
-	if mapping.WebPush == nil {
-		return notification.NewPermanentError(fmt.Errorf("no push endpoint configured for %s", mapping.AppName))
+func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
+	if sub.WebPush == nil {
+		return notification.NewPermanentError(fmt.Errorf("no push endpoint configured for subscription %s", sub.ID))
 	}
 
 	payload, err := json.Marshal(notif)
@@ -32,17 +32,17 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 		return fmt.Errorf("failed to marshal notification: %w", err)
 	}
 
-	if mapping.WebPush.HasEncryption() {
+	if sub.WebPush.HasEncryption() {
 		subscription := &webpush.Subscription{
-			Endpoint: mapping.WebPush.Endpoint,
+			Endpoint: sub.WebPush.Endpoint,
 			Keys: webpush.Keys{
-				P256dh: mapping.WebPush.P256dh,
-				Auth:   mapping.WebPush.Auth,
+				P256dh: sub.WebPush.P256dh,
+				Auth:   sub.WebPush.Auth,
 			},
 		}
 
 		resp, err := webpush.SendNotification(payload, subscription, &webpush.Options{
-			VAPIDPrivateKey: mapping.WebPush.VapidPrivateKey,
+			VAPIDPrivateKey: sub.WebPush.VapidPrivateKey,
 			TTL:             86400,
 		})
 		if err != nil {
@@ -54,9 +54,9 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 			return fmt.Errorf("webpush returned status %d", resp.StatusCode)
 		}
 
-		s.logger.Debug("Sent encrypted webpush notification", "app", mapping.AppName, "url", mapping.WebPush.Endpoint)
+		s.logger.Debug("Sent encrypted webpush notification", "app", sub.AppName, "url", sub.WebPush.Endpoint)
 	} else {
-		resp, err := http.Post(mapping.WebPush.Endpoint, "application/json", bytes.NewBuffer(payload))
+		resp, err := http.Post(sub.WebPush.Endpoint, "application/json", bytes.NewBuffer(payload))
 		if err != nil {
 			return fmt.Errorf("failed to send webhook: %w", err)
 		}
@@ -66,7 +66,7 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 			return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 		}
 
-		s.logger.Debug("Sent plain webhook notification", "app", mapping.AppName, "url", mapping.WebPush.Endpoint)
+		s.logger.Debug("Sent plain webhook notification", "app", sub.AppName, "url", sub.WebPush.Endpoint)
 	}
 
 	return nil

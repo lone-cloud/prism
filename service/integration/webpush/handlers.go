@@ -1,6 +1,8 @@
 package webpush
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -11,6 +13,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+func generateSubscriptionID() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
 
 type Handlers struct {
 	store  *notification.Store
@@ -49,7 +59,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existing, err := h.store.GetApp(req.AppName)
+	subID, err := generateSubscriptionID()
 	if err != nil {
 		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
 		return
@@ -69,47 +79,47 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if existing != nil {
-		if err := h.store.UpdateWebPush(req.AppName, webPush); err != nil {
-			util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
-			return
-		}
-		h.logger.Info("Updated webpush for existing endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
-	} else {
-		channel := notification.ChannelWebPush
-		if err := h.store.Register(req.AppName, &channel, nil, webPush); err != nil {
-			util.LogAndError(w, h.logger, "Failed to register webpush endpoint", http.StatusInternalServerError, err)
-			return
-		}
-		h.logger.Info("Registered new webpush endpoint", "app", req.AppName, "pushEndpoint", req.PushEndpoint)
+	sub := notification.Subscription{
+		ID:      subID,
+		AppName: req.AppName,
+		Channel: notification.ChannelWebPush,
+		WebPush: webPush,
 	}
+
+	if err := h.store.AddSubscription(sub); err != nil {
+		util.LogAndError(w, h.logger, "Failed to add subscription", http.StatusInternalServerError, err)
+		return
+	}
+
+	h.logger.Info("Added webpush subscription", "app", req.AppName, "subscriptionID", subID, "pushEndpoint", req.PushEndpoint)
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
-		"appName": req.AppName,
-		"channel": notification.ChannelWebPush.String(),
+		"appName":        req.AppName,
+		"channel":        notification.ChannelWebPush.String(),
+		"subscriptionId": subID,
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
 
 func (h *Handlers) HandleUnregister(w http.ResponseWriter, r *http.Request) {
-	appName := chi.URLParam(r, "appName")
-	if appName == "" {
-		http.Error(w, "appName is required", http.StatusBadRequest)
+	subscriptionID := chi.URLParam(r, "subscriptionId")
+	if subscriptionID == "" {
+		http.Error(w, "subscriptionId is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.store.ClearWebPush(appName); err != nil {
-		util.LogAndError(w, h.logger, "Failed to clear webpush endpoint", http.StatusInternalServerError, err)
+	if err := h.store.DeleteSubscription(subscriptionID); err != nil {
+		util.LogAndError(w, h.logger, "Failed to delete subscription", http.StatusInternalServerError, err)
 		return
 	}
 
-	h.logger.Info("Cleared webpush subscription", "app", appName)
+	h.logger.Info("Deleted webpush subscription", "subscriptionID", subscriptionID)
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
-		"status":  "unregistered",
-		"appName": appName,
+		"status":         "deleted",
+		"subscriptionId": subscriptionID,
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }

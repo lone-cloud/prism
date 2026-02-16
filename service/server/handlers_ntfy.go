@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,10 +18,12 @@ import (
 
 func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 	appName := chi.URLParam(r, "appName")
-	if appName == "" {
-		appName = chi.URLParam(r, "endpoint")
+	decodedAppName, err := url.PathUnescape(appName)
+	if err != nil {
+		http.Error(w, "Invalid app name", http.StatusBadRequest)
+		return
 	}
-	appName, _ = url.QueryUnescape(appName)
+	appName = decodedAppName
 	if appName == "" || strings.Contains(appName, "/") {
 		http.Error(w, "Invalid app name", http.StatusBadRequest)
 		return
@@ -31,49 +35,7 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var message, title string
-	contentType := r.Header.Get("Content-Type")
-
-	if strings.Contains(contentType, "application/json") {
-		var payload struct {
-			Title   string `json:"title"`
-			Message string `json:"message"`
-		}
-		if err := json.Unmarshal(body, &payload); err == nil {
-			message = payload.Message
-			title = payload.Title
-		} else {
-			message = string(body)
-		}
-	} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
-		if values, err := url.ParseQuery(string(body)); err == nil {
-			message = values.Get("message")
-			if message == "" {
-				message = string(body)
-			}
-			if title == "" {
-				if t := values.Get("title"); t != "" {
-					title = t
-				} else if t := values.Get("t"); t != "" {
-					title = t
-				}
-			}
-		} else {
-			message = string(body)
-		}
-	} else {
-		message = string(body)
-	}
-
-	if title == "" {
-		title = r.Header.Get("X-Title")
-		if title == "" {
-			title = r.Header.Get("Title")
-		}
-		if title == "" {
-			title = r.Header.Get("t")
-		}
-	}
+	message, title := parseNtfyPayload(r, body)
 
 	if message == "" {
 		http.Error(w, "Message required", http.StatusBadRequest)
@@ -108,6 +70,57 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		s.logger.Error("Failed to encode response", "error", err)
 	}
+}
+
+func parseNtfyPayload(r *http.Request, body []byte) (string, string) {
+	var message, title string
+
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		mediaType = ""
+	}
+
+	switch mediaType {
+	case "application/json":
+		var payload struct {
+			Title   string `json:"title"`
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(body, &payload); err == nil {
+			message = payload.Message
+			title = payload.Title
+		} else {
+			message = string(body)
+		}
+	case "application/x-www-form-urlencoded":
+		r.Body = io.NopCloser(bytes.NewReader(body))
+		if err := r.ParseForm(); err == nil {
+			message = r.PostForm.Get("message")
+			if message == "" {
+				message = string(body)
+			}
+			title = firstNonEmpty(r.PostForm.Get("title"), r.PostForm.Get("t"))
+		} else {
+			message = string(body)
+		}
+	default:
+		message = string(body)
+	}
+
+	if title == "" {
+		title = firstNonEmpty(r.Header.Get("X-Title"), r.Header.Get("Title"), r.Header.Get("t"))
+	}
+
+	return message, title
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func truncate(s string, max int) string {

@@ -17,9 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (action === 'link-signal') linkSignal(btn);
 		else if (action === 'delete-telegram') deleteTelegram(btn);
 		else if (action === 'delete-proton') deleteProton(btn);
-		else if (action === 'reload') location.reload();
+		else if (action === 'reload') reloadIntegrations();
 	});
 });
+
+function reloadIntegrations() {
+	const integrations = document.getElementById('integrations');
+	if (integrations) {
+		htmx.trigger(integrations, 'reload');
+	}
+}
 
 async function handleAuthForm(form, endpoint, statusId, getPayload) {
 	const status = document.getElementById(statusId);
@@ -41,7 +48,8 @@ async function handleAuthForm(form, endpoint, statusId, getPayload) {
 		});
 
 		if (response.ok) {
-			location.reload();
+			checkToast(response);
+			reloadIntegrations();
 		} else {
 			const error = await response.json();
 			showError(error.error || 'Failed to save');
@@ -51,10 +59,24 @@ async function handleAuthForm(form, endpoint, statusId, getPayload) {
 	}
 }
 
+function checkToast(response) {
+	const trigger = response.headers.get('HX-Trigger');
+	if (trigger) {
+		try {
+			const data = JSON.parse(trigger);
+			if (data.showToast && window.showToast) {
+				showToast(data.showToast.message, data.showToast.type);
+			}
+		} catch (_e) {
+			// Ignore
+		}
+	}
+}
+
 async function submitTelegramAuth(e) {
 	await handleAuthForm(
 		e.target,
-		'/api/v1/telegram/auth',
+		'/api/v1/telegram/link',
 		'telegram-auth-status',
 		(fd) => ({
 			bot_token: fd.get('bot_token'),
@@ -66,7 +88,7 @@ async function submitTelegramAuth(e) {
 async function submitTelegramChatId(e) {
 	await handleAuthForm(
 		e.target,
-		'/api/v1/telegram/auth',
+		'/api/v1/telegram/link',
 		'telegram-chatid-status',
 		(fd, form) => ({
 			bot_token: form.dataset.botToken,
@@ -120,7 +142,11 @@ async function linkSignal(btn) {
 		qrCode.src = qrUrl;
 		qrContainer.style.display = 'block';
 
+		let statusCheckInProgress = false;
 		signalLinkingPoll = setInterval(async () => {
+			if (statusCheckInProgress) return;
+
+			statusCheckInProgress = true;
 			try {
 				const statusResp = await fetch('/api/v1/signal/status');
 				const statusData = await statusResp.json();
@@ -129,10 +155,13 @@ async function linkSignal(btn) {
 					clearInterval(signalLinkingPoll);
 					qrContainer.innerHTML =
 						'<p class="auth-status success">Linked! Refreshing...</p>';
-					setTimeout(() => location.reload(), 1000);
+					showToast('Signal linked', 'success');
+					setTimeout(() => reloadIntegrations(), 1000);
 				}
 			} catch (err) {
 				console.error('Status check failed:', err);
+			} finally {
+				statusCheckInProgress = false;
 			}
 		}, 2000);
 	} catch (err) {
@@ -146,10 +175,11 @@ async function deleteTelegram(btn) {
 	btn.disabled = true;
 
 	try {
-		const response = await fetch('/api/v1/telegram/auth', { method: 'DELETE' });
+		const response = await fetch('/api/v1/telegram/link', { method: 'DELETE' });
 
 		if (response.ok) {
-			location.reload();
+			checkToast(response);
+			reloadIntegrations();
 		} else {
 			const error = await response.json();
 			alert(`Error: ${error.error || 'Failed to unlink integration'}`);
@@ -170,7 +200,8 @@ async function deleteProton(btn) {
 		const response = await fetch('/api/v1/proton/auth', { method: 'DELETE' });
 
 		if (response.ok) {
-			location.reload();
+			checkToast(response);
+			reloadIntegrations();
 		} else {
 			const error = await response.json();
 			alert(`Error: ${error.error || 'Failed to unlink integration'}`);

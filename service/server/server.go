@@ -99,30 +99,20 @@ func (s *Server) setupRoutes() {
 			util.LogAndError(w, s.logger, "Internal Server Error", http.StatusInternalServerError, err)
 		}
 	})
-	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/favicon.webp", http.StatusMovedPermanently)
-	})
 
 	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/apps", s.handleFragmentApps)
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/integrations", s.handleFragmentIntegrations)
 
-	r.Route("/action", func(r chi.Router) {
+	r.Route("/apps", func(r chi.Router) {
 		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Delete("/app/{appName}", s.handleDeleteAppAction)
-		r.Post("/toggle-channel", s.handleToggleChannelAction)
+		r.Delete("/{appName}", s.handleDeleteApp)
+		r.Post("/{appName}/subscriptions", s.handleCreateSubscription)
+		r.Delete("/{appName}/subscriptions/{subscriptionId}", s.handleDeleteSubscription)
 	})
 
-	r.Route("/api/v1/admin", func(r chi.Router) {
-		r.Use(authMiddleware(s.cfg.APIKey))
-		r.Get("/mappings", s.handleGetMappings)
-		r.Post("/mappings", s.handleCreateMapping)
-		r.Delete("/mappings/{appName}", s.handleDeleteMapping)
-		r.Put("/mappings/{appName}/channel", s.handleUpdateChannel)
-		r.Get("/stats", s.handleGetStats)
-	})
-
+	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/v1/apps", s.handleGetApps)
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/api/v1/health", s.handleHealth)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Post("/{appName}", s.handleNtfyPublish)
