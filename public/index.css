@@ -148,7 +148,6 @@ details[open] > .card-header::before {
 }
 
 /* Tooltips */
-.channel-badge:has(.tooltip),
 .integration-status:has(.tooltip) {
 	cursor: help;
 }
@@ -172,7 +171,7 @@ details[open] > .card-header::before {
 	transition: opacity 0.2s;
 	pointer-events: none;
 	z-index: 10;
-	box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+	box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3);
 }
 
 .tooltip::after {
@@ -232,18 +231,11 @@ details[open] > .card-header::before {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	gap: 0.25rem;
+	gap: 0.5rem;
 }
 
 .app-name {
-	font-size: 1.1em;
-}
-
-.app-channel {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-size: 0.9em;
+	font-size: 1.2em;
 }
 
 .channel-badge {
@@ -252,46 +244,75 @@ details[open] > .card-header::before {
 	font-size: 0.85em;
 	font-weight: 500;
 	position: relative;
+	border: none;
+	background: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.25rem;
+	min-width: 5rem;
 }
 
-.channel-signal {
+.badge-active {
+	cursor: pointer;
+	transition: filter 0.2s ease;
+}
+
+.badge-active:hover {
+	filter: brightness(0.9);
+}
+
+.badge-active.htmx-request {
+	opacity: 0.6;
+	cursor: wait;
+	pointer-events: none;
+}
+
+.badge-inactive {
+	cursor: pointer;
+	border: 0.0625rem dashed currentColor;
+	transition: filter 0.2s ease;
+}
+
+.badge-inactive:hover {
+	filter: brightness(1.2);
+}
+
+.badge-inactive.htmx-request {
+	opacity: 0.6;
+	cursor: wait;
+	pointer-events: none;
+}
+
+.channel-signal.badge-active {
 	background: var(--accent);
 	color: var(--text-on-color);
 }
 
-.channel-webpush {
+.channel-signal.badge-inactive {
+	color: var(--accent);
+	background: transparent;
+}
+
+.channel-webpush.badge-active {
 	background: var(--success);
 	color: var(--text-on-color);
 }
 
-.channel-telegram {
-	background: #0088cc;
+.channel-telegram.badge-active {
+	background: var(--accent);
 	color: var(--text-on-color);
 }
 
-.app-detail {
-	color: var(--text-secondary);
-	font-size: 0.85em;
+.channel-telegram.badge-inactive {
+	color: var(--accent);
+	background: transparent;
 }
 
 .app-actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
-}
-
-.channel-form {
-	display: inline;
-}
-
-.channel-select {
-	padding: 0.375rem 0.5rem;
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	border: 0.0625rem solid var(--border-color);
-	border-radius: 0.25rem;
-	cursor: pointer;
-	font-size: 0.9em;
 }
 
 .btn-delete {
@@ -307,6 +328,23 @@ details[open] > .card-header::before {
 
 .btn-delete:hover {
 	filter: brightness(0.85);
+}
+
+.btn-delete-sub {
+	background: none;
+	border: none;
+	color: inherit;
+	font-size: 1.1em;
+	font-weight: bold;
+	cursor: pointer;
+	padding: 0 0.25rem;
+	margin-left: 0.25rem;
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.btn-delete-sub:hover {
+	opacity: 1;
 }
 
 /* Loading Spinner */
@@ -401,8 +439,9 @@ details[open] > .integration-header::before {
 }
 
 .integration-status.unlinked {
-	background: var(--text-secondary);
-	color: var(--text-on-color);
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	border: 0.0625rem solid var(--border-color);
 }
 
 .link-instructions {
@@ -477,8 +516,9 @@ details[open] > .integration-header::before {
 }
 
 .btn-secondary {
-	background: var(--text-secondary);
-	color: var(--text-on-color);
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	border: 0.0625rem solid var(--border-color);
 }
 
 .btn-danger {
@@ -532,4 +572,74 @@ details[open] > .integration-header::before {
 	max-width: 25rem;
 	height: auto;
 	display: block;
+}
+
+/* Toast Notifications */
+#toast-container {
+	position: fixed;
+	bottom: 1.5rem;
+	right: 1.5rem;
+	z-index: 9999;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	pointer-events: none;
+}
+
+.toast {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+	padding: 0.875rem 1.25rem;
+	border-radius: 0.375rem;
+	box-shadow:
+		0 0.25rem 0.5rem rgba(0, 0, 0, 0.1),
+		0 0 0 0.0625rem var(--border-color);
+	min-width: 15rem;
+	max-width: 25rem;
+	pointer-events: auto;
+	animation: toastSlideIn 0.3s ease;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.toast.success {
+	background: var(--success);
+	color: var(--text-on-color);
+}
+
+.toast.error {
+	background: var(--error);
+	color: var(--text-on-color);
+}
+
+.toast.info {
+	background: var(--accent);
+	color: var(--text-on-color);
+}
+
+.toast.hiding {
+	animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+	from {
+		transform: translateX(calc(100% + 1.5rem));
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+@keyframes toastSlideOut {
+	from {
+		transform: translateX(0);
+		opacity: 1;
+	}
+	to {
+		transform: translateX(calc(100% + 1.5rem));
+		opacity: 0;
+	}
 }

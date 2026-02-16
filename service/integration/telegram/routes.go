@@ -20,19 +20,19 @@ func GetTemplates() embed.FS {
 	return templates
 }
 
-type authHandler struct {
+type linkHandler struct {
 	db     *sql.DB
 	apiKey string
 	logger *slog.Logger
 }
 
-type telegramAuthRequest struct {
+type telegramLinkRequest struct {
 	BotToken string `json:"bot_token"`
 	ChatID   string `json:"chat_id"`
 }
 
-func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
-	var req telegramAuthRequest
+func (h *linkHandler) handleLink(w http.ResponseWriter, r *http.Request) {
+	var req telegramLinkRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		util.JSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -59,11 +59,12 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	util.SetToast(w, "Telegram linked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
-func (h *authHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *linkHandler) handleUnlink(w http.ResponseWriter, r *http.Request) {
 	credStore, err := credentials.NewStore(h.db, h.apiKey)
 	if err != nil {
 		util.LogAndError(w, h.logger, "Failed to initialize credentials store", http.StatusInternalServerError, err)
@@ -75,6 +76,7 @@ func (h *authHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	util.SetToast(w, "Telegram unlinked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
@@ -86,9 +88,9 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 
 	handlers.SetDB(db, apiKey)
 
-	authH := &authHandler{db: db, apiKey: apiKey, logger: logger}
+	linkH := &linkHandler{db: db, apiKey: apiKey, logger: logger}
 
 	router.With(auth).Get("/fragment/telegram", handlers.HandleFragment)
-	router.With(auth).Post("/api/v1/telegram/auth", authH.handleAuth)
-	router.With(auth).Delete("/api/v1/telegram/auth", authH.handleDelete)
+	router.With(auth).Post("/api/v1/telegram/link", linkH.handleLink)
+	router.With(auth).Delete("/api/v1/telegram/link", linkH.handleUnlink)
 }

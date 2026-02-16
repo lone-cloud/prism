@@ -3,9 +3,14 @@ package telegram
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"prism/service/notification"
 )
+
+func parseInt64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
+}
 
 type Sender struct {
 	client        *Client
@@ -23,13 +28,33 @@ func NewSender(client *Client, store *notification.Store, logger *slog.Logger, d
 	}
 }
 
-func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notification) error {
+func (s *Sender) GetChatID() int64 {
+	return s.DefaultChatID
+}
+
+func (s *Sender) IsLinked() (bool, error) {
+	if s.client == nil {
+		return false, nil
+	}
+
+	if !s.client.IsAvailable() {
+		return false, nil
+	}
+
+	if s.DefaultChatID == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
 	if s.client == nil {
 		return notification.NewPermanentError(fmt.Errorf("telegram integration not enabled"))
 	}
 
-	if s.DefaultChatID == 0 {
-		return notification.NewPermanentError(fmt.Errorf("no telegram chat configured (set TELEGRAM_CHAT_ID in .env)"))
+	if sub.Telegram == nil || sub.Telegram.ChatID == "" {
+		return notification.NewPermanentError(fmt.Errorf("no telegram chat configured for subscription"))
 	}
 
 	message := notif.Message
@@ -37,10 +62,15 @@ func (s *Sender) Send(mapping *notification.Mapping, notif notification.Notifica
 		message = fmt.Sprintf("<b>%s</b>\n%s", notif.Title, notif.Message)
 	}
 
-	fullMessage := fmt.Sprintf("<b>%s</b>\n\n%s", mapping.AppName, message)
+	fullMessage := fmt.Sprintf("<b>%s</b>\n\n%s", sub.AppName, message)
 
-	if err := s.client.SendMessage(s.DefaultChatID, fullMessage); err != nil {
-		s.logger.Error("Failed to send telegram message", "chatID", s.DefaultChatID, "error", err)
+	chatID, err := parseInt64(sub.Telegram.ChatID)
+	if err != nil {
+		return notification.NewPermanentError(fmt.Errorf("invalid chat ID: %w", err))
+	}
+
+	if err := s.client.SendMessage(chatID, fullMessage); err != nil {
+		s.logger.Error("Failed to send telegram message", "chatID", chatID, "error", err)
 		return err
 	}
 

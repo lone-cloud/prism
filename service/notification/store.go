@@ -19,12 +19,12 @@ func NewStore(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath+"?_busy_timeout=5000&cache=shared")
+	// foreign_keys(1): enable FK constraints (disabled by default in SQLite)
+	// _busy_timeout=5000: wait up to 5s when DB is locked (default=0, fails immediately)
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)&_busy_timeout=5000")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
-
-	db.SetMaxOpenConns(1)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
@@ -39,22 +39,38 @@ func NewStore(dbPath string) (*Store, error) {
 }
 
 func (s *Store) createTables() error {
-	query := `
-		CREATE TABLE IF NOT EXISTS mappings (
-			appName TEXT PRIMARY KEY,
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS apps (
+			appName TEXT PRIMARY KEY
+		)`,
+		`CREATE TABLE IF NOT EXISTS subscriptions (
+			id TEXT PRIMARY KEY,
+			appName TEXT NOT NULL,
+			channel TEXT NOT NULL,
 			signalGroupId TEXT,
 			signalAccount TEXT,
-			channel TEXT NOT NULL DEFAULT 'webpush',
+			telegramChatId TEXT,
 			pushEndpoint TEXT,
 			p256dh TEXT,
 			auth TEXT,
-			vapidPrivateKey TEXT
-		)
-	`
-	_, err := s.db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed to create tables: %w", err)
+			vapidPrivateKey TEXT,
+			FOREIGN KEY(appName) REFERENCES apps(appName) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS signal_groups (
+			appName TEXT PRIMARY KEY,
+			groupId TEXT NOT NULL,
+			account TEXT NOT NULL,
+			FOREIGN KEY(appName) REFERENCES apps(appName) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscriptions_appName ON subscriptions(appName)`,
 	}
+
+	for _, query := range queries {
+		if _, err := s.db.Exec(query); err != nil {
+			return fmt.Errorf("failed to create tables: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -66,69 +82,189 @@ func (s *Store) GetDB() *sql.DB {
 	return s.db
 }
 
-func (s *Store) Register(appName string, channel *Channel, signal *SignalSubscription, webPush *WebPushSubscription) error {
-	var signalGroupID, signalAccount *string
-	if signal != nil {
-		signalGroupID = &signal.GroupID
-		signalAccount = &signal.Account
-	}
-
-	var pushEndpoint, p256dh, auth, vapidPrivateKey *string
-	if webPush != nil {
-		pushEndpoint = &webPush.Endpoint
-		p256dh = &webPush.P256dh
-		auth = &webPush.Auth
-		vapidPrivateKey = &webPush.VapidPrivateKey
-	}
-
-	ch := ChannelWebPush
-	if channel != nil {
-		ch = *channel
-	}
-
-	query := `
-		INSERT INTO mappings (appName, signalGroupId, signalAccount, channel, pushEndpoint, p256dh, auth, vapidPrivateKey)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(appName) DO UPDATE SET
-			channel = excluded.channel,
-			signalGroupId = COALESCE(excluded.signalGroupId, mappings.signalGroupId),
-			signalAccount = COALESCE(excluded.signalAccount, mappings.signalAccount),
-			pushEndpoint = COALESCE(excluded.pushEndpoint, mappings.pushEndpoint),
-			p256dh = COALESCE(excluded.p256dh, mappings.p256dh),
-			auth = COALESCE(excluded.auth, mappings.auth),
-			vapidPrivateKey = COALESCE(excluded.vapidPrivateKey, mappings.vapidPrivateKey)
-	`
-	_, err := s.db.Exec(query, appName, signalGroupID, signalAccount, ch, pushEndpoint, p256dh, auth, vapidPrivateKey)
+func (s *Store) RegisterApp(appName string) error {
+	query := `INSERT INTO apps (appName) VALUES (?) ON CONFLICT(appName) DO NOTHING`
+	_, err := s.db.Exec(query, appName)
 	return err
 }
 
-func (s *Store) RegisterDefault(appName string, availableChannels []Channel) error {
-	existing, _ := s.GetApp(appName)
-	if existing != nil && (existing.Signal != nil || existing.WebPush != nil) {
-		return fmt.Errorf("app %s already exists with subscriptions, refusing to overwrite", appName)
+func (s *Store) AddSubscription(sub Subscription) error {
+	if err := s.RegisterApp(sub.AppName); err != nil {
+		return err
 	}
 
-	var channel Channel
-	if len(availableChannels) > 0 {
-		channel = availableChannels[0]
-	} else {
-		channel = ChannelWebPush
+	query := `
+		INSERT INTO subscriptions (id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	var signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey *string
+
+	if sub.Signal != nil {
+		signalGroupID = &sub.Signal.GroupID
+		signalAccount = &sub.Signal.Account
+	}
+	if sub.Telegram != nil {
+		telegramChatID = &sub.Telegram.ChatID
+	}
+	if sub.WebPush != nil {
+		pushEndpoint = &sub.WebPush.Endpoint
+		p256dh = &sub.WebPush.P256dh
+		auth = &sub.WebPush.Auth
+		vapidPrivateKey = &sub.WebPush.VapidPrivateKey
 	}
 
-	return s.Register(appName, &channel, nil, nil)
+	_, err := s.db.Exec(query, sub.ID, sub.AppName, sub.Channel, signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey)
+	return err
 }
 
-func (s *Store) GetApp(appName string) (*Mapping, error) {
-	query := `
-		SELECT appName, signalGroupId, signalAccount, channel, pushEndpoint, p256dh, auth, vapidPrivateKey
-		FROM mappings
-		WHERE appName = ?
-	`
+func (s *Store) GetApp(appName string) (*App, error) {
+	query := `SELECT appName FROM apps WHERE appName = ?`
 	row := s.db.QueryRow(query, appName)
 
-	var m Mapping
-	var signalGroupID, signalAccount, pushEndpoint, p256dh, auth, vapidPrivateKey sql.NullString
-	err := row.Scan(&m.AppName, &signalGroupID, &signalAccount, &m.Channel, &pushEndpoint, &p256dh, &auth, &vapidPrivateKey)
+	var app App
+	if err := row.Scan(&app.AppName); err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	subs, err := s.GetSubscriptions(appName)
+	if err != nil {
+		return nil, err
+	}
+	app.Subscriptions = subs
+
+	return &app, nil
+}
+
+func (s *Store) GetSubscriptions(appName string) ([]Subscription, error) {
+	query := `
+		SELECT id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey
+		FROM subscriptions
+		WHERE appName = ?
+	`
+	rows, err := s.db.Query(query, appName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subscriptions []Subscription
+	for rows.Next() {
+		var sub Subscription
+		var signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey sql.NullString
+
+		if err := rows.Scan(&sub.ID, &sub.AppName, &sub.Channel, &signalGroupID, &signalAccount, &telegramChatID, &pushEndpoint, &p256dh, &auth, &vapidPrivateKey); err != nil {
+			return nil, err
+		}
+
+		if signalGroupID.Valid && signalAccount.Valid {
+			sub.Signal = &SignalSubscription{
+				GroupID: signalGroupID.String,
+				Account: signalAccount.String,
+			}
+		}
+		if telegramChatID.Valid {
+			sub.Telegram = &TelegramSubscription{
+				ChatID: telegramChatID.String,
+			}
+		}
+		if pushEndpoint.Valid {
+			sub.WebPush = &WebPushSubscription{
+				Endpoint: pushEndpoint.String,
+			}
+			if p256dh.Valid {
+				sub.WebPush.P256dh = p256dh.String
+			}
+			if auth.Valid {
+				sub.WebPush.Auth = auth.String
+			}
+			if vapidPrivateKey.Valid {
+				sub.WebPush.VapidPrivateKey = vapidPrivateKey.String
+			}
+		}
+
+		subscriptions = append(subscriptions, sub)
+	}
+
+	return subscriptions, rows.Err()
+}
+
+func (s *Store) GetAllApps() ([]App, error) {
+	query := `SELECT appName FROM apps ORDER BY appName`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apps []App
+	for rows.Next() {
+		var app App
+		if err := rows.Scan(&app.AppName); err != nil {
+			return nil, err
+		}
+
+		subs, err := s.GetSubscriptions(app.AppName)
+		if err != nil {
+			return nil, err
+		}
+		app.Subscriptions = subs
+
+		apps = append(apps, app)
+	}
+
+	return apps, rows.Err()
+}
+
+func (s *Store) GetSignalGroup(appName string) (*SignalSubscription, error) {
+	query := `SELECT groupId, account FROM signal_groups WHERE appName = ?`
+	row := s.db.QueryRow(query, appName)
+
+	var groupID, account string
+	if err := row.Scan(&groupID, &account); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &SignalSubscription{
+		GroupID: groupID,
+		Account: account,
+	}, nil
+}
+
+func (s *Store) SaveSignalGroup(appName string, sub *SignalSubscription) error {
+	if err := s.RegisterApp(appName); err != nil {
+		return err
+	}
+
+	query := `INSERT INTO signal_groups (appName, groupId, account) VALUES (?, ?, ?)
+			  ON CONFLICT(appName) DO UPDATE SET groupId=excluded.groupId, account=excluded.account`
+	_, err := s.db.Exec(query, appName, sub.GroupID, sub.Account)
+	return err
+}
+
+func (s *Store) DeleteSubscription(subscriptionID string) error {
+	query := `DELETE FROM subscriptions WHERE id = ?`
+	_, err := s.db.Exec(query, subscriptionID)
+	return err
+}
+
+func (s *Store) GetSubscription(subscriptionID string) (*Subscription, error) {
+	query := `
+		SELECT id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey
+		FROM subscriptions
+		WHERE id = ?
+	`
+	row := s.db.QueryRow(query, subscriptionID)
+
+	var sub Subscription
+	var signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey sql.NullString
+
+	err := row.Scan(&sub.ID, &sub.AppName, &sub.Channel, &signalGroupID, &signalAccount, &telegramChatID, &pushEndpoint, &p256dh, &auth, &vapidPrivateKey)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -137,117 +273,35 @@ func (s *Store) GetApp(appName string) (*Mapping, error) {
 	}
 
 	if signalGroupID.Valid && signalAccount.Valid {
-		m.Signal = &SignalSubscription{
+		sub.Signal = &SignalSubscription{
 			GroupID: signalGroupID.String,
 			Account: signalAccount.String,
 		}
 	}
+	if telegramChatID.Valid {
+		sub.Telegram = &TelegramSubscription{
+			ChatID: telegramChatID.String,
+		}
+	}
 	if pushEndpoint.Valid {
-		m.WebPush = &WebPushSubscription{
+		sub.WebPush = &WebPushSubscription{
 			Endpoint: pushEndpoint.String,
 		}
 		if p256dh.Valid {
-			m.WebPush.P256dh = p256dh.String
+			sub.WebPush.P256dh = p256dh.String
 		}
 		if auth.Valid {
-			m.WebPush.Auth = auth.String
+			sub.WebPush.Auth = auth.String
 		}
 		if vapidPrivateKey.Valid {
-			m.WebPush.VapidPrivateKey = vapidPrivateKey.String
+			sub.WebPush.VapidPrivateKey = vapidPrivateKey.String
 		}
 	}
 
-	return &m, nil
-}
-
-func (s *Store) GetAllMappings() ([]Mapping, error) {
-	query := `
-		SELECT appName, signalGroupId, signalAccount, channel, pushEndpoint, p256dh, auth, vapidPrivateKey
-		FROM mappings
-	`
-	rows, err := s.db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var mappings []Mapping
-	for rows.Next() {
-		var m Mapping
-		var signalGroupID, signalAccount, pushEndpoint, p256dh, auth, vapidPrivateKey sql.NullString
-		if err := rows.Scan(&m.AppName, &signalGroupID, &signalAccount, &m.Channel, &pushEndpoint, &p256dh, &auth, &vapidPrivateKey); err != nil {
-			return nil, err
-		}
-
-		if signalGroupID.Valid && signalAccount.Valid {
-			m.Signal = &SignalSubscription{
-				GroupID: signalGroupID.String,
-				Account: signalAccount.String,
-			}
-		}
-		if pushEndpoint.Valid {
-			m.WebPush = &WebPushSubscription{
-				Endpoint: pushEndpoint.String,
-			}
-			if p256dh.Valid {
-				m.WebPush.P256dh = p256dh.String
-			}
-			if auth.Valid {
-				m.WebPush.Auth = auth.String
-			}
-			if vapidPrivateKey.Valid {
-				m.WebPush.VapidPrivateKey = vapidPrivateKey.String
-			}
-		}
-
-		mappings = append(mappings, m)
-	}
-
-	return mappings, rows.Err()
-}
-
-func (s *Store) UpdateChannel(appName string, channel Channel) error {
-	query := `UPDATE mappings SET channel = ? WHERE appName = ?`
-	_, err := s.db.Exec(query, channel, appName)
-	return err
-}
-
-func (s *Store) UpdateSignal(appName string, signal *SignalSubscription) error {
-	if signal == nil {
-		return fmt.Errorf("signal cannot be nil")
-	}
-
-	query := `UPDATE mappings SET signalGroupId = ?, signalAccount = ? WHERE appName = ?`
-	_, err := s.db.Exec(query, signal.GroupID, signal.Account, appName)
-	return err
-}
-
-func (s *Store) UpdateWebPush(appName string, webPush *WebPushSubscription) error {
-	if webPush == nil {
-		return fmt.Errorf("webPush cannot be nil")
-	}
-
-	query := `
-		UPDATE mappings 
-		SET pushEndpoint = ?, p256dh = ?, auth = ?, vapidPrivateKey = ?
-		WHERE appName = ?
-	`
-	_, err := s.db.Exec(query, webPush.Endpoint, webPush.P256dh, webPush.Auth, webPush.VapidPrivateKey, appName)
-	return err
+	return &sub, nil
 }
 
 func (s *Store) RemoveApp(appName string) error {
-	query := `DELETE FROM mappings WHERE appName = ?`
-	_, err := s.db.Exec(query, appName)
-	return err
-}
-
-func (s *Store) ClearWebPush(appName string) error {
-	query := `
-		UPDATE mappings 
-		SET pushEndpoint = NULL, p256dh = NULL, auth = NULL, vapidPrivateKey = NULL, channel = 'signal'
-		WHERE appName = ?
-	`
-	_, err := s.db.Exec(query, appName)
+	_, err := s.db.Exec(`DELETE FROM apps WHERE appName = ?`, appName)
 	return err
 }

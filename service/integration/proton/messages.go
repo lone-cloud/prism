@@ -109,12 +109,20 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 }
 
 func (m *Monitor) clearNotification(msgID string) {
-	mapping, err := m.dispatcher.GetStore().GetApp(prismTopic)
-	if err != nil || mapping == nil {
+	app, err := m.dispatcher.GetStore().GetApp(prismTopic)
+	if err != nil || app == nil {
 		return
 	}
 
-	if mapping.Channel != notification.ChannelWebPush {
+	hasWebPush := false
+	for _, sub := range app.Subscriptions {
+		if sub.Channel == notification.ChannelWebPush {
+			hasWebPush = true
+			break
+		}
+	}
+
+	if !hasWebPush {
 		return
 	}
 
