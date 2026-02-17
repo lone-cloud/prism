@@ -159,6 +159,10 @@ func (s *Server) handleDeleteSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	util.SetToast(w, fmt.Sprintf("%s disabled", sub.Channel.Label()), "success")
+	message := fmt.Sprintf("%s disabled", sub.Channel.Label())
+	if sub.Channel == notification.ChannelWebPush {
+		message = fmt.Sprintf("%s deleted", sub.Channel.Label())
+	}
+	util.SetToast(w, message, "success")
 	s.handleFragmentApps(w, r)
 }

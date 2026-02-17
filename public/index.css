@@ -167,9 +167,7 @@ details[open] > .card-header::before {
 	border: 0.0625rem solid var(--border-color);
 	font-size: 0.875rem;
 	font-weight: 400;
-	white-space: normal;
-	word-break: break-all;
-	max-width: 20rem;
+	white-space: nowrap;
 	transition: opacity 0.2s;
 	pointer-events: none;
 	z-index: 10;
@@ -311,7 +309,7 @@ details[open] > .card-header::before {
 }
 
 .channel-webpush.badge-subscribed {
-	background: var(--success);
+	background: var(--accent);
 	color: var(--text-on-color);
 }
 
