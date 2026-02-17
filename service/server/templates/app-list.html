@@ -31,7 +31,7 @@
 					{{else}}
 						{{range .Subscriptions}}
 						<span class="channel-badge channel-{{$channel.Channel}} badge-subscribed">
-							{{$channel.Label}}{{if .Hostname}} ({{.Hostname}}){{end}}
+							{{$channel.Label}}
 							{{if .Tooltip}}<span class="tooltip">{{.Tooltip}}</span>{{end}}
 							<button type="button" class="btn-delete-sub" 
 							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 

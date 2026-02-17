@@ -167,7 +167,9 @@ details[open] > .card-header::before {
 	border: 0.0625rem solid var(--border-color);
 	font-size: 0.875rem;
 	font-weight: 400;
-	white-space: nowrap;
+	white-space: normal;
+	word-break: break-all;
+	max-width: 20rem;
 	transition: opacity 0.2s;
 	pointer-events: none;
 	z-index: 10;
@@ -284,6 +286,10 @@ details[open] > .card-header::before {
 	pointer-events: none;
 }
 
+.badge-subscribed {
+	cursor: default;
+}
+
 .channel-signal.badge-active {
 	background: var(--accent);
 	color: var(--text-on-color);
@@ -294,7 +300,17 @@ details[open] > .card-header::before {
 	background: transparent;
 }
 
+.channel-signal.badge-subscribed {
+	background: var(--accent);
+	color: var(--text-on-color);
+}
+
 .channel-webpush.badge-active {
+	background: var(--success);
+	color: var(--text-on-color);
+}
+
+.channel-webpush.badge-subscribed {
 	background: var(--success);
 	color: var(--text-on-color);
 }
@@ -307,6 +323,11 @@ details[open] > .card-header::before {
 .channel-telegram.badge-inactive {
 	color: var(--accent);
 	background: transparent;
+}
+
+.channel-telegram.badge-subscribed {
+	background: var(--accent);
+	color: var(--text-on-color);
 }
 
 .app-actions {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"prism/service/notification"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
@@ -33,5 +34,24 @@ func (s *Server) handleGetApps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(apps)
+	json.NewEncoder(w).Encode(sanitizeApps(apps))
+}
+
+func sanitizeApps(apps []notification.App) []notification.App {
+	sanitized := make([]notification.App, len(apps))
+	for i, app := range apps {
+		sanitized[i] = notification.App{
+			AppName:       app.AppName,
+			Subscriptions: make([]notification.Subscription, len(app.Subscriptions)),
+		}
+		for j, sub := range app.Subscriptions {
+			sanitized[i].Subscriptions[j] = sub
+			if sub.WebPush != nil {
+				sanitized[i].Subscriptions[j].WebPush = &notification.WebPushSubscription{
+					Endpoint: sub.WebPush.Endpoint,
+				}
+			}
+		}
+	}
+	return sanitized
 }
