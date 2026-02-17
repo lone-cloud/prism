@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"net/http"
-	"net/url"
 
 	"prism/service/integration/signal"
 	"prism/service/notification"
@@ -128,14 +127,10 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 		webPushSubs := []SubscriptionItem{}
 		for _, sub := range app.Subscriptions {
 			if sub.Channel == notification.ChannelWebPush && sub.WebPush != nil {
-				item := SubscriptionItem{
+				webPushSubs = append(webPushSubs, SubscriptionItem{
 					ID:      sub.ID,
 					Tooltip: sub.WebPush.Endpoint,
-				}
-				if u, err := url.Parse(sub.WebPush.Endpoint); err == nil {
-					item.Hostname = u.Hostname()
-				}
-				webPushSubs = append(webPushSubs, item)
+				})
 			}
 		}
 
