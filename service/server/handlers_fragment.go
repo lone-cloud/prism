@@ -128,8 +128,7 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 		for _, sub := range app.Subscriptions {
 			if sub.Channel == notification.ChannelWebPush && sub.WebPush != nil {
 				webPushSubs = append(webPushSubs, SubscriptionItem{
-					ID:      sub.ID,
-					Tooltip: sub.WebPush.Endpoint,
+					ID: sub.ID,
 				})
 			}
 		}
