@@ -16,7 +16,6 @@
 								hx-target="#apps-list" 
 							hx-swap="innerHTML">
 								{{.Label}}
-								<span class="tooltip">{{if (index .Subscriptions 0).Tooltip}}{{(index .Subscriptions 0).Tooltip}}{{else}}Click to disable{{end}}</span>
 							</button>
 						{{else}}
 							<button type="button" class="channel-badge channel-{{.Channel}} badge-inactive" 
@@ -36,7 +35,7 @@
 							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 
 								hx-target="#apps-list" 
 								hx-swap="innerHTML" 
-								hx-confirm="Delete this subscription?">×</button>
+								hx-confirm="Delete this channel?">×</button>
 						</span>
 						{{end}}
 					{{end}}
