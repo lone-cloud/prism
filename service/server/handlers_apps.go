@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"prism/service/notification"
@@ -22,7 +23,7 @@ func (s *Server) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SetToast(w, "App deleted", "success")
+	util.SetToast(w, fmt.Sprintf("App %s deleted", app), "success")
 	s.handleFragmentApps(w, r)
 }
 
