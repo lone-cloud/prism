@@ -89,7 +89,6 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 
 	if creds.State != nil {
 		m.eventID = creds.State.LastEventID
-		m.logger.Info("Restored Proton state")
 	} else {
 		m.eventID = auth.EventID
 		if err := m.saveState(creds); err != nil {
