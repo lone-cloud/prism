@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -19,12 +21,17 @@ func NewStore(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	// foreign_keys(1): enable FK constraints (disabled by default in SQLite)
-	// _busy_timeout=5000: wait up to 5s when DB is locked (default=0, fails immediately)
-	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)&_busy_timeout=5000")
+	// foreign_keys(1): enable FK constraints
+	// busy_timeout(5000): wait up to 5s for locks instead of failing immediately
+	// journal_mode(WAL): improves concurrent read/write behavior
+	// synchronous(FULL): durability-first mode; safest on sudden power loss
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
@@ -84,7 +91,7 @@ func (s *Store) GetDB() *sql.DB {
 
 func (s *Store) RegisterApp(appName string) error {
 	query := `INSERT INTO apps (appName) VALUES (?) ON CONFLICT(appName) DO NOTHING`
-	_, err := s.db.Exec(query, appName)
+	_, err := s.execWrite(query, appName)
 	return err
 }
 
@@ -114,7 +121,7 @@ func (s *Store) AddSubscription(sub Subscription) error {
 		vapidPrivateKey = &sub.WebPush.VapidPrivateKey
 	}
 
-	_, err := s.db.Exec(query, sub.ID, sub.AppName, sub.Channel, signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey)
+	_, err := s.execWrite(query, sub.ID, sub.AppName, sub.Channel, signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey)
 	return err
 }
 
@@ -197,16 +204,29 @@ func (s *Store) GetAllApps() ([]App, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var apps []App
+	appNames := make([]string, 0)
 	for rows.Next() {
-		var app App
-		if err := rows.Scan(&app.AppName); err != nil {
+		var appName string
+		if err := rows.Scan(&appName); err != nil {
+			_ = rows.Close()
 			return nil, err
 		}
+		appNames = append(appNames, appName)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 
-		subs, err := s.GetSubscriptions(app.AppName)
+	apps := make([]App, 0, len(appNames))
+	for _, appName := range appNames {
+		app := App{AppName: appName}
+
+		subs, err := s.GetSubscriptions(appName)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +235,7 @@ func (s *Store) GetAllApps() ([]App, error) {
 		apps = append(apps, app)
 	}
 
-	return apps, rows.Err()
+	return apps, nil
 }
 
 func (s *Store) GetSignalGroup(appName string) (*SignalSubscription, error) {
@@ -243,13 +263,13 @@ func (s *Store) SaveSignalGroup(appName string, sub *SignalSubscription) error {
 
 	query := `INSERT INTO signal_groups (appName, groupId, account) VALUES (?, ?, ?)
 			  ON CONFLICT(appName) DO UPDATE SET groupId=excluded.groupId, account=excluded.account`
-	_, err := s.db.Exec(query, appName, sub.GroupID, sub.Account)
+	_, err := s.execWrite(query, appName, sub.GroupID, sub.Account)
 	return err
 }
 
 func (s *Store) DeleteSubscription(subscriptionID string) error {
 	query := `DELETE FROM subscriptions WHERE id = ?`
-	_, err := s.db.Exec(query, subscriptionID)
+	_, err := s.execWrite(query, subscriptionID)
 	return err
 }
 
@@ -302,6 +322,35 @@ func (s *Store) GetSubscription(subscriptionID string) (*Subscription, error) {
 }
 
 func (s *Store) RemoveApp(appName string) error {
-	_, err := s.db.Exec(`DELETE FROM apps WHERE appName = ?`, appName)
+	_, err := s.execWrite(`DELETE FROM apps WHERE appName = ?`, appName)
 	return err
+}
+
+func (s *Store) execWrite(query string, args ...any) (sql.Result, error) {
+	const maxAttempts = 4
+	delay := 50 * time.Millisecond
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		result, err := s.db.Exec(query, args...)
+		if err == nil {
+			return result, nil
+		}
+
+		if !isSQLiteBusyError(err) || attempt == maxAttempts-1 {
+			return nil, err
+		}
+
+		time.Sleep(delay)
+		delay *= 2
+	}
+
+	return nil, fmt.Errorf("write failed")
+}
+
+func isSQLiteBusyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "sqlite_busy") || strings.Contains(message, "database is locked")
 }
