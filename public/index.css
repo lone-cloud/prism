@@ -353,7 +353,7 @@ details[open] > .card-header::before {
 	background: none;
 	border: none;
 	color: inherit;
-	font-size: 1.1em;
+	font-size: 1em;
 	font-weight: bold;
 	cursor: pointer;
 	padding: 0 0.25rem;
