@@ -2,10 +2,8 @@ package webpush
 
 import (
 	"crypto/ecdh"
-	"crypto/elliptic"
 	"encoding/base64"
 	"fmt"
-	"math/big"
 	"net/url"
 	"strings"
 )
@@ -33,17 +31,31 @@ func normalizeVAPIDPrivateKey(raw string) (string, error) {
 		return "", fmt.Errorf("invalid VAPID private key encoding")
 	}
 
-	if len(decoded) != 32 {
-		return "", fmt.Errorf("invalid VAPID private key length: expected 32 bytes, got %d", len(decoded))
-	}
-
-	n := elliptic.P256().Params().N
-	d := new(big.Int).SetBytes(decoded)
-	if d.Sign() <= 0 || d.Cmp(n) >= 0 {
+	if _, err := ecdh.P256().NewPrivateKey(decoded); err != nil {
 		return "", fmt.Errorf("invalid VAPID private key scalar")
 	}
 
 	return base64.RawURLEncoding.EncodeToString(decoded), nil
+}
+
+func deriveVAPIDPublicKey(privateKey string) (string, error) {
+	normalizedPrivateKey, err := normalizeVAPIDPrivateKey(privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	privateBytes, err := decodeBase64URL(normalizedPrivateKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid VAPID private key encoding")
+	}
+
+	privateECKey, err := ecdh.P256().NewPrivateKey(privateBytes)
+	if err != nil {
+		return "", fmt.Errorf("invalid VAPID private key scalar")
+	}
+	publicBytes := privateECKey.PublicKey().Bytes()
+
+	return base64.RawURLEncoding.EncodeToString(publicBytes), nil
 }
 
 func normalizeP256DH(raw string) (string, error) {
