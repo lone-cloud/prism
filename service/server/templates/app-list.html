@@ -16,6 +16,7 @@
 								hx-target="#apps-list" 
 							hx-swap="innerHTML">
 								{{.Label}}
+								<span class="tooltip">Subscription ID: {{(index .Subscriptions 0).ID}}</span>
 							</button>
 						{{else}}
 							<button type="button" class="channel-badge channel-{{.Channel}} badge-inactive" 
@@ -31,6 +32,7 @@
 						{{range .Subscriptions}}
 						<span class="channel-badge channel-{{$channel.Channel}} badge-subscribed">
 							{{$channel.Label}}
+							<span class="tooltip">Subscription ID: {{.ID}}</span>
 							<button type="button" class="btn-delete-sub" 
 							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 
 								hx-target="#apps-list" 
