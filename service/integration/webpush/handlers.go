@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"net/url"
 
 	"prism/service/notification"
 	"prism/service/util"
@@ -54,8 +53,23 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := url.Parse(req.PushEndpoint); err != nil {
-		util.JSONError(w, "Invalid pushEndpoint URL", http.StatusBadRequest)
+	encryptedFieldCount := 0
+	if req.P256dh != nil {
+		encryptedFieldCount++
+	}
+	if req.Auth != nil {
+		encryptedFieldCount++
+	}
+	if req.VapidPrivateKey != nil {
+		encryptedFieldCount++
+	}
+	if encryptedFieldCount > 0 && encryptedFieldCount < 3 {
+		util.JSONError(w, "p256dh, auth, and vapidPrivateKey must all be provided together", http.StatusBadRequest)
+		return
+	}
+
+	if err := validatePushEndpoint(req.PushEndpoint, encryptedFieldCount == 3); err != nil {
+		util.JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -67,11 +81,29 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var webPush *notification.WebPushSubscription
 	if req.P256dh != nil && req.Auth != nil && req.VapidPrivateKey != nil {
+		normalizedP256dh, err := normalizeP256DH(*req.P256dh)
+		if err != nil {
+			util.JSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		normalizedAuth, err := normalizeAuthSecret(*req.Auth)
+		if err != nil {
+			util.JSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		normalizedKey, err := normalizeVAPIDPrivateKey(*req.VapidPrivateKey)
+		if err != nil {
+			util.JSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		webPush = &notification.WebPushSubscription{
 			Endpoint:        req.PushEndpoint,
-			P256dh:          *req.P256dh,
-			Auth:            *req.Auth,
-			VapidPrivateKey: *req.VapidPrivateKey,
+			P256dh:          normalizedP256dh,
+			Auth:            normalizedAuth,
+			VapidPrivateKey: normalizedKey,
 		}
 	} else {
 		webPush = &notification.WebPushSubscription{
@@ -87,6 +119,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.AddSubscription(sub); err != nil {
+		h.logger.Warn("Failed to add webpush subscription", "app", req.AppName, "error", err)
 		util.LogAndError(w, h.logger, "Failed to add subscription", http.StatusInternalServerError, err)
 		return
 	}
