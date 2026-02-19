@@ -1,18 +1,20 @@
 <div align="center">
 
-<img src="assets/prism.webp" alt="Prism Icon" width="120" height="120" />
+<img src="assets/prism.webp" alt="Prism Icon" width="160" height="160" />
 
 # Prism
 
 **Self-hosted notification gateway with email monitoring**
 
-[Setup](#setup) • [Integrations](#integrations) • [Examples](#real-world-examples)
+[Setup](#setup) • [Integrations](#integrations) • [API](#api) • [Examples](#real-world-examples)
 
 </div>
 
 <!-- markdownlint-enable MD033 -->
 
 Prism is a self-hosted notification gateway. Prism can receive messages and route them to Signal, Telegram or WebPush URLs. Messages can be sent via webhooks or monitored from a Proton Mail account integration.
+
+Prism also comes with an Android companion app: [prism-android](https://github.com/lone-cloud/prism-android)
 
 ## Setup
 
@@ -173,11 +175,21 @@ prism_api_key: "Bearer YOUR_API_KEY_HERE"
 
 Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
 
-## Sending Notifications
+## API
 
-Send notifications via HTTP POST to `/{appName}`:
+All API endpoints require authentication with your API key:
 
-**JSON format:**
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+### ntfy-compatible publish API
+
+Publish notifications to `POST /{appName}`.
+
+`{appName}` is the target app/topic name. Messages are routed to all subscriptions configured for that app (Signal, Telegram, WebPush).
+
+**JSON payload:**
 
 ```bash
 curl -X POST http://localhost:8080/my-app \
@@ -186,7 +198,7 @@ curl -X POST http://localhost:8080/my-app \
   -d '{"title": "Alert", "message": "Something happened"}'
 ```
 
-**Plain text (ntfy-compatible):**
+**Plain text payload:**
 
 ```bash
 curl -X POST http://localhost:8080/my-app \
@@ -194,7 +206,58 @@ curl -X POST http://localhost:8080/my-app \
   -d "Simple message text"
 ```
 
-Messages are routed based on your app's subscriptions configured in the web UI. Apps can have multiple subscriptions (Signal + WebPush + Telegram) and will receive notifications on all configured channels.
+### WebPush subscription API
+
+Register and remove WebPush subscriptions for an app.
+
+#### POST /api/v1/webpush/subscriptions
+
+Creates a WebPush subscription.
+
+Required fields:
+
+- `appName`
+- `pushEndpoint`
+
+Optional encrypted payload fields (must be provided together):
+
+- `p256dh`
+- `auth`
+- `vapidPrivateKey`
+
+```bash
+curl -X POST http://localhost:8080/api/v1/webpush/subscriptions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appName": "my-app",
+    "pushEndpoint": "https://example.push.service/send/abc123",
+    "p256dh": "BASE64URL_P256DH",
+    "auth": "BASE64URL_AUTH",
+    "vapidPrivateKey": "BASE64URL_VAPID_PRIVATE_KEY"
+  }'
+```
+
+Minimal registration (without encrypted payload fields):
+
+```bash
+curl -X POST http://localhost:8080/api/v1/webpush/subscriptions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appName": "my-app",
+    "pushEndpoint": "http://localhost:9001/mock-push"
+  }'
+```
+
+#### DELETE /api/v1/webpush/subscriptions/{subscriptionId}
+
+Removes a WebPush subscription by ID.
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/webpush/subscriptions/SUBSCRIPTION_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
 
 ## Monitoring
 
