@@ -6,7 +6,7 @@
 	--text-secondary: #666;
 	--text-on-color: #fff;
 	--border-color: rgba(0, 0, 0, 0.1);
-	--accent: #00b4d8;
+	--accent: #56c3de;
 	--success: #06d6a0;
 	--error: #ef476f;
 	--spinner-track: #e0e0e0;
@@ -20,7 +20,7 @@
 		--text-secondary: #a0a0a0;
 		--text-on-color: #fff;
 		--border-color: rgba(255, 255, 255, 0.1);
-		--accent: #60c5ff;
+		--accent: #56c3de;
 		--spinner-track: #4a4a4a;
 	}
 }
@@ -32,7 +32,7 @@
 	--text-secondary: #a0a0a0;
 	--text-on-color: #fff;
 	--border-color: rgba(255, 255, 255, 0.1);
-	--accent: #60c5ff;
+	--accent: #56c3de;
 	--spinner-track: #4a4a4a;
 }
 
