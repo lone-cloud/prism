@@ -33,7 +33,7 @@ clean:
 install-tools:
 	@echo "Installing Go tools to $(GOBIN)..."
 	go install golang.org/x/tools/cmd/goimports@latest
-	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.8.0
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
 	@echo "Installing signal-cli native binary..."
 	@ARCH=$$(uname -m); \
 	case $$ARCH in \
