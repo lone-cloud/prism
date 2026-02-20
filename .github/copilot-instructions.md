@@ -6,6 +6,7 @@
 - **NO USELESS COMMENTS**: Don't add comments that just restate what the code does. If the code needs a comment to be understood, refactor it to be clearer instead.
 - **Self-documenting code**: Use clear variable and function names. The code should explain itself.
 - **Only comment WHY, not WHAT**: If you must add a comment, explain WHY something is done, not WHAT is being done.
+- all terminal commands must work for zsh
 
 ### Bad Comments (Don't Do This)
 
