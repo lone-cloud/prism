@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/prism.webp" alt="Prism Icon" width="160" height="160" />
+<img src="assets/prism.webp" alt="Prism Icon" width="80" height="80" />
 
 # Prism
 
