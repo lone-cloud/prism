@@ -10,7 +10,7 @@ require (
 	github.com/mymmrac/telego v1.6.0
 	golang.org/x/crypto v0.48.0
 	golang.org/x/time v0.14.0
-	modernc.org/sqlite v1.45.0
+	modernc.org/sqlite v1.46.1
 )
 
 require (
