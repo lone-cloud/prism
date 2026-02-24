@@ -17,9 +17,7 @@ import (
 type Integration struct {
 	cfg        *config.Config
 	dispatcher *notification.Dispatcher
-	logger     *slog.Logger
 	handlers   *Handlers
-	tmpl       *util.TemplateRenderer
 	monitor    *Monitor
 	db         *sql.DB
 	apiKey     string
@@ -31,9 +29,7 @@ func NewIntegration(cfg *config.Config, dispatcher *notification.Dispatcher, log
 	return &Integration{
 		cfg:        cfg,
 		dispatcher: dispatcher,
-		logger:     logger,
 		handlers:   handlers,
-		tmpl:       tmpl,
 		monitor:    monitor,
 		db:         db,
 		apiKey:     apiKey,

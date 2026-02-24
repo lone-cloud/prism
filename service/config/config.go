@@ -61,7 +61,9 @@ func getEnvInt(key string, defaultValue int) int {
 
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
-		return value == "true" || value == "1"
+		if b, err := strconv.ParseBool(value); err == nil {
+			return b
+		}
 	}
 	return defaultValue
 }

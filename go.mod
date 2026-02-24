@@ -6,10 +6,10 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/emersion/hydroxide v0.2.31
 	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/httprate v0.15.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mymmrac/telego v1.6.0
 	golang.org/x/crypto v0.48.0
-	golang.org/x/time v0.14.0
 	modernc.org/sqlite v1.46.1
 )
 
@@ -35,6 +35,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
 	github.com/valyala/fastjson v1.6.7 // indirect
+	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/arch v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20260209203927-2842357ff358 // indirect
 	golang.org/x/sys v0.41.0 // indirect

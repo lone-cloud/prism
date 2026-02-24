@@ -3,13 +3,12 @@ package server
 import (
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5/middleware"
-	"golang.org/x/time/rate"
+	"github.com/go-chi/httprate"
 )
 
 var noisyPaths = map[string]bool{
@@ -63,60 +62,17 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-type visitor struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
-
-var (
-	visitors   = make(map[string]*visitor)
-	visitorsMu sync.RWMutex
-)
-
 func rateLimitMiddleware(rps int) func(http.Handler) http.Handler {
-	go cleanupVisitors()
-
+	rl := httprate.LimitByIP(rps, time.Second)
 	return func(next http.Handler) http.Handler {
+		limited := rl(next)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := util.GetClientIP(r)
-
-			if util.IsLocalhost(ip) {
+			if util.IsLocalhost(util.GetClientIP(r)) {
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			visitorsMu.Lock()
-			v, exists := visitors[ip]
-			if !exists {
-				limiter := rate.NewLimiter(rate.Limit(rps), rps*2)
-				visitors[ip] = &visitor{limiter: limiter, lastSeen: time.Now()}
-				v = visitors[ip]
-			}
-			v.lastSeen = time.Now()
-			visitorsMu.Unlock()
-
-			if !v.limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-				return
-			}
-
-			next.ServeHTTP(w, r)
+			limited.ServeHTTP(w, r)
 		})
-	}
-}
-
-func cleanupVisitors() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		visitorsMu.Lock()
-		for ip, v := range visitors {
-			if time.Since(v.lastSeen) > 10*time.Minute {
-				delete(visitors, ip)
-			}
-		}
-		visitorsMu.Unlock()
 	}
 }
 

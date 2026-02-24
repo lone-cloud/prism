@@ -19,7 +19,6 @@ type Integration struct {
 	handlers *Handlers
 	sender   *Sender
 	tmpl     *util.TemplateRenderer
-	logger   *slog.Logger
 }
 
 func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
@@ -33,7 +32,6 @@ func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.
 		client: client,
 		sender: sender,
 		tmpl:   tmpl,
-		logger: logger,
 	}
 }
 
@@ -42,7 +40,7 @@ func (s *Integration) GetSender() *Sender {
 }
 
 func (s *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger) {
-	s.handlers = RegisterRoutes(router, s.cfg, auth, s.tmpl, s.logger, s.client)
+	s.handlers = RegisterRoutes(router, s.cfg, auth, s.tmpl, logger, s.client)
 }
 
 func (s *Integration) Start(ctx context.Context, logger *slog.Logger) {

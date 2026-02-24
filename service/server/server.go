@@ -37,9 +37,7 @@ type Server struct {
 	version      string
 }
 
-func New(cfg *config.Config, publicAssets embed.FS, version string) (*Server, error) {
-	logger := util.NewLogger(cfg.VerboseLogging)
-
+func New(cfg *config.Config, publicAssets embed.FS, version string, logger *slog.Logger) (*Server, error) {
 	store, err := notification.NewStore(cfg.StoragePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create store: %w", err)
@@ -128,7 +126,7 @@ func (s *Server) setupRoutes() {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	s.integrations.Start(ctx, s.cfg, s.logger)
+	s.integrations.Start(ctx, s.logger)
 
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	s.httpServer = &http.Server{

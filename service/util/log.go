@@ -18,8 +18,9 @@ const (
 )
 
 type ColorHandler struct {
-	w     io.Writer
-	level slog.Level
+	w        io.Writer
+	level    slog.Level
+	preAttrs []slog.Attr
 }
 
 func NewColorHandler(w io.Writer, opts *slog.HandlerOptions) *ColorHandler {
@@ -38,7 +39,9 @@ func (h *ColorHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *ColorHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h
+	newH := *h
+	newH.preAttrs = append(append([]slog.Attr{}, h.preAttrs...), attrs...)
+	return &newH
 }
 
 func (h *ColorHandler) WithGroup(name string) slog.Handler {
@@ -67,6 +70,10 @@ func (h *ColorHandler) Handle(ctx context.Context, r slog.Record) error {
 		colorGray, timestamp, colorReset,
 		color, level, colorReset,
 		r.Message)
+
+	for _, a := range h.preAttrs {
+		_, _ = fmt.Fprintf(h.w, " %s=%v", a.Key, a.Value) //nolint:errcheck
+	}
 
 	r.Attrs(func(a slog.Attr) bool {
 		_, _ = fmt.Fprintf(h.w, " %s=%v", a.Key, a.Value) //nolint:errcheck

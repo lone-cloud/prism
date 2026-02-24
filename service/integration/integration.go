@@ -97,7 +97,7 @@ func Initialize(cfg *config.Config, store *notification.Store, logger *slog.Logg
 	}, fragmentTmpl, nil
 }
 
-func (i *Integrations) Start(ctx context.Context, cfg *config.Config, logger *slog.Logger) {
+func (i *Integrations) Start(ctx context.Context, logger *slog.Logger) {
 	for _, integration := range i.integrations {
 		if integration.IsEnabled() {
 			integration.Start(ctx, logger)

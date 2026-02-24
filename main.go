@@ -29,7 +29,7 @@ func init() {
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "version" {
-		fmt.Printf("Prism %s\n", version)
+		fmt.Println("Prism v", version)
 		return
 	}
 
@@ -49,7 +49,7 @@ func main() {
 }
 
 func runServer(cfg *config.Config, logger *slog.Logger) error {
-	srv, err := server.New(cfg, publicAssets, version)
+	srv, err := server.New(cfg, publicAssets, version, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
