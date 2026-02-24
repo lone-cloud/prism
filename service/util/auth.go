@@ -34,46 +34,7 @@ func VerifyAPIKey(r *http.Request, apiKey string) bool {
 		return false
 	}
 
-	if len(password) != len(apiKey) {
-		return false
-	}
-
-	proto := r.Header.Get("X-Forwarded-Proto")
-	if proto == "" {
-		if r.TLS != nil {
-			proto = "https"
-		} else {
-			proto = "http"
-		}
-	}
-
-	clientIP := GetClientIP(r)
-	if proto != "https" && !isLocalIP(clientIP) {
-		return false
-	}
-
 	return subtle.ConstantTimeCompare([]byte(password), []byte(apiKey)) == 1
-}
-
-func isLocalIP(addr string) bool {
-	if addr == "" || addr == "::1" || addr == "localhost" {
-		return true
-	}
-
-	ip := net.ParseIP(addr)
-	if ip == nil {
-		return false
-	}
-
-	if ip.IsLoopback() {
-		return true
-	}
-
-	if ip.To4() != nil {
-		return ip.IsPrivate()
-	}
-
-	return false
 }
 
 func GetClientIP(r *http.Request) string {

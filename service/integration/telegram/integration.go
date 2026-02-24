@@ -16,10 +16,8 @@ import (
 )
 
 type Integration struct {
-	cfg      *config.Config
 	handlers *Handlers
 	sender   *Sender
-	logger   *slog.Logger
 }
 
 func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.Logger, tmpl *util.TemplateRenderer) *Integration {
@@ -52,10 +50,8 @@ func NewIntegration(cfg *config.Config, store *notification.Store, logger *slog.
 	handlers := NewHandlers(client, chatID, tmpl, logger)
 
 	return &Integration{
-		cfg:      cfg,
 		handlers: handlers,
 		sender:   sender,
-		logger:   logger,
 	}
 }
 
