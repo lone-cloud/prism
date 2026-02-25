@@ -98,6 +98,15 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 					"uid": msg.ID,
 				},
 			},
+			{
+				ID:       "delete",
+				Label:    "Delete",
+				Endpoint: "/api/v1/proton/delete",
+				Method:   "POST",
+				Data: map[string]any{
+					"uid": msg.ID,
+				},
+			},
 		},
 	}
 

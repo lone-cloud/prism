@@ -188,3 +188,38 @@ func (h *Handlers) HandleArchive(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to encode response", "error", err)
 	}
 }
+
+type deleteRequest struct {
+	UID string `json:"uid"`
+}
+
+func (h *Handlers) HandleDelete(w http.ResponseWriter, r *http.Request) {
+	var req deleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		util.JSONError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.UID == "" {
+		util.JSONError(w, "uid is required", http.StatusBadRequest)
+		return
+	}
+
+	if h.monitor == nil {
+		util.JSONError(w, "Proton integration not enabled", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.monitor.Delete(req.UID); err != nil {
+		h.logger.Error("failed to delete email", "uid", req.UID, "error", err)
+		util.JSONError(w, "failed to delete", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("deleted email", "uid", req.UID)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
