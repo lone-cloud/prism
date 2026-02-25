@@ -30,4 +30,6 @@ jobs:
         push: true
         build-args: |
           VERSION=dev
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
         tags: ghcr.io/lone-cloud/prism:dev

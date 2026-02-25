@@ -2,16 +2,18 @@ FROM golang:1.26-alpine3.23 AS builder
 
 WORKDIR /build
 
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache ca-certificates
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN VERSION=$(cat VERSION 2>/dev/null | tr -d '\n' || echo "dev") && \
-    CGO_ENABLED=0 GOOS=linux go build \
+RUN --mount=type=cache,target=/root/.cache/go \
+    VERSION=$(cat VERSION 2>/dev/null | tr -d '\n' || echo "dev") && \
+    CGO_ENABLED=0 GOOS=linux GOTOOLCHAIN=local go build \
     -trimpath \
+    -buildvcs=false \
     -ldflags="-w -s -X main.version=${VERSION}" \
     -o prism .
 
