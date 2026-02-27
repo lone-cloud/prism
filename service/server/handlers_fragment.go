@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"prism/service/integration/signal"
-	"prism/service/notification"
+	"prism/service/subscription"
 	"prism/service/util"
 )
 
@@ -48,16 +48,16 @@ func (s *Server) handleFragmentApps(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(buf.Bytes())
 }
 
-func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
+func (s *Server) buildAppListData(apps []subscription.App) []AppListItem {
 	if len(apps) == 0 {
 		return nil
 	}
 
-	signalEnabled := s.integrations.Signal != nil && s.integrations.Signal.IsEnabled()
-	telegramEnabled := s.integrations.Telegram != nil && s.integrations.Telegram.IsEnabled()
+	signalEnabled := s.integrations.IsSignalLinked()
+	telegramEnabled := s.integrations.IsTelegramLinked()
 	telegramBotName := ""
 	if telegramEnabled {
-		handlers := s.integrations.Telegram.GetHandlers()
+		handlers := s.integrations.Telegram.Handlers
 		if handlers != nil {
 			client := handlers.GetClient()
 			if client != nil {
@@ -73,17 +73,17 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 		channels := []ChannelState{}
 
 		if signalEnabled {
-			var signalSub *notification.Subscription
+			var signalSub *subscription.Subscription
 			for i := range app.Subscriptions {
-				if app.Subscriptions[i].Channel == notification.ChannelSignal {
+				if app.Subscriptions[i].Channel == subscription.ChannelSignal {
 					signalSub = &app.Subscriptions[i]
 					break
 				}
 			}
 
 			state := ChannelState{
-				Channel:    string(notification.ChannelSignal),
-				Label:      notification.ChannelSignal.Label(),
+				Channel:    string(subscription.ChannelSignal),
+				Label:      subscription.ChannelSignal.Label(),
 				Active:     signalSub != nil,
 				Toggleable: true,
 			}
@@ -99,17 +99,17 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 		}
 
 		if telegramEnabled {
-			var telegramSub *notification.Subscription
+			var telegramSub *subscription.Subscription
 			for i := range app.Subscriptions {
-				if app.Subscriptions[i].Channel == notification.ChannelTelegram {
+				if app.Subscriptions[i].Channel == subscription.ChannelTelegram {
 					telegramSub = &app.Subscriptions[i]
 					break
 				}
 			}
 
 			state := ChannelState{
-				Channel:    string(notification.ChannelTelegram),
-				Label:      notification.ChannelTelegram.Label(),
+				Channel:    string(subscription.ChannelTelegram),
+				Label:      subscription.ChannelTelegram.Label(),
 				Active:     telegramSub != nil,
 				Toggleable: true,
 			}
@@ -126,7 +126,7 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 
 		webPushSubs := []SubscriptionItem{}
 		for _, sub := range app.Subscriptions {
-			if sub.Channel == notification.ChannelWebPush && sub.WebPush != nil {
+			if sub.Channel == subscription.ChannelWebPush && sub.WebPush != nil {
 				webPushSubs = append(webPushSubs, SubscriptionItem{
 					ID: sub.ID,
 				})
@@ -135,8 +135,8 @@ func (s *Server) buildAppListData(apps []notification.App) []AppListItem {
 
 		if len(webPushSubs) > 0 {
 			channels = append(channels, ChannelState{
-				Channel:       string(notification.ChannelWebPush),
-				Label:         notification.ChannelWebPush.Label(),
+				Channel:       string(subscription.ChannelWebPush),
+				Label:         subscription.ChannelWebPush.Label(),
 				Active:        true,
 				Toggleable:    false,
 				Subscriptions: webPushSubs,

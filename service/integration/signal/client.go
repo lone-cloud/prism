@@ -17,25 +17,15 @@ const (
 
 type Client struct {
 	ConfigPath string
-	enabled    bool
 }
 
 func NewClient() *Client {
-	configPath := filepath.Join(os.Getenv("HOME"), DefaultConfigPath)
-
-	enabled := false
-	if _, err := exec.LookPath("signal-cli"); err == nil {
-		enabled = true
+	if _, err := exec.LookPath("signal-cli"); err != nil {
+		return nil
 	}
-
 	return &Client{
-		ConfigPath: configPath,
-		enabled:    enabled,
+		ConfigPath: filepath.Join(os.Getenv("HOME"), DefaultConfigPath),
 	}
-}
-
-func (c *Client) IsEnabled() bool {
-	return c.enabled
 }
 
 type Account struct {
@@ -44,10 +34,6 @@ type Account struct {
 }
 
 func (c *Client) exec(args ...string) ([]byte, error) {
-	if !c.enabled {
-		return nil, fmt.Errorf("signal-cli not found in PATH")
-	}
-
 	baseArgs := []string{"--config", c.ConfigPath, "--output=json"}
 	cmd := exec.Command("signal-cli", append(baseArgs, args...)...)
 
@@ -66,7 +52,7 @@ func (c *Client) exec(args ...string) ([]byte, error) {
 }
 
 func (c *Client) GetLinkedAccount() (*Account, error) {
-	if c == nil || !c.enabled {
+	if c == nil {
 		return nil, nil
 	}
 
@@ -113,7 +99,7 @@ func (c *Client) GetLinkedAccount() (*Account, error) {
 }
 
 func (c *Client) CreateGroup(name string) (string, string, error) {
-	if c == nil || !c.enabled {
+	if c == nil {
 		return "", "", fmt.Errorf("signal client not initialized")
 	}
 
@@ -148,7 +134,7 @@ func (c *Client) CreateGroup(name string) (string, string, error) {
 }
 
 func (c *Client) SendGroupMessage(groupID, message string) error {
-	if c == nil || !c.enabled {
+	if c == nil {
 		return fmt.Errorf("signal client not initialized")
 	}
 

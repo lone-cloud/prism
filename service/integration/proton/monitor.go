@@ -8,19 +8,21 @@ import (
 
 	"prism/service/config"
 	"prism/service/credentials"
-	"prism/service/notification"
+	"prism/service/delivery"
 
 	"github.com/emersion/hydroxide/protonmail"
 )
 
 const (
-	pollInterval = 30 * time.Second
-	prismTopic   = "Proton Mail"
+	pollInterval     = 30 * time.Second
+	prismTopic       = "Proton Mail"
+	protonAPIURL     = "https://mail.proton.me/api"
+	protonAppVersion = "Other"
 )
 
 type Monitor struct {
 	cfg              *config.Config
-	dispatcher       *notification.Dispatcher
+	dispatcher       *delivery.Publisher
 	logger           *slog.Logger
 	credStore        *credentials.Store
 	client           *protonmail.Client
@@ -31,15 +33,15 @@ type Monitor struct {
 	lastConnected    time.Time
 }
 
-func NewMonitor(cfg *config.Config, dispatcher *notification.Dispatcher, logger *slog.Logger) *Monitor {
+func NewMonitor(cfg *config.Config, logger *slog.Logger) *Monitor {
 	return &Monitor{
-		cfg:        cfg,
-		dispatcher: dispatcher,
-		logger:     logger,
+		cfg:    cfg,
+		logger: logger,
 	}
 }
 
-func (m *Monitor) Start(ctx context.Context, credStore *credentials.Store) error {
+func (m *Monitor) Start(ctx context.Context, credStore *credentials.Store, publisher *delivery.Publisher) error {
+	m.dispatcher = publisher
 	if err := m.authenticateAndSetup(credStore); err != nil {
 		return err
 	}

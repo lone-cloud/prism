@@ -65,7 +65,7 @@ func (h *ColorHandler) Handle(ctx context.Context, r slog.Record) error {
 		color = colorReset
 	}
 
-	timestamp := r.Time.Format("15:04:05")
+	timestamp := r.Time.Format("3:04:05 PM")
 	_, _ = fmt.Fprintf(h.w, "%s%s%s [%s%s%s] %s", //nolint:errcheck
 		colorGray, timestamp, colorReset,
 		color, level, colorReset,

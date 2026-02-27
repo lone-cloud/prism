@@ -6,18 +6,6 @@ import (
 	"net/http"
 )
 
-func SetToast(w http.ResponseWriter, message, toastType string) {
-	trigger := map[string]interface{}{
-		"showToast": map[string]string{
-			"message": message,
-			"type":    toastType,
-		},
-	}
-	if data, err := json.Marshal(trigger); err == nil {
-		w.Header().Set("HX-Trigger", string(data))
-	}
-}
-
 func LogAndError(w http.ResponseWriter, logger *slog.Logger, message string, code int, err error, attrs ...any) {
 	logAttrs := append([]any{"error", err}, attrs...)
 	logger.Error(message, logAttrs...)

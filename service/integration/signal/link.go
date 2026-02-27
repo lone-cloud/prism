@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Client) LinkDevice(deviceName string) (string, error) {
-	if c == nil || !c.enabled {
+	if c == nil {
 		return "", fmt.Errorf("signal-cli not found in PATH")
 	}
 

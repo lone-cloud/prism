@@ -14,16 +14,13 @@ import (
 )
 
 //go:embed templates/*.html
-var templates embed.FS
-
-func GetTemplates() embed.FS {
-	return templates
-}
+var Templates embed.FS
 
 type linkHandler struct {
-	db     *sql.DB
-	apiKey string
-	logger *slog.Logger
+	db       *sql.DB
+	apiKey   string
+	logger   *slog.Logger
+	onUnlink func()
 }
 
 type telegramLinkRequest struct {
@@ -76,19 +73,21 @@ func (h *linkHandler) handleUnlink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.onUnlink()
 	util.SetToast(w, "Telegram unlinked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger) {
+func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, onUnlink func()) {
 	if handlers == nil {
 		return
 	}
 
-	handlers.SetDB(db, apiKey)
+	handlers.DB = db
+	handlers.APIKey = apiKey
 
-	linkH := &linkHandler{db: db, apiKey: apiKey, logger: logger}
+	linkH := &linkHandler{db: db, apiKey: apiKey, logger: logger, onUnlink: onUnlink}
 
 	router.With(auth).Get("/fragment/telegram", handlers.HandleFragment)
 	router.With(auth).Post("/api/v1/telegram/link", linkH.handleLink)

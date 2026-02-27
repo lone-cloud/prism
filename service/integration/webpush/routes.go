@@ -4,12 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 
-	"prism/service/notification"
+	"prism/service/subscription"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterRoutes(router *chi.Mux, store *notification.Store, logger *slog.Logger, authMiddleware func(http.Handler) http.Handler) {
+func RegisterRoutes(router *chi.Mux, store *subscription.Store, logger *slog.Logger, authMiddleware func(http.Handler) http.Handler) {
 	handlers := NewHandlers(store, logger)
 
 	router.Route("/api/v1/webpush/subscriptions", func(r chi.Router) {

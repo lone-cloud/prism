@@ -1,32 +1,22 @@
 package webpush
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 
-	"prism/service/notification"
+	"prism/service/subscription"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func generateSubscriptionID() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
-}
-
 type Handlers struct {
-	store  *notification.Store
+	store  *subscription.Store
 	logger *slog.Logger
 }
 
-func NewHandlers(store *notification.Store, logger *slog.Logger) *Handlers {
+func NewHandlers(store *subscription.Store, logger *slog.Logger) *Handlers {
 	return &Handlers{
 		store:  store,
 		logger: logger,
@@ -44,7 +34,7 @@ type registerRequest struct {
 func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		util.JSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -73,13 +63,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subID, err := generateSubscriptionID()
-	if err != nil {
-		util.LogAndError(w, h.logger, "Internal server error", http.StatusInternalServerError, err)
-		return
-	}
-
-	var webPush *notification.WebPushSubscription
+	var webPush *subscription.WebPushSubscription
 	if req.P256dh != nil && req.Auth != nil && req.VapidPrivateKey != nil {
 		normalizedP256dh, err := normalizeP256DH(*req.P256dh)
 		if err != nil {
@@ -99,26 +83,26 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		webPush = &notification.WebPushSubscription{
+		webPush = &subscription.WebPushSubscription{
 			Endpoint:        req.PushEndpoint,
 			P256dh:          normalizedP256dh,
 			Auth:            normalizedAuth,
 			VapidPrivateKey: normalizedKey,
 		}
 	} else {
-		webPush = &notification.WebPushSubscription{
+		webPush = &subscription.WebPushSubscription{
 			Endpoint: req.PushEndpoint,
 		}
 	}
 
-	sub := notification.Subscription{
-		ID:      subID,
+	sub := subscription.Subscription{
 		AppName: req.AppName,
-		Channel: notification.ChannelWebPush,
+		Channel: subscription.ChannelWebPush,
 		WebPush: webPush,
 	}
 
-	if err := h.store.AddSubscription(sub); err != nil {
+	subID, err := h.store.AddSubscription(sub)
+	if err != nil {
 		h.logger.Warn("Failed to add webpush subscription", "app", req.AppName, "error", err)
 		util.LogAndError(w, h.logger, "Failed to add subscription", http.StatusInternalServerError, err)
 		return
@@ -129,7 +113,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]string{
 		"appName":        req.AppName,
-		"channel":        notification.ChannelWebPush.String(),
+		"channel":        subscription.ChannelWebPush.String(),
 		"subscriptionId": subID,
 	}
 	_ = json.NewEncoder(w).Encode(response)
@@ -138,7 +122,7 @@ func (h *Handlers) HandleRegister(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleUnregister(w http.ResponseWriter, r *http.Request) {
 	subscriptionID := chi.URLParam(r, "subscriptionId")
 	if subscriptionID == "" {
-		http.Error(w, "subscriptionId is required", http.StatusBadRequest)
+		util.JSONError(w, "subscriptionId is required", http.StatusBadRequest)
 		return
 	}
 

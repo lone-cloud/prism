@@ -10,7 +10,7 @@ import (
 )
 
 type Handlers struct {
-	client *Client
+	Client *Client
 	tmpl   *util.TemplateRenderer
 	logger *slog.Logger
 }
@@ -33,7 +33,7 @@ type IntegrationData struct {
 
 func NewHandlers(client *Client, tmpl *util.TemplateRenderer, logger *slog.Logger) *Handlers {
 	return &Handlers{
-		client: client,
+		Client: client,
 		tmpl:   tmpl,
 		logger: logger,
 	}
@@ -46,14 +46,14 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	var integData IntegrationData
 	integData.Name = "Signal"
 
-	if h.client == nil || !h.client.IsEnabled() {
+	if h.Client == nil {
 		integData.StatusClass = "disconnected"
 		integData.StatusText = "Not Available"
 		integData.StatusTooltip = "signal-cli not found in PATH"
 		integData.Open = true
 		contentData.Error = "signal-cli not found. Download from: https://github.com/AsamK/signal-cli/releases"
 	} else {
-		account, err := h.client.GetLinkedAccount()
+		account, err := h.Client.GetLinkedAccount()
 		if err != nil {
 			integData.StatusClass = "disconnected"
 			integData.StatusText = "Error"
@@ -91,16 +91,8 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
-func (h *Handlers) IsEnabled() bool {
-	return h.client != nil && h.client.IsEnabled()
-}
-
-func (h *Handlers) GetClient() *Client {
-	return h.client
-}
-
 func (h *Handlers) HandleLinkDevice(w http.ResponseWriter, r *http.Request) {
-	if h.client == nil || !h.client.IsEnabled() {
+	if h.Client == nil {
 		util.JSONError(w, "signal-cli not available", http.StatusServiceUnavailable)
 		return
 	}
@@ -112,7 +104,7 @@ func (h *Handlers) HandleLinkDevice(w http.ResponseWriter, r *http.Request) {
 		req.DeviceName = DefaultDeviceName
 	}
 
-	qrCode, err := h.client.LinkDevice(req.DeviceName)
+	qrCode, err := h.Client.LinkDevice(req.DeviceName)
 	if err != nil {
 		h.logger.Error("Failed to generate link code", "error", err)
 		util.JSONError(w, err.Error(), http.StatusInternalServerError)
@@ -127,12 +119,12 @@ func (h *Handlers) HandleLinkDevice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) HandleLinkStatus(w http.ResponseWriter, r *http.Request) {
-	if h.client == nil || !h.client.IsEnabled() {
+	if h.Client == nil {
 		util.JSONError(w, "signal-cli not available", http.StatusServiceUnavailable)
 		return
 	}
 
-	account, err := h.client.GetLinkedAccount()
+	account, err := h.Client.GetLinkedAccount()
 	if err != nil {
 		h.logger.Error("Failed to get linked account", "error", err)
 		util.JSONError(w, err.Error(), http.StatusInternalServerError)

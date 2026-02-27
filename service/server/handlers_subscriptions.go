@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"prism/service/notification"
+	"prism/service/subscription"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
@@ -34,8 +34,8 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 		ChatID:  r.FormValue("chat_id"),
 	}
 
-	channel := notification.Channel(form.Channel)
-	if !s.dispatcher.IsValidChannel(channel) {
+	channel := subscription.Channel(form.Channel)
+	if !s.publisher.IsValidChannel(channel) {
 		util.SetToast(w, fmt.Sprintf("Invalid or unavailable channel: %s", form.Channel), "error")
 		s.handleFragmentApps(w, r)
 		return
@@ -56,40 +56,33 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	subID, err := notification.GenerateSubscriptionID()
-	if err != nil {
-		util.LogAndError(w, s.logger, "Failed to generate subscription ID", http.StatusInternalServerError, err)
-		return
-	}
-
-	sub := notification.Subscription{
-		ID:      subID,
+	sub := subscription.Subscription{
 		AppName: appName,
 		Channel: channel,
 	}
 
 	switch channel {
-	case notification.ChannelSignal:
+	case subscription.ChannelSignal:
 		if s.integrations.Signal == nil || !s.integrations.Signal.IsEnabled() {
 			util.SetToast(w, "Signal not configured", "error")
 			s.handleFragmentApps(w, r)
 			return
 		}
-		client := s.integrations.Signal.GetHandlers().GetClient()
+		client := s.integrations.Signal.Handlers.Client
 		account, err := client.GetLinkedAccount()
 		if err != nil || account == nil {
-			util.SetToast(w, "Signal not linked - configure in Integrations below", "error")
+			util.SetToast(w, "Signal not linked - configure its integration below", "error")
 			s.handleFragmentApps(w, r)
 			return
 		}
 
 		if form.GroupID != "" {
-			sub.Signal = &notification.SignalSubscription{
+			sub.Signal = &subscription.SignalSubscription{
 				GroupID: form.GroupID,
 				Account: account.Number,
 			}
 		} else {
-			cachedGroup, err := s.store.GetSignalGroup(appName)
+			cachedGroup, err := s.integrations.Signal.Groups.Get(appName)
 			if err != nil {
 				util.LogAndError(w, s.logger, "Failed to check for cached Signal group", http.StatusInternalServerError, err)
 				return
@@ -98,7 +91,7 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 			if cachedGroup != nil && cachedGroup.Account == account.Number {
 				sub.Signal = cachedGroup
 			} else {
-				signalSub, err := s.integrations.Signal.GetSender().CreateDefaultSignalSubscription(appName)
+				signalSub, err := s.integrations.Signal.Sender.CreateDefaultSignalSubscription(appName)
 				if err != nil {
 					util.LogAndError(w, s.logger, "Failed to create Signal subscription", http.StatusInternalServerError, err)
 					return
@@ -107,15 +100,15 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 			}
 		}
 
-	case notification.ChannelTelegram:
+	case subscription.ChannelTelegram:
 		if s.integrations.Telegram == nil || !s.integrations.Telegram.IsEnabled() {
 			util.SetToast(w, "Telegram not configured", "error")
 			s.handleFragmentApps(w, r)
 			return
 		}
-		chatID := s.integrations.Telegram.GetHandlers().GetChatID()
+		chatID := s.integrations.Telegram.Handlers.GetChatID()
 		if chatID == 0 {
-			util.SetToast(w, "Telegram not linked - configure in Integrations below", "error")
+			util.SetToast(w, "Telegram not linked - configure its integration below", "error")
 			s.handleFragmentApps(w, r)
 			return
 		}
@@ -123,7 +116,7 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 			chatID = 0
 			fmt.Sscanf(form.ChatID, "%d", &chatID)
 		}
-		sub.Telegram = &notification.TelegramSubscription{
+		sub.Telegram = &subscription.TelegramSubscription{
 			ChatID: fmt.Sprintf("%d", chatID),
 		}
 
@@ -132,7 +125,7 @@ func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := s.store.AddSubscription(sub); err != nil {
+	if _, err := s.store.AddSubscription(sub); err != nil {
 		util.LogAndError(w, s.logger, "Failed to create subscription", http.StatusInternalServerError, err)
 		return
 	}
@@ -160,7 +153,7 @@ func (s *Server) handleDeleteSubscription(w http.ResponseWriter, r *http.Request
 	}
 
 	message := fmt.Sprintf("%s channel disabled", sub.Channel.Label())
-	if sub.Channel == notification.ChannelWebPush {
+	if sub.Channel == subscription.ChannelWebPush {
 		message = fmt.Sprintf("%s channel deleted", sub.Channel.Label())
 	}
 	util.SetToast(w, message, "success")
