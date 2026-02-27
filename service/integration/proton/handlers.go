@@ -16,8 +16,8 @@ type Handlers struct {
 	username string
 	logger   *slog.Logger
 	tmpl     *util.TemplateRenderer
-	db       *sql.DB
-	apiKey   string
+	DB       *sql.DB
+	APIKey   string
 }
 
 type ProtonContentData struct {
@@ -39,22 +39,17 @@ func NewHandlers(monitor *Monitor, username string, logger *slog.Logger, tmpl *u
 		username: username,
 		logger:   logger,
 		tmpl:     tmpl,
-		db:       nil,
-		apiKey:   "",
+		DB:       nil,
+		APIKey:   "",
 	}
-}
-
-func (h *Handlers) SetDB(db *sql.DB, apiKey string) {
-	h.db = db
-	h.apiKey = apiKey
 }
 
 func (h *Handlers) LoadFreshCredentials() (string, bool) {
-	if h.db == nil || h.apiKey == "" {
+	if h.DB == nil || h.APIKey == "" {
 		return "", false
 	}
 
-	credStore, err := credentials.NewStore(h.db, h.apiKey)
+	credStore, err := credentials.NewStore(h.DB, h.APIKey)
 	if err != nil {
 		return "", false
 	}
@@ -113,10 +108,6 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) IsEnabled() bool {
 	return h.monitor != nil
-}
-
-func (h *Handlers) GetMonitor() *Monitor {
-	return h.monitor
 }
 
 type markReadRequest struct {

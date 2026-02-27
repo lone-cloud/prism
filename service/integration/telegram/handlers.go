@@ -16,8 +16,8 @@ type Handlers struct {
 	chatID int64
 	tmpl   *util.TemplateRenderer
 	logger *slog.Logger
-	db     *sql.DB
-	apiKey string
+	DB     *sql.DB
+	APIKey string
 }
 
 type TelegramContentData struct {
@@ -41,22 +41,17 @@ func NewHandlers(client *Client, chatID int64, tmpl *util.TemplateRenderer, logg
 		chatID: chatID,
 		tmpl:   tmpl,
 		logger: logger,
-		db:     nil,
-		apiKey: "",
+		DB:     nil,
+		APIKey: "",
 	}
-}
-
-func (h *Handlers) SetDB(db *sql.DB, apiKey string) {
-	h.db = db
-	h.apiKey = apiKey
 }
 
 func (h *Handlers) loadFreshCredentials() (*Client, int64, bool) {
-	if h.db == nil || h.apiKey == "" {
+	if h.DB == nil || h.APIKey == "" {
 		return nil, 0, false
 	}
 
-	credStore, err := credentials.NewStore(h.db, h.apiKey)
+	credStore, err := credentials.NewStore(h.DB, h.APIKey)
 	if err != nil {
 		return nil, 0, false
 	}
@@ -135,10 +130,6 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(html))
-}
-
-func (h *Handlers) IsEnabled() bool {
-	return true
 }
 
 func (h *Handlers) GetClient() *Client {

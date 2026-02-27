@@ -2,21 +2,27 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"prism/service/config"
+	"prism/service/delivery"
 	"prism/service/integration"
-	"prism/service/notification"
+	"prism/service/subscription"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	_ "modernc.org/sqlite"
 )
 
 //go:embed templates/*.html
@@ -26,8 +32,8 @@ type Server struct {
 	startTime    time.Time
 	publicAssets embed.FS
 	cfg          *config.Config
-	store        *notification.Store
-	dispatcher   *notification.Dispatcher
+	store        *subscription.Store
+	publisher    *delivery.Publisher
 	integrations *integration.Integrations
 	logger       *slog.Logger
 	router       *chi.Mux
@@ -37,8 +43,26 @@ type Server struct {
 	version      string
 }
 
+func openDB(dbPath string) (*sql.DB, error) {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+		return nil, fmt.Errorf("failed to create database directory: %w", err)
+	}
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	return db, nil
+}
+
 func New(cfg *config.Config, publicAssets embed.FS, version string, logger *slog.Logger) (*Server, error) {
-	store, err := notification.NewStore(cfg.StoragePath)
+	db, err := openDB(cfg.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	store, err := subscription.NewStore(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create store: %w", err)
 	}
@@ -62,7 +86,7 @@ func New(cfg *config.Config, publicAssets embed.FS, version string, logger *slog
 	s := &Server{
 		cfg:          cfg,
 		store:        store,
-		dispatcher:   integrations.Dispatcher,
+		publisher:    integrations.Publisher,
 		integrations: integrations,
 		logger:       logger,
 		startTime:    time.Now(),
@@ -98,7 +122,7 @@ func (s *Server) setupRoutes() {
 		}
 	})
 
-	integration.RegisterAll(s.integrations, r, s.cfg, s.store, s.logger, authMiddleware)
+	integration.RegisterAll(s.integrations, r, s.cfg, s.logger, authMiddleware)
 
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/apps", s.handleFragmentApps)
 	r.With(authMiddleware(s.cfg.APIKey)).Get("/fragment/integrations", s.handleFragmentIntegrations)
@@ -168,7 +192,7 @@ func (s *Server) Shutdown() error {
 		return fmt.Errorf("failed to shutdown http server: %w", err)
 	}
 
-	if err := s.store.Close(); err != nil {
+	if err := s.store.DB.Close(); err != nil {
 		return fmt.Errorf("failed to close store: %w", err)
 	}
 

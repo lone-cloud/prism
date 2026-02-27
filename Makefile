@@ -22,9 +22,8 @@ fix:
 	goimports -w .
 	golangci-lint run --fix
 	npx @biomejs/biome@latest check --write --unsafe .
-
-vet:
-	go vet ./...
+	go mod download
+	go mod tidy
 
 clean:
 	rm -f $(BINARY_NAME) $(BINARY_NAME)-*
@@ -47,23 +46,8 @@ install-tools:
 	signal-cli --version && \
 	echo "signal-cli installed successfully to /usr/local/bin/signal-cli"
 
-deps:
-	go mod download
-	go mod tidy
-
 check-updates:
 	@go list -u -m -f '{{if not .Indirect}}{{.Path}} {{.Version}}{{if .Update}} [{{.Update.Version}}]{{end}}{{end}}' all | grep "\[" || echo "All dependencies are up to date"
-
-update:
-	go get -u ./...
-	go mod tidy
-
-update-all:
-	go get -u all
-	go mod tidy
-
-docker-up:
-	docker compose -f docker-compose.dev.yml up -d
 
 release:
 	@if [ ! -f VERSION ]; then \

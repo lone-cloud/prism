@@ -1,37 +1,19 @@
-package notification
+package subscription
 
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
-
-	_ "modernc.org/sqlite"
 )
 
 type Store struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
-func NewStore(dbPath string) (*Store, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create database directory: %w", err)
-	}
-
-	db, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	store := &Store{db: db}
+func NewStore(db *sql.DB) (*Store, error) {
+	store := &Store{DB: db}
 	if err := store.createTables(); err != nil {
 		return nil, err
 	}
-
 	return store, nil
 }
 
@@ -41,7 +23,7 @@ func (s *Store) createTables() error {
 			appName TEXT PRIMARY KEY
 		)`,
 		`CREATE TABLE IF NOT EXISTS subscriptions (
-			id TEXT PRIMARY KEY,
+			id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
 			appName TEXT NOT NULL,
 			channel TEXT NOT NULL,
 			signalGroupId TEXT,
@@ -53,17 +35,11 @@ func (s *Store) createTables() error {
 			vapidPrivateKey TEXT,
 			FOREIGN KEY(appName) REFERENCES apps(appName) ON DELETE CASCADE
 		)`,
-		`CREATE TABLE IF NOT EXISTS signal_groups (
-			appName TEXT PRIMARY KEY,
-			groupId TEXT NOT NULL,
-			account TEXT NOT NULL,
-			FOREIGN KEY(appName) REFERENCES apps(appName) ON DELETE CASCADE
-		)`,
 		`CREATE INDEX IF NOT EXISTS idx_subscriptions_appName ON subscriptions(appName)`,
 	}
 
 	for _, query := range queries {
-		if _, err := s.db.Exec(query); err != nil {
+		if _, err := s.DB.Exec(query); err != nil {
 			return fmt.Errorf("failed to create tables: %w", err)
 		}
 	}
@@ -71,28 +47,15 @@ func (s *Store) createTables() error {
 	return nil
 }
 
-func (s *Store) Close() error {
-	return s.db.Close()
-}
-
-func (s *Store) GetDB() *sql.DB {
-	return s.db
-}
-
 func (s *Store) RegisterApp(appName string) error {
-	_, err := s.db.Exec(`INSERT INTO apps (appName) VALUES (?) ON CONFLICT(appName) DO NOTHING`, appName)
+	_, err := s.DB.Exec(`INSERT INTO apps (appName) VALUES (?) ON CONFLICT(appName) DO NOTHING`, appName)
 	return err
 }
 
-func (s *Store) AddSubscription(sub Subscription) error {
+func (s *Store) AddSubscription(sub Subscription) (string, error) {
 	if err := s.RegisterApp(sub.AppName); err != nil {
-		return err
+		return "", err
 	}
-
-	query := `
-		INSERT INTO subscriptions (id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
 
 	var signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey *string
 
@@ -110,13 +73,17 @@ func (s *Store) AddSubscription(sub Subscription) error {
 		vapidPrivateKey = &sub.WebPush.VapidPrivateKey
 	}
 
-	_, err := s.db.Exec(query, sub.ID, sub.AppName, sub.Channel, signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey)
-	return err
+	var id string
+	err := s.DB.QueryRow(`
+		INSERT INTO subscriptions (appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+	`, sub.AppName, sub.Channel, signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey).Scan(&id)
+
+	return id, err
 }
 
 func (s *Store) GetApp(appName string) (*App, error) {
-	query := `SELECT appName FROM apps WHERE appName = ?`
-	row := s.db.QueryRow(query, appName)
+	row := s.DB.QueryRow(`SELECT appName FROM apps WHERE appName = ?`, appName)
 
 	var app App
 	if err := row.Scan(&app.AppName); err == sql.ErrNoRows {
@@ -135,12 +102,11 @@ func (s *Store) GetApp(appName string) (*App, error) {
 }
 
 func (s *Store) GetSubscriptions(appName string) ([]Subscription, error) {
-	query := `
+	rows, err := s.DB.Query(`
 		SELECT id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey
 		FROM subscriptions
 		WHERE appName = ?
-	`
-	rows, err := s.db.Query(query, appName)
+	`, appName)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +154,7 @@ func (s *Store) GetSubscriptions(appName string) ([]Subscription, error) {
 }
 
 func (s *Store) GetAllApps() ([]App, error) {
-	query := `SELECT appName FROM apps ORDER BY appName`
-	rows, err := s.db.Query(query)
+	rows, err := s.DB.Query(`SELECT appName FROM apps ORDER BY appName`)
 	if err != nil {
 		return nil, err
 	}
@@ -227,46 +192,22 @@ func (s *Store) GetAllApps() ([]App, error) {
 	return apps, nil
 }
 
-func (s *Store) GetSignalGroup(appName string) (*SignalSubscription, error) {
-	query := `SELECT groupId, account FROM signal_groups WHERE appName = ?`
-	row := s.db.QueryRow(query, appName)
-
-	var groupID, account string
-	if err := row.Scan(&groupID, &account); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return &SignalSubscription{
-		GroupID: groupID,
-		Account: account,
-	}, nil
-}
-
-func (s *Store) SaveSignalGroup(appName string, sub *SignalSubscription) error {
-	if err := s.RegisterApp(appName); err != nil {
-		return err
-	}
-
-	_, err := s.db.Exec(`INSERT INTO signal_groups (appName, groupId, account) VALUES (?, ?, ?)
-			  ON CONFLICT(appName) DO UPDATE SET groupId=excluded.groupId, account=excluded.account`, appName, sub.GroupID, sub.Account)
+func (s *Store) DeleteSubscription(subscriptionID string) error {
+	_, err := s.DB.Exec(`DELETE FROM subscriptions WHERE id = ?`, subscriptionID)
 	return err
 }
 
-func (s *Store) DeleteSubscription(subscriptionID string) error {
-	_, err := s.db.Exec(`DELETE FROM subscriptions WHERE id = ?`, subscriptionID)
+func (s *Store) DeleteSubscriptionsByChannel(channel Channel) error {
+	_, err := s.DB.Exec(`DELETE FROM subscriptions WHERE channel = ?`, channel)
 	return err
 }
 
 func (s *Store) GetSubscription(subscriptionID string) (*Subscription, error) {
-	query := `
+	row := s.DB.QueryRow(`
 		SELECT id, appName, channel, signalGroupId, signalAccount, telegramChatId, pushEndpoint, p256dh, auth, vapidPrivateKey
 		FROM subscriptions
 		WHERE id = ?
-	`
-	row := s.db.QueryRow(query, subscriptionID)
+	`, subscriptionID)
 
 	var sub Subscription
 	var signalGroupID, signalAccount, telegramChatID, pushEndpoint, p256dh, auth, vapidPrivateKey sql.NullString
@@ -309,6 +250,6 @@ func (s *Store) GetSubscription(subscriptionID string) (*Subscription, error) {
 }
 
 func (s *Store) RemoveApp(appName string) error {
-	_, err := s.db.Exec(`DELETE FROM apps WHERE appName = ?`, appName)
+	_, err := s.DB.Exec(`DELETE FROM apps WHERE appName = ?`, appName)
 	return err
 }

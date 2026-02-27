@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"prism/service/notification"
+	"prism/service/delivery"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
@@ -20,25 +20,25 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 	appName := chi.URLParam(r, "appName")
 	decodedAppName, err := url.PathUnescape(appName)
 	if err != nil {
-		http.Error(w, "Invalid app name", http.StatusBadRequest)
+		util.JSONError(w, "Invalid app name", http.StatusBadRequest)
 		return
 	}
 	appName = decodedAppName
 	if appName == "" || strings.Contains(appName, "/") {
-		http.Error(w, "Invalid app name", http.StatusBadRequest)
+		util.JSONError(w, "Invalid app name", http.StatusBadRequest)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		util.JSONError(w, "Failed to read body", http.StatusBadRequest)
 		return
 	}
 
 	message, title := parseNtfyPayload(r, body)
 
 	if message == "" {
-		http.Error(w, "Message required", http.StatusBadRequest)
+		util.JSONError(w, "Message required", http.StatusBadRequest)
 		return
 	}
 
@@ -46,12 +46,12 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		title = ""
 	}
 
-	notif := notification.Notification{
+	notif := delivery.Notification{
 		Title:   title,
 		Message: message,
 	}
 
-	if err := s.dispatcher.Send(appName, notif); err != nil {
+	if err := s.publisher.Publish(appName, notif); err != nil {
 		util.LogAndError(w, s.logger, "Failed to send notification", http.StatusInternalServerError, err, "app", appName)
 		return
 	}

@@ -5,7 +5,8 @@ import (
 	"log/slog"
 	"strconv"
 
-	"prism/service/notification"
+	"prism/service/delivery"
+	"prism/service/subscription"
 )
 
 func parseInt64(s string) (int64, error) {
@@ -14,12 +15,12 @@ func parseInt64(s string) (int64, error) {
 
 type Sender struct {
 	client        *Client
-	store         *notification.Store
+	store         *subscription.Store
 	logger        *slog.Logger
 	DefaultChatID int64
 }
 
-func NewSender(client *Client, store *notification.Store, logger *slog.Logger, defaultChatID int64) *Sender {
+func NewSender(client *Client, store *subscription.Store, logger *slog.Logger, defaultChatID int64) *Sender {
 	return &Sender{
 		client:        client,
 		store:         store,
@@ -48,13 +49,13 @@ func (s *Sender) IsLinked() (bool, error) {
 	return true, nil
 }
 
-func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
+func (s *Sender) Send(sub *subscription.Subscription, notif delivery.Notification) error {
 	if s.client == nil {
-		return notification.NewPermanentError(fmt.Errorf("telegram integration not enabled"))
+		return delivery.NewPermanentError(fmt.Errorf("telegram integration not enabled"))
 	}
 
 	if sub.Telegram == nil || sub.Telegram.ChatID == "" {
-		return notification.NewPermanentError(fmt.Errorf("no telegram chat configured for subscription"))
+		return delivery.NewPermanentError(fmt.Errorf("no telegram chat configured for subscription"))
 	}
 
 	message := notif.Message
@@ -66,7 +67,7 @@ func (s *Sender) Send(sub *notification.Subscription, notif notification.Notific
 
 	chatID, err := parseInt64(sub.Telegram.ChatID)
 	if err != nil {
-		return notification.NewPermanentError(fmt.Errorf("invalid chat ID: %w", err))
+		return delivery.NewPermanentError(fmt.Errorf("invalid chat ID: %w", err))
 	}
 
 	if err := s.client.SendMessage(chatID, fullMessage); err != nil {

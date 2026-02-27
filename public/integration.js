@@ -26,6 +26,10 @@ function reloadIntegrations() {
 	if (integrations) {
 		htmx.trigger(integrations, 'reload');
 	}
+	const appsList = document.getElementById('apps-list');
+	if (appsList) {
+		htmx.trigger(appsList, 'reload');
+	}
 }
 
 async function handleAuthForm(form, endpoint, statusId, getPayload) {

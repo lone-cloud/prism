@@ -19,8 +19,8 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 	m.logger.Info("Starting Proton Mail monitor", "email", creds.Email)
 
 	c := &protonmail.Client{
-		RootURL:    "https://mail.proton.me/api",
-		AppVersion: "Other",
+		RootURL:    protonAPIURL,
+		AppVersion: protonAppVersion,
 	}
 
 	var auth *protonmail.Auth

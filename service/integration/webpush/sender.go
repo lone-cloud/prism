@@ -7,7 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"prism/service/notification"
+	"prism/service/delivery"
+	"prism/service/subscription"
 
 	webpush "github.com/SherClockHolmes/webpush-go"
 )
@@ -17,14 +18,12 @@ type Sender struct {
 }
 
 func NewSender(logger *slog.Logger) *Sender {
-	return &Sender{
-		logger: logger,
-	}
+	return &Sender{logger: logger}
 }
 
-func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
+func (s *Sender) Send(sub *subscription.Subscription, notif delivery.Notification) error {
 	if sub.WebPush == nil {
-		return notification.NewPermanentError(fmt.Errorf("no push endpoint configured for subscription %s", sub.ID))
+		return delivery.NewPermanentError(fmt.Errorf("no push endpoint configured for subscription %s", sub.ID))
 	}
 
 	payload, err := json.Marshal(notif)
@@ -35,7 +34,7 @@ func (s *Sender) Send(sub *notification.Subscription, notif notification.Notific
 	if sub.WebPush.HasEncryption() {
 		vapidPublicKey, err := deriveVAPIDPublicKey(sub.WebPush.VapidPrivateKey)
 		if err != nil {
-			return notification.NewPermanentError(fmt.Errorf("invalid webpush VAPID key for subscription %s: %w", sub.ID, err))
+			return delivery.NewPermanentError(fmt.Errorf("invalid webpush VAPID key for subscription %s: %w", sub.ID, err))
 		}
 
 		subscription := &webpush.Subscription{
@@ -47,7 +46,7 @@ func (s *Sender) Send(sub *notification.Subscription, notif notification.Notific
 		}
 
 		resp, err := webpush.SendNotification(payload, subscription, &webpush.Options{
-			Subscriber:      "mailto:lonecloud604@proton.me",
+			Subscriber:      "https://github.com/lone-cloud/prism",
 			VAPIDPublicKey:  vapidPublicKey,
 			VAPIDPrivateKey: sub.WebPush.VapidPrivateKey,
 			TTL:             86400,

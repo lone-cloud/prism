@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"log/slog"
 
-	"prism/service/notification"
+	"prism/service/delivery"
+	"prism/service/subscription"
 	"prism/service/util"
 )
 
 type Sender struct {
 	client *Client
-	store  *notification.Store
+	groups *GroupCache
 	logger *slog.Logger
 }
 
-func NewSender(client *Client, store *notification.Store, logger *slog.Logger) *Sender {
+func NewSender(client *Client, groups *GroupCache, logger *slog.Logger) *Sender {
 	return &Sender{
 		client: client,
-		store:  store,
+		groups: groups,
 		logger: logger,
 	}
 }
@@ -35,7 +36,7 @@ func (s *Sender) IsLinked() (bool, error) {
 	return account != nil, nil
 }
 
-func (s *Sender) CreateDefaultSignalSubscription(appName string) (*notification.SignalSubscription, error) {
+func (s *Sender) CreateDefaultSignalSubscription(appName string) (*subscription.SignalSubscription, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("signal integration not enabled")
 	}
@@ -45,25 +46,25 @@ func (s *Sender) CreateDefaultSignalSubscription(appName string) (*notification.
 		return nil, err
 	}
 
-	signalSub := &notification.SignalSubscription{
+	signalSub := &subscription.SignalSubscription{
 		GroupID: groupID,
 		Account: account,
 	}
 
-	if err := s.store.SaveSignalGroup(appName, signalSub); err != nil {
+	if err := s.groups.Save(appName, signalSub); err != nil {
 		s.logger.Warn("Failed to cache Signal group", "error", err)
 	}
 
 	return signalSub, nil
 }
 
-func (s *Sender) Send(sub *notification.Subscription, notif notification.Notification) error {
+func (s *Sender) Send(sub *subscription.Subscription, notif delivery.Notification) error {
 	if s.client == nil {
-		return notification.NewPermanentError(fmt.Errorf("signal integration not enabled"))
+		return delivery.NewPermanentError(fmt.Errorf("signal integration not enabled"))
 	}
 
 	if sub.Signal == nil {
-		return notification.NewPermanentError(fmt.Errorf("no signal subscription data"))
+		return delivery.NewPermanentError(fmt.Errorf("no signal subscription data"))
 	}
 
 	account, err := s.client.GetLinkedAccount()
@@ -72,7 +73,7 @@ func (s *Sender) Send(sub *notification.Subscription, notif notification.Notific
 	}
 	if account == nil {
 		s.logger.Error("No linked Signal account found")
-		return notification.NewPermanentError(fmt.Errorf("no linked Signal account"))
+		return delivery.NewPermanentError(fmt.Errorf("no linked Signal account"))
 	}
 
 	var signalGroupID string
@@ -87,7 +88,7 @@ func (s *Sender) Send(sub *notification.Subscription, notif notification.Notific
 	}
 
 	if needsNewGroup {
-		return notification.NewPermanentError(fmt.Errorf("signal group not configured for subscription %s", sub.ID))
+		return delivery.NewPermanentError(fmt.Errorf("signal group not configured for subscription %s", sub.ID))
 	}
 
 	signalGroupID = sub.Signal.GroupID

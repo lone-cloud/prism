@@ -12,11 +12,7 @@ import (
 )
 
 //go:embed templates/*.html
-var templates embed.FS
-
-func GetTemplates() embed.FS {
-	return templates
-}
+var Templates embed.FS
 
 func RegisterRoutes(router *chi.Mux, cfg *config.Config, authMiddleware func(http.Handler) http.Handler, tmpl *util.TemplateRenderer, logger *slog.Logger, client *Client) *Handlers {
 	handlers := NewHandlers(client, tmpl, logger)

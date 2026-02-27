@@ -3,7 +3,8 @@ package proton
 import (
 	"time"
 
-	"prism/service/notification"
+	"prism/service/delivery"
+	"prism/service/subscription"
 
 	"github.com/emersion/hydroxide/protonmail"
 )
@@ -75,11 +76,11 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 		subject = "(No subject)"
 	}
 
-	notif := notification.Notification{
+	notif := delivery.Notification{
 		Title:   from,
 		Message: subject,
 		Tag:     "proton-" + msg.ID,
-		Actions: []notification.Action{
+		Actions: []delivery.Action{
 			{
 				ID:       "delete",
 				Label:    "Delete",
@@ -110,7 +111,7 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 		},
 	}
 
-	if err := m.dispatcher.Send(prismTopic, notif); err != nil {
+	if err := m.dispatcher.Publish(prismTopic, notif); err != nil {
 		m.logger.Error("Failed to send notification", "error", err)
 	} else {
 		m.logger.Info("Sent notification", "from", from, "subject", subject, "msgID", msg.ID)
@@ -118,14 +119,14 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 }
 
 func (m *Monitor) clearNotification(msgID string) {
-	app, err := m.dispatcher.GetStore().GetApp(prismTopic)
+	app, err := m.dispatcher.Store.GetApp(prismTopic)
 	if err != nil || app == nil {
 		return
 	}
 
 	hasWebPush := false
 	for _, sub := range app.Subscriptions {
-		if sub.Channel == notification.ChannelWebPush {
+		if sub.Channel == subscription.ChannelWebPush {
 			hasWebPush = true
 			break
 		}
@@ -135,13 +136,13 @@ func (m *Monitor) clearNotification(msgID string) {
 		return
 	}
 
-	notif := notification.Notification{
+	notif := delivery.Notification{
 		Tag:     "proton-" + msgID,
 		Title:   "",
 		Message: "",
 	}
 
-	if err := m.dispatcher.Send(prismTopic, notif); err != nil {
+	if err := m.dispatcher.Publish(prismTopic, notif); err != nil {
 		m.logger.Error("Failed to clear notification", "error", err, "msgID", msgID)
 	} else {
 		m.logger.Debug("Cleared notification", "msgID", msgID)

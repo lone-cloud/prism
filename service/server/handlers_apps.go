@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"prism/service/notification"
+	"prism/service/subscription"
 	"prism/service/util"
 
 	"github.com/go-chi/chi/v5"
@@ -38,17 +38,17 @@ func (s *Server) handleGetApps(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sanitizeApps(apps))
 }
 
-func sanitizeApps(apps []notification.App) []notification.App {
-	sanitized := make([]notification.App, len(apps))
+func sanitizeApps(apps []subscription.App) []subscription.App {
+	sanitized := make([]subscription.App, len(apps))
 	for i, app := range apps {
-		sanitized[i] = notification.App{
+		sanitized[i] = subscription.App{
 			AppName:       app.AppName,
-			Subscriptions: make([]notification.Subscription, len(app.Subscriptions)),
+			Subscriptions: make([]subscription.Subscription, len(app.Subscriptions)),
 		}
 		for j, sub := range app.Subscriptions {
 			sanitized[i].Subscriptions[j] = sub
 			if sub.WebPush != nil {
-				sanitized[i].Subscriptions[j].WebPush = &notification.WebPushSubscription{
+				sanitized[i].Subscriptions[j].WebPush = &subscription.WebPushSubscription{
 					Endpoint: sub.WebPush.Endpoint,
 				}
 			}

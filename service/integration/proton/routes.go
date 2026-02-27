@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"prism/service/credentials"
-	"prism/service/notification"
 	"prism/service/util"
 
 	"github.com/emersion/hydroxide/protonmail"
@@ -17,18 +16,13 @@ import (
 )
 
 //go:embed templates/*.html
-var templates embed.FS
-
-func GetTemplates() embed.FS {
-	return templates
-}
+var Templates embed.FS
 
 type authHandler struct {
 	db          *sql.DB
 	apiKey      string
 	logger      *slog.Logger
 	integration *Integration
-	dispatcher  *notification.Dispatcher
 }
 
 type protonAuthRequest struct {
@@ -50,8 +44,8 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := &protonmail.Client{
-		RootURL:    "https://mail.proton.me/api",
-		AppVersion: "Other",
+		RootURL:    protonAPIURL,
+		AppVersion: protonAppVersion,
 	}
 	authInfo, err := c.AuthInfo(req.Email)
 	if err != nil {
@@ -115,24 +109,16 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.dispatcher != nil {
-		if _, err := h.dispatcher.CreateAppWithDefaultSubscription(prismTopic); err != nil {
-			h.logger.Warn("Failed to auto-create Proton Mail app with subscription", "error", err)
-		} else {
-			h.logger.Info("Created Proton Mail app with default subscription")
-		}
-	}
-
 	if h.integration != nil {
 		ctx := context.Background()
-		if err := h.integration.monitor.Start(ctx, credStore); err != nil {
+		if err := h.integration.monitor.Start(ctx, credStore, h.integration.Publisher); err != nil {
 			h.logger.Error("Failed to start Proton monitor after auth", "error", err)
 			util.JSONError(w, "Authentication failed: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		h.logger.Info("Proton monitor started")
-		if h.integration.handlers != nil {
-			h.integration.handlers.username = req.Email
+		if h.integration.Handlers != nil {
+			h.integration.Handlers.username = req.Email
 		}
 	}
 
@@ -165,14 +151,14 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 		return
 	}
 
-	handlers.SetDB(db, apiKey)
+	handlers.DB = db
+	handlers.APIKey = apiKey
 
 	authH := &authHandler{
 		db:          db,
 		apiKey:      apiKey,
 		logger:      logger,
 		integration: integration,
-		dispatcher:  integration.dispatcher,
 	}
 
 	router.With(auth).Get("/fragment/proton", handlers.HandleFragment)

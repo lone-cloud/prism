@@ -2,10 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
-
-	"prism/service/util"
 )
 
 type healthResponse struct {
@@ -30,47 +30,23 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	resp := healthResponse{
 		Version: s.version,
-		Uptime:  util.FormatUptime(uptime),
+		Uptime:  formatUptime(uptime),
 	}
 
 	if s.integrations.Signal != nil && s.integrations.Signal.IsEnabled() {
-		signalClient := s.integrations.Signal.GetHandlers().GetClient()
-		account, _ := signalClient.GetLinkedAccount()
-		if account != nil {
-			resp.Signal = &integrationHealth{
-				Linked:  true,
-				Account: account.Number,
-			}
-		} else {
-			resp.Signal = &integrationHealth{
-				Linked: false,
-			}
-		}
+		linked, account := s.integrations.Signal.Health()
+		resp.Signal = &integrationHealth{Linked: linked, Account: account}
 	}
 
 	if s.integrations.Telegram != nil && s.integrations.Telegram.IsEnabled() {
-		telegramClient := s.integrations.Telegram.GetHandlers().GetClient()
-		if telegramClient != nil {
-			bot, err := telegramClient.GetMe()
-			if err == nil {
-				resp.Telegram = &integrationHealth{
-					Linked:  true,
-					Account: "@" + bot.Username,
-				}
-			}
+		if linked, account := s.integrations.Telegram.Health(); linked {
+			resp.Telegram = &integrationHealth{Linked: true, Account: account}
 		}
 	}
 
 	if s.integrations.Proton != nil && s.integrations.Proton.IsEnabled() {
-		protonHandlers := s.integrations.Proton.GetHandlers()
-		if protonHandlers != nil && protonHandlers.IsEnabled() {
-			email, hasCredentials := protonHandlers.LoadFreshCredentials()
-			if hasCredentials {
-				resp.Proton = &integrationHealth{
-					Linked:  true,
-					Account: email,
-				}
-			}
+		if linked, account := s.integrations.Proton.Health(); linked {
+			resp.Proton = &integrationHealth{Linked: true, Account: account}
 		}
 	}
 
@@ -78,4 +54,27 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		s.logger.Error("Failed to encode health response", "error", err)
 	}
+}
+
+func formatUptime(d time.Duration) string {
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	parts := []string{}
+	if days > 0 {
+		parts = append(parts, fmt.Sprintf("%dd", days))
+	}
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%dh", hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%dm", minutes))
+	}
+	if seconds > 0 || len(parts) == 0 {
+		parts = append(parts, fmt.Sprintf("%ds", seconds))
+	}
+
+	return strings.Join(parts, " ")
 }

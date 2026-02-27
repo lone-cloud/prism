@@ -73,10 +73,10 @@ func NewStoreWithLogger(db *sql.DB, masterPassword string, logger *slog.Logger) 
 		return nil, err
 	}
 
-	if err := store.CheckIntegrity(); err != nil {
+	if err := store.checkIntegrity(); err != nil {
 		if strings.Contains(err.Error(), "corrupted") {
 			logger.Warn("Credentials corrupted (API_KEY likely changed), clearing all integration credentials", "error", err)
-			if clearErr := store.ClearAll(); clearErr != nil {
+			if clearErr := store.clearAll(); clearErr != nil {
 				logger.Error("Failed to clear corrupted credentials", "error", clearErr)
 			} else {
 				logger.Info("Cleared all integration credentials - please reconfigure integrations")
@@ -88,16 +88,15 @@ func NewStoreWithLogger(db *sql.DB, masterPassword string, logger *slog.Logger) 
 }
 
 func (s *Store) createTable() error {
-	query := `
+	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS integration_credentials (
-integration_type TEXT PRIMARY KEY,
-credentials_encrypted BLOB NOT NULL,
-enabled BOOLEAN NOT NULL DEFAULT 1,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-	`
-	_, err := s.db.Exec(query)
+			integration_type TEXT PRIMARY KEY,
+			credentials_encrypted BLOB NOT NULL,
+			enabled BOOLEAN NOT NULL DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
 	return err
 }
 
@@ -151,109 +150,72 @@ func (s *Store) decrypt(ciphertext []byte) ([]byte, error) {
 }
 
 func (s *Store) SaveProton(creds *ProtonCredentials) error {
-	return s.saveCredentials(IntegrationProton, creds)
+	return s.save(IntegrationProton, creds)
 }
 
 func (s *Store) GetProton() (*ProtonCredentials, error) {
 	var creds ProtonCredentials
-	err := s.getCredentials(IntegrationProton, &creds)
-	if err != nil {
-		return nil, err
-	}
-	return &creds, nil
+	return &creds, s.load(IntegrationProton, &creds)
 }
 
 func (s *Store) SaveTelegram(creds *TelegramCredentials) error {
-	return s.saveCredentials(IntegrationTelegram, creds)
+	return s.save(IntegrationTelegram, creds)
 }
 
 func (s *Store) GetTelegram() (*TelegramCredentials, error) {
 	var creds TelegramCredentials
-	err := s.getCredentials(IntegrationTelegram, &creds)
-	if err != nil {
-		return nil, err
-	}
-	return &creds, nil
+	return &creds, s.load(IntegrationTelegram, &creds)
 }
 
-func (s *Store) SaveSignal(creds *SignalCredentials) error {
-	return s.saveCredentials(IntegrationSignal, creds)
-}
-
-func (s *Store) GetSignal() (*SignalCredentials, error) {
-	var creds SignalCredentials
-	err := s.getCredentials(IntegrationSignal, &creds)
-	if err != nil {
-		return nil, err
-	}
-	return &creds, nil
-}
-
-func (s *Store) saveCredentials(integrationType IntegrationType, credentials interface{}) error {
+func (s *Store) save(integrationType IntegrationType, credentials interface{}) error {
 	jsonData, err := json.Marshal(credentials)
 	if err != nil {
 		return fmt.Errorf("failed to marshal credentials: %w", err)
 	}
-
 	encrypted, err := s.encrypt(jsonData)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt credentials: %w", err)
 	}
-
-	query := `
+	_, err = s.db.Exec(`
 		INSERT INTO integration_credentials (integration_type, credentials_encrypted, updated_at)
 		VALUES (?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(integration_type) DO UPDATE SET
 			credentials_encrypted = excluded.credentials_encrypted,
 			updated_at = CURRENT_TIMESTAMP
-	`
-	_, err = s.db.Exec(query, string(integrationType), encrypted)
+	`, string(integrationType), encrypted)
 	return err
 }
 
-func (s *Store) getCredentials(integrationType IntegrationType, dest interface{}) error {
-	query := `
-		SELECT credentials_encrypted
-		FROM integration_credentials
-		WHERE integration_type = ? AND enabled = 1
-	`
+func (s *Store) load(integrationType IntegrationType, dest interface{}) error {
 	var encrypted []byte
-	err := s.db.QueryRow(query, string(integrationType)).Scan(&encrypted)
+	err := s.db.QueryRow(`
+		SELECT credentials_encrypted FROM integration_credentials
+		WHERE integration_type = ? AND enabled = 1
+	`, string(integrationType)).Scan(&encrypted)
 	if err == sql.ErrNoRows {
 		return fmt.Errorf("integration %s not configured", integrationType)
 	}
 	if err != nil {
 		return err
 	}
-
 	decrypted, err := s.decrypt(encrypted)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt credentials: %w", err)
 	}
-
 	if err := json.Unmarshal(decrypted, dest); err != nil {
 		return fmt.Errorf("failed to unmarshal credentials: %w", err)
 	}
-
 	return nil
 }
 
 func (s *Store) DeleteIntegration(integrationType IntegrationType) error {
-	query := `DELETE FROM integration_credentials WHERE integration_type = ?`
-	_, err := s.db.Exec(query, string(integrationType))
-	return err
-}
-
-func (s *Store) SetEnabled(integrationType IntegrationType, enabled bool) error {
-	query := `UPDATE integration_credentials SET enabled = ? WHERE integration_type = ?`
-	_, err := s.db.Exec(query, enabled, string(integrationType))
+	_, err := s.db.Exec(`DELETE FROM integration_credentials WHERE integration_type = ?`, string(integrationType))
 	return err
 }
 
 func (s *Store) IsEnabled(integrationType IntegrationType) (bool, error) {
-	query := `SELECT enabled FROM integration_credentials WHERE integration_type = ?`
 	var enabled bool
-	err := s.db.QueryRow(query, string(integrationType)).Scan(&enabled)
+	err := s.db.QueryRow(`SELECT enabled FROM integration_credentials WHERE integration_type = ?`, string(integrationType)).Scan(&enabled)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -263,15 +225,13 @@ func (s *Store) IsEnabled(integrationType IntegrationType) (bool, error) {
 	return enabled, nil
 }
 
-func (s *Store) ClearAll() error {
-	query := `DELETE FROM integration_credentials`
-	_, err := s.db.Exec(query)
+func (s *Store) clearAll() error {
+	_, err := s.db.Exec(`DELETE FROM integration_credentials`)
 	return err
 }
 
-func (s *Store) CheckIntegrity() error {
-	query := `SELECT integration_type, credentials_encrypted FROM integration_credentials`
-	rows, err := s.db.Query(query)
+func (s *Store) checkIntegrity() error {
+	rows, err := s.db.Query(`SELECT integration_type, credentials_encrypted FROM integration_credentials`)
 	if err != nil {
 		return err
 	}
