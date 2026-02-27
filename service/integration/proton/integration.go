@@ -55,7 +55,7 @@ func (p *Integration) Start(ctx context.Context, logger *slog.Logger) {
 
 	creds, err := credStore.GetProton()
 	if err != nil {
-		logger.Debug("Proton credentials not configured", "error", err)
+		logger.Info("Proton credentials not configured", "error", err)
 		return
 	}
 

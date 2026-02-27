@@ -55,12 +55,12 @@ func (s *Integration) Start(ctx context.Context, logger *slog.Logger) {
 		client := s.Handlers.Client
 		account, _ := client.GetLinkedAccount()
 		if account != nil {
-			logger.Debug("Signal enabled", "status", "linked", "number", FormatPhoneNumber(account.Number))
+			logger.Info("Signal enabled", "status", "linked", "number", FormatPhoneNumber(account.Number))
 		} else {
-			logger.Debug("Signal enabled", "status", "unlinked", "action", "visit admin UI to link")
+			logger.Info("Signal enabled", "status", "unlinked", "action", "visit admin UI to link")
 		}
 	} else {
-		logger.Debug("Signal disabled", "reason", "signal-cli not found in PATH")
+		logger.Info("Signal disabled", "reason", "signal-cli not found in PATH")
 	}
 }
 
