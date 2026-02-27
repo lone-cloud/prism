@@ -180,12 +180,12 @@ func (h *Handlers) HandleArchive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type deleteRequest struct {
+type trashRequest struct {
 	UID string `json:"uid"`
 }
 
-func (h *Handlers) HandleDelete(w http.ResponseWriter, r *http.Request) {
-	var req deleteRequest
+func (h *Handlers) HandleTrash(w http.ResponseWriter, r *http.Request) {
+	var req trashRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		util.JSONError(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -201,13 +201,13 @@ func (h *Handlers) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.monitor.Delete(req.UID); err != nil {
-		h.logger.Error("failed to delete email", "uid", req.UID, "error", err)
-		util.JSONError(w, "failed to delete", http.StatusInternalServerError)
+	if err := h.monitor.Trash(req.UID); err != nil {
+		h.logger.Error("failed to trash email", "uid", req.UID, "error", err)
+		util.JSONError(w, "failed to trash", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("deleted email", "uid", req.UID)
+	h.logger.Info("trashed email", "uid", req.UID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
