@@ -11,7 +11,7 @@ import (
 func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 	creds, err := credStore.GetProton()
 	if err != nil {
-		m.logger.Debug("Proton credentials not configured", "error", err)
+		m.logger.Info("Proton credentials not configured", "error", err)
 		return nil
 	}
 
