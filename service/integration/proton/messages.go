@@ -82,15 +82,6 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 		Tag:     "proton-" + msg.ID,
 		Actions: []delivery.Action{
 			{
-				ID:       "delete",
-				Label:    "Delete",
-				Endpoint: "/api/v1/proton/delete",
-				Method:   "POST",
-				Data: map[string]any{
-					"uid": msg.ID,
-				},
-			},
-			{
 				ID:       "archive",
 				Label:    "Archive",
 				Endpoint: "/api/v1/proton/archive",
@@ -100,8 +91,17 @@ func (m *Monitor) sendNotification(msg *protonmail.Message) {
 				},
 			},
 			{
+				ID:       "trash",
+				Label:    "Trash",
+				Endpoint: "/api/v1/proton/trash",
+				Method:   "POST",
+				Data: map[string]any{
+					"uid": msg.ID,
+				},
+			},
+			{
 				ID:       "mark-read",
-				Label:    "Mark as Read",
+				Label:    "Mark read",
 				Endpoint: "/api/v1/proton/mark-read",
 				Method:   "POST",
 				Data: map[string]any{

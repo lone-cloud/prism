@@ -168,7 +168,7 @@ func (m *Monitor) Archive(msgID string) error {
 	return m.client.UnlabelMessages(protonmail.LabelInbox, []string{msgID})
 }
 
-func (m *Monitor) Delete(msgID string) error {
+func (m *Monitor) Trash(msgID string) error {
 	if m.client == nil {
 		return nil
 	}
