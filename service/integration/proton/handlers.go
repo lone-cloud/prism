@@ -137,7 +137,7 @@ func (h *Handlers) HandleMarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("marked email as read", "uid", req.UID)
+	h.logger.Debug("marked email as read", "uid", req.UID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
@@ -172,7 +172,7 @@ func (h *Handlers) HandleArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("archived email", "uid", req.UID)
+	h.logger.Debug("archived email", "uid", req.UID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
@@ -207,7 +207,7 @@ func (h *Handlers) HandleTrash(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("trashed email", "uid", req.UID)
+	h.logger.Debug("trashed email", "uid", req.UID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {

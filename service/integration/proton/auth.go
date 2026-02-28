@@ -101,7 +101,7 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 }
 
 func (m *Monitor) refreshTokens(c *protonmail.Client, auth *protonmail.Auth, creds *credentials.ProtonCredentials) (*protonmail.Auth, error) {
-	m.logger.Info("Refreshing Proton session tokens")
+	m.logger.Debug("Refreshing Proton session tokens")
 	newAuth, err := c.AuthRefresh(auth)
 	if err != nil {
 		m.logger.Error("Token refresh failed", "error", err)
@@ -128,7 +128,7 @@ func (m *Monitor) refreshTokens(c *protonmail.Client, auth *protonmail.Auth, cre
 	if err := m.credStore.SaveProton(updatedCreds); err != nil {
 		m.logger.Warn("Failed to save refreshed tokens", "error", err)
 	} else {
-		m.logger.Info("Proton tokens refreshed and saved")
+		m.logger.Debug("Proton tokens refreshed and saved")
 	}
 
 	return newAuth, nil
