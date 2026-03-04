@@ -18,12 +18,12 @@ dev:
 	air
 
 fix:
+	go mod download
+	go mod tidy
 	gofmt -s -w .
 	goimports -w .
 	golangci-lint run --fix
 	npx @biomejs/biome@latest check --write --unsafe .
-	go mod download
-	go mod tidy
 
 clean:
 	rm -f $(BINARY_NAME) $(BINARY_NAME)-*
