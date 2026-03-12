@@ -24,9 +24,9 @@ func Load() (*Config, error) {
 		VerboseLogging: getEnvBool("VERBOSE_LOGGING", false),
 		RateLimit:      getEnvInt("RATE_LIMIT", 100),
 		StoragePath:    getEnvString("STORAGE_PATH", "./data/prism.db"),
-		EnableSignal:   getEnvBool("ENABLE_SIGNAL", false),
-		EnableTelegram: getEnvBool("ENABLE_TELEGRAM", false),
-		EnableProton:   getEnvBool("ENABLE_PROTON", false),
+		EnableSignal:   getEnvBool("ENABLE_SIGNAL", true),
+		EnableTelegram: getEnvBool("ENABLE_TELEGRAM", true),
+		EnableProton:   getEnvBool("ENABLE_PROTON", true),
 	}
 
 	if err := cfg.Validate(); err != nil {
