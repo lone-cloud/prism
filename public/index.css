@@ -503,6 +503,44 @@ details[open] > .integration-header::before {
 	font-size: 1rem;
 }
 
+/* Password Toggle */
+.password-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.password-wrapper input {
+	width: 100%;
+	padding-right: 2.5rem;
+}
+
+.password-toggle {
+	position: absolute;
+	right: 0.5rem;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	color: var(--text-secondary);
+	display: flex;
+	align-items: center;
+	transition: color 0.2s;
+}
+
+.password-toggle:hover {
+	color: var(--text-primary);
+}
+
+.eye-icon {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.eye-hide {
+	display: none; /* overridden by inline style after first toggle */
+}
+
 /* Buttons */
 .btn-primary,
 .btn-secondary,

@@ -47,7 +47,25 @@ install-tools:
 	echo "signal-cli installed successfully to /usr/local/bin/signal-cli"
 
 check-updates:
-	@go list -u -m -f '{{if not .Indirect}}{{.Path}} {{.Version}}{{if .Update}} [{{.Update.Version}}]{{end}}{{end}}' all | grep "\[" || echo "All dependencies are up to date"
+	@echo "=== Go module updates ==="
+	@go list -u -m -f '{{if not .Indirect}}{{.Path}} {{.Version}}{{if .Update}} -> {{.Update.Version}}{{end}}{{end}}' all | grep " -> " || echo "All Go dependencies are up to date"
+	@echo ""
+	@echo "=== Dockerfile base image updates ==="
+	@for image in $$(grep -E '^FROM ' Dockerfile | awk '{print $$2}' | grep -v 'AS'); do \
+		echo "Checking $$image..."; \
+		current_digest=$$(docker inspect --format='{{index .RepoDigests 0}}' $$image 2>/dev/null | cut -d@ -f2); \
+		docker pull -q $$image > /dev/null 2>&1; \
+		latest_digest=$$(docker inspect --format='{{index .RepoDigests 0}}' $$image 2>/dev/null | cut -d@ -f2); \
+		if [ -z "$$current_digest" ]; then \
+			echo "  $$image: pulled (no prior local image to compare)"; \
+		elif [ "$$current_digest" = "$$latest_digest" ]; then \
+			echo "  $$image: up to date"; \
+		else \
+			echo "  $$image: UPDATE AVAILABLE"; \
+			echo "    local:  $$current_digest"; \
+			echo "    latest: $$latest_digest"; \
+		fi; \
+	done
 
 release:
 	@if [ ! -f VERSION ]; then \

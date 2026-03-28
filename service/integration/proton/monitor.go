@@ -31,6 +31,7 @@ type Monitor struct {
 	startTime        time.Time
 	consecutiveErrs  int
 	lastConnected    time.Time
+	cancelPoll       context.CancelFunc
 }
 
 func NewMonitor(cfg *config.Config, logger *slog.Logger) *Monitor {
@@ -40,7 +41,17 @@ func NewMonitor(cfg *config.Config, logger *slog.Logger) *Monitor {
 	}
 }
 
+func (m *Monitor) Stop() {
+	if m.cancelPoll != nil {
+		m.cancelPoll()
+		m.cancelPoll = nil
+	}
+	m.client = nil
+}
+
 func (m *Monitor) Start(ctx context.Context, credStore *credentials.Store, publisher *delivery.Publisher) error {
+	m.Stop()
+
 	m.dispatcher = publisher
 	if err := m.authenticateAndSetup(credStore); err != nil {
 		return err
@@ -54,7 +65,9 @@ func (m *Monitor) Start(ctx context.Context, credStore *credentials.Store, publi
 	m.lastConnected = time.Now()
 	m.unseenMessageIDs = make(map[string]time.Time)
 
-	go m.pollEvents(ctx)
+	pollCtx, cancel := context.WithCancel(ctx)
+	m.cancelPoll = cancel
+	go m.pollEvents(pollCtx)
 
 	return nil
 }
