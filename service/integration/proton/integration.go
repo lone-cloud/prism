@@ -43,7 +43,7 @@ func (p *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) ht
 		}
 	}
 
-	RegisterRoutes(router, p.Handlers, auth, p.db, p.apiKey, logger, p)
+	RegisterRoutes(router, p.Handlers, auth, p.db, p.apiKey, logger, p, p.cfg)
 }
 
 func (p *Integration) Start(ctx context.Context, logger *slog.Logger) {

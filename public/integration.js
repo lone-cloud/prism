@@ -18,8 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
 		else if (action === 'delete-telegram') deleteTelegram(btn);
 		else if (action === 'delete-proton') deleteProton(btn);
 		else if (action === 'reload') reloadIntegrations();
+		else if (action === 'toggle-password') togglePassword(btn);
 	});
 });
+
+function togglePassword(btn) {
+	const input = btn.closest('.password-wrapper').querySelector('input');
+	const isHidden = input.type === 'password';
+	input.type = isHidden ? 'text' : 'password';
+	btn.querySelector('.eye-show').style.display = isHidden ? 'none' : 'block';
+	btn.querySelector('.eye-hide').style.display = isHidden ? 'block' : 'none';
+	btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+}
 
 function reloadIntegrations() {
 	const integrations = document.getElementById('integrations');

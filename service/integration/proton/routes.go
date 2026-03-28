@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"prism/service/config"
 	"prism/service/credentials"
 	"prism/service/util"
 
@@ -23,6 +24,7 @@ type authHandler struct {
 	apiKey      string
 	logger      *slog.Logger
 	integration *Integration
+	cfg         *config.Config
 }
 
 type protonAuthRequest struct {
@@ -46,6 +48,7 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	c := &protonmail.Client{
 		RootURL:    protonAPIURL,
 		AppVersion: protonAppVersion,
+		Debug:      h.cfg != nil && h.cfg.VerboseLogging,
 	}
 	authInfo, err := c.AuthInfo(req.Email)
 	if err != nil {
@@ -141,12 +144,16 @@ func (h *authHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.integration != nil {
+		h.integration.monitor.Stop()
+	}
+
 	util.SetToast(w, "Proton Mail unlinked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, integration *Integration) {
+func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, integration *Integration, cfg *config.Config) {
 	if handlers == nil {
 		return
 	}
@@ -159,6 +166,7 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 		apiKey:      apiKey,
 		logger:      logger,
 		integration: integration,
+		cfg:         cfg,
 	}
 
 	router.With(auth).Get("/fragment/proton", handlers.HandleFragment)
