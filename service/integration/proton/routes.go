@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"prism/service/config"
 	"prism/service/credentials"
@@ -79,7 +82,16 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 			util.JSONError(w, "Invalid 2FA code. Please try again", http.StatusBadRequest)
 			return
 		}
+		// Pre-2FA bearer is invalid for /keys/salts; refresh returns post-2FA tokens (hydroxide
+		// does not apply them to the Client, so we use auth below for the salts request).
 		auth.Scope = scope
+		refreshed, err := c.AuthRefresh(auth)
+		if err != nil {
+			h.logger.Error("Failed to refresh session after 2FA", "error", err)
+			util.JSONError(w, "Failed to complete authentication", http.StatusInternalServerError)
+			return
+		}
+		auth = refreshed
 	}
 
 	credStore, err := credentials.NewStore(h.db, h.apiKey)
@@ -89,7 +101,7 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	keySalts, err := c.ListKeySalts()
+	keySalts, err := listKeySaltsWithAuth(protonAPIURL, protonAppVersion, auth)
 	if err != nil {
 		h.logger.Error("Failed to get key salts", "error", err)
 		util.JSONError(w, "Failed to complete authentication", http.StatusInternalServerError)
@@ -151,6 +163,54 @@ func (h *authHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	util.SetToast(w, "Proton Mail unlinked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+func listKeySaltsWithAuth(rootURL, appVersion string, auth *protonmail.Auth) (map[string][]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, rootURL+"/keys/salts", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Pm-Appversion", appVersion)
+	req.Header.Set("X-Pm-Apiversion", strconv.Itoa(protonmail.Version))
+	req.Header.Set("X-Pm-Uid", auth.UID)
+	req.Header.Set("Authorization", "Bearer "+auth.AccessToken)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Code     int    `json:"Code"`
+		Error    string `json:"Error"`
+		KeySalts []struct {
+			ID      string `json:"ID"`
+			KeySalt string `json:"KeySalt"`
+		} `json:"KeySalts"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	if result.Code != 1000 {
+		return nil, fmt.Errorf("[%d] %s", result.Code, result.Error)
+	}
+
+	salts := make(map[string][]byte, len(result.KeySalts))
+	for _, ks := range result.KeySalts {
+		if ks.KeySalt == "" {
+			salts[ks.ID] = nil
+			continue
+		}
+		decoded, err := base64.StdEncoding.DecodeString(ks.KeySalt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode key salt for %s: %w", ks.ID, err)
+		}
+		salts[ks.ID] = decoded
+	}
+	return salts, nil
 }
 
 func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, integration *Integration, cfg *config.Config) {
