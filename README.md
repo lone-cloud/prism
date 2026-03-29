@@ -6,7 +6,7 @@
 
 **Self-hosted notification gateway with email monitoring**
 
-[Setup](#setup) • [Integrations](#integrations) • [API](#api) • [Examples](#real-world-examples)
+[Setup](#setup) • [Integrations](#integrations) • [API](#api) • [Examples](#real-world-examples) • [Monitoring](#monitoring)
 
 </div>
 
@@ -143,38 +143,6 @@ Send notifications directly to your browser.
 
 You'll receive browser notifications when messages arrive.
 
-## Real-World Examples
-
-### Email Monitoring
-
-Receive instant Signal or Telegram notifications when new emails arrive in your Proton Mail inbox.
-
-Prism monitors your Proton Mail account using the official Proton API and forwards new emails as notifications. Perfect for monitoring important accounts without constantly checking email.
-
-### Home Assistant Alerts
-
-Add a rest notification configuration (eg. add to configuration.yaml) to Home Assistant like:
-
-```yaml
-notify:
-  - platform: rest
-    name: Prism
-    resource: "http://<Your Prism server network IP>/Home Assistant"
-    method: POST
-    headers:
-      Authorization: !secret prism_api_key
-```
-
-Since Home Assistant and Prism are both on your local network, HTTP is allowed automatically - no additional configuration needed.
-
-Add your API_KEY to your secrets.yaml:
-
-```bash
-prism_api_key: "Bearer YOUR_API_KEY_HERE"
-```
-
-Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
-
 ## API
 
 All API endpoints require authentication with your API key:
@@ -258,6 +226,53 @@ Removes a WebPush subscription by ID.
 curl -X DELETE http://localhost:8080/api/v1/webpush/subscriptions/SUBSCRIPTION_ID \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+## Real-World Examples
+
+### Email Monitoring
+
+Receive instant Signal, Telegram or WebPush notifications when new emails arrive in your Proton Mail inbox.
+
+Prism monitors your Proton Mail account using the official Proton API and forwards new emails as notifications. Perfect for monitoring important accounts without constantly checking email.
+
+### Home Assistant Alerts
+
+Add a rest notification configuration (eg. add to configuration.yaml) to Home Assistant like:
+
+```yaml
+notify:
+  - platform: rest
+    name: Prism
+    resource: "http://<Your Prism server network IP>/Home Assistant"
+    method: POST
+    headers:
+      Authorization: !secret prism_api_key
+```
+
+Since Home Assistant and Prism are both on your local network, HTTP is allowed automatically - no additional configuration needed.
+
+Add your API_KEY to your secrets.yaml:
+
+```bash
+prism_api_key: "Bearer YOUR_API_KEY_HERE"
+```
+
+Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
+
+### Beszel Alerts
+
+[Beszel](https://beszel.dev) is a lightweight server monitoring tool. You can forward its alerts through Prism using the ntfy-compatible URL format.
+
+In Beszel's **Settings → Notifications**, add a URL:
+
+```
+ntfy://:YOUR_API_KEY@<your-prism-host>:<port>/Beszel?disableTLS=yes
+```
+
+- Replace `YOUR_API_KEY` with your Prism API key
+- Replace `<your-prism-host>:<port>` with your Prism server address (e.g. `192.168.0.10:8080`)
+- `disableTLS=yes` is only required for local HTTP deployments
+- `Beszel` is the app name that will appear in Prism — change it to anything you like
 
 ## Monitoring
 
