@@ -20,7 +20,7 @@ func authMiddleware(apiKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !util.VerifyAPIKey(r, apiKey) {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Prism Admin - Username: any, Password: API_KEY"`)
+				w.Header().Set("WWW-Authenticate", `Basic realm="Prism - Username: any, Password: API_KEY"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
