@@ -8,9 +8,9 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/httprate v0.15.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mymmrac/telego v1.7.0
+	github.com/mymmrac/telego v1.8.0
 	golang.org/x/crypto v0.49.0
-	modernc.org/sqlite v1.48.0
+	modernc.org/sqlite v1.48.1
 )
 
 require (

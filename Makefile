@@ -53,17 +53,23 @@ check-updates:
 	@echo "=== Dockerfile base image updates ==="
 	@for image in $$(grep -E '^FROM ' Dockerfile | awk '{print $$2}' | grep -v 'AS'); do \
 		echo "Checking $$image..."; \
-		current_digest=$$(docker inspect --format='{{index .RepoDigests 0}}' $$image 2>/dev/null | cut -d@ -f2); \
-		docker pull -q $$image > /dev/null 2>&1; \
-		latest_digest=$$(docker inspect --format='{{index .RepoDigests 0}}' $$image 2>/dev/null | cut -d@ -f2); \
-		if [ -z "$$current_digest" ]; then \
-			echo "  $$image: pulled (no prior local image to compare)"; \
-		elif [ "$$current_digest" = "$$latest_digest" ]; then \
+		name=$$(echo $$image | cut -d: -f1); \
+		tag=$$(echo $$image | cut -d: -f2); \
+		digest=$$(curl -sf "https://hub.docker.com/v2/repositories/library/$$name/tags/$$tag" | jq -r '.digest // empty'); \
+		if [ -z "$$digest" ]; then \
+			echo "  $$image: could not fetch digest (offline or image not found)"; \
+			continue; \
+		fi; \
+		cache_key=$$(echo $$image | tr ':/' '--'); \
+		stored=$$(grep "^$$cache_key=" .image-digests 2>/dev/null | cut -d= -f2); \
+		if [ -z "$$stored" ]; then \
+			echo "$$cache_key=$$digest" >> .image-digests; \
+			echo "  $$image: digest saved for future comparisons"; \
+		elif [ "$$stored" = "$$digest" ]; then \
 			echo "  $$image: up to date"; \
 		else \
-			echo "  $$image: UPDATE AVAILABLE"; \
-			echo "    local:  $$current_digest"; \
-			echo "    latest: $$latest_digest"; \
+			sed -i "s|^$$cache_key=.*|$$cache_key=$$digest|" .image-digests; \
+			echo "  $$image: UPDATE AVAILABLE (image content has changed, consider rebuilding)"; \
 		fi; \
 	done
 
