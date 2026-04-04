@@ -245,6 +245,7 @@ notify:
     name: Prism
     resource: "http://<Your Prism server network IP>/Home Assistant"
     method: POST_JSON
+    title_param_name: title
     headers:
       Authorization: !secret prism_api_key
 ```
