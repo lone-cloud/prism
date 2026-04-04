@@ -51,7 +51,7 @@ func (h *authHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	c := &protonmail.Client{
 		RootURL:    protonAPIURL,
 		AppVersion: protonAppVersion,
-		Debug:      h.cfg != nil && h.cfg.VerboseLogging,
+		Debug:      false,
 	}
 	authInfo, err := c.AuthInfo(req.Email)
 	if err != nil {

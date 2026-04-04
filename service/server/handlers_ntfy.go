@@ -56,7 +56,7 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.logger.Debug("Sent ntfy message", "app", appName, "preview", truncate(message, 50))
+	s.logger.Debug("Sent ntfy message", "app", appName, "title", title, "preview", truncate(message, 50))
 
 	now := time.Now()
 	w.Header().Set("Content-Type", "application/json")

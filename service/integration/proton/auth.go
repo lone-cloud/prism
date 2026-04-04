@@ -21,7 +21,7 @@ func (m *Monitor) authenticateAndSetup(credStore *credentials.Store) error {
 	c := &protonmail.Client{
 		RootURL:    protonAPIURL,
 		AppVersion: protonAppVersion,
-		Debug:      m.cfg != nil && m.cfg.VerboseLogging,
+		Debug:      false,
 	}
 
 	var auth *protonmail.Auth
