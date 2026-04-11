@@ -1,4 +1,4 @@
-.PHONY: all build build-linux run dev lint fix vet clean install-tools deps check-updates update update-all docker-build docker-run docker-down release
+.PHONY: all build start dev fix clean install-tools check-updates release release-dev
 
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")

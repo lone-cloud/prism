@@ -9,8 +9,8 @@ require (
 	github.com/go-chi/httprate v0.15.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mymmrac/telego v1.8.0
-	golang.org/x/crypto v0.49.0
-	modernc.org/sqlite v1.48.1
+	golang.org/x/crypto v0.50.0
+	modernc.org/sqlite v1.48.2
 )
 
 require (
@@ -37,7 +37,7 @@ require (
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
