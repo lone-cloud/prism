@@ -1,10 +1,15 @@
 package signal
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"html/template"
 	"log/slog"
 	"net/http"
+
+	qrcode "github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/standard"
 
 	"prism/service/util"
 )
@@ -111,9 +116,27 @@ func (h *Handlers) HandleLinkDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	qrc, err := qrcode.NewWith(qrCode, qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionMedium))
+	if err != nil {
+		h.logger.Error("Failed to encode QR code", "error", err)
+		util.JSONError(w, "Failed to generate QR code", http.StatusInternalServerError)
+		return
+	}
+	var buf bytes.Buffer
+	w2 := standard.NewWithWriter(nopWriteCloser{&buf},
+		standard.WithBuiltinImageEncoder(standard.PNG_FORMAT),
+		standard.WithQRWidth(10),
+	)
+	if err := qrc.Save(w2); err != nil {
+		h.logger.Error("Failed to render QR code", "error", err)
+		util.JSONError(w, "Failed to generate QR code", http.StatusInternalServerError)
+		return
+	}
+	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"qr_code": qrCode,
+		"qr_code": dataURL,
 		"status":  "linking",
 	})
 }
@@ -145,3 +168,7 @@ func (h *Handlers) HandleLinkStatus(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 }
+
+type nopWriteCloser struct{ *bytes.Buffer }
+
+func (nopWriteCloser) Close() error { return nil }

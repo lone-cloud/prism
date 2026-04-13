@@ -4,36 +4,43 @@
   <meta charset="UTF-8">
   <title>Prism</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#56C3DE">
+  <meta name="theme-color" content="#0b7589" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#7dd4e8" media="(prefers-color-scheme: dark)">
   <link rel="icon" type="image/webp" href="/favicon.webp">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/index.css?v={{.Version}}">
-  <script src="/htmx.min.js"></script>
-  <script src="/theme.js?v={{.Version}}"></script>
-  <script src="/toast.js?v={{.Version}}"></script>
-  <script src="/integration.js?v={{.Version}}"></script>
+  <script src="/theme-init.js?v={{.Version}}"></script>
+  <script src="/htmx.min.js" defer></script>
+  <script src="/theme.js?v={{.Version}}" defer></script>
+  <script src="/toast.js?v={{.Version}}" defer></script>
+  <script src="/integration.js?v={{.Version}}" defer></script>
 </head>
 <body>
-  <details class="card" open>
-    <summary class="card-header">
-      <span class="integration-name">Registered Apps</span>
-    </summary>
-    <div id="apps-list" class="card-content"
-        hx-get="/fragment/apps" 
-        hx-trigger="load, reload">
-      <div class="loading">
-        <div class="spinner"></div>
+  <a href="#main-content" class="skip-nav">Skip to content</a>
+  <main id="main-content">
+    <h1 class="sr-only">Prism</h1>
+    <details class="card" open>
+      <summary class="card-header">
+        <h2>Registered Apps</h2>
+      </summary>
+      <div id="apps-list" class="card-content"
+          hx-get="/fragment/apps" 
+          hx-trigger="load, reload">
+        <div class="loading" role="status">
+          <div class="spinner"></div>
+          <span class="sr-only">Loading…</span>
+        </div>
       </div>
+    </details>
+
+    <div id="integrations"
+         hx-get="/fragment/integrations"
+         hx-trigger="load, reload">
     </div>
-  </details>
+  </main>
 
-  <div id="integrations"
-       hx-get="/fragment/integrations"
-       hx-trigger="load, reload">
-  </div>
+  <div id="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
-  <div id="toast-container"></div>
-
-  <button type="button" id="theme-toggle" class="theme-toggle"></button>
+  <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
 </body>
 </html>

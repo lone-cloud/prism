@@ -35,3 +35,23 @@ if time.Since(l.generatedAt) < l.ttl {
 - Prefer composition over inheritance
 - Handle errors properly, don't ignore them
 
+## Design Context
+
+### Users
+Self-hosters — technically capable people who run their own infrastructure. They visit this UI occasionally to configure integrations (Signal, Telegram, WebPush, Proton Mail), register apps, and verify things are wired up. Could be on any device, but desktop is most common. Setup is a one-time or rare task; the UI is not used daily.
+
+### Brand Personality
+Sharp. Minimal. No-nonsense. This is a tool for people who run servers, not a product trying to sell them something. The interface should feel like it respects their time — no filler, no decorative chrome, no marketing energy.
+
+### Aesthetic Direction
+Refined utilitarian. Light theme by default, dark by system preference (keep existing both-modes behavior). The palette should feel clean and precise, not sterile. The cyan accent (`#56c3de`) is a good starting point for the brand hue — it reads as calm and technical without being loud. Neutrals should be very subtly tinted toward it.
+
+Anti-reference: PHPMyAdmin / boring CRUD admin panel. The goal is something that wouldn't look out of place as a polished open-source project UI — functional, cohesive, with quiet confidence.
+
+### Design Principles
+1. **Earn every element** — if it doesn't serve a function, remove it. No decorative chrome.
+2. **Precision over personality** — tight spacing, clear hierarchy, no ambiguity about what's interactive.
+3. **Trust through clarity** — statuses should be instantly readable; nothing should make the user wonder "did that work?"
+4. **Quiet confidence** — not boring, not flashy. Typography and spacing do the work, not color.
+5. **Polish the structure, don't replace it** — the existing `<details>`-card pattern and HTMX architecture should be respected. Improve the CSS layer, don't overhaul templates.
+

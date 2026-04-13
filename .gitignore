@@ -6,3 +6,5 @@ prism-*
 tmp
 .VSCodeCounter/
 .image-digests
+.github/skills/
+.impeccable.md

@@ -23,8 +23,14 @@ window.cycleTheme = () => {
 function updateButtonText(theme) {
 	const btn = document.getElementById('theme-toggle');
 	if (btn) {
+		const labels = {
+			system: 'Toggle theme (system)',
+			light: 'Toggle theme (light)',
+			dark: 'Toggle theme (dark)',
+		};
 		btn.textContent =
 			theme === 'system' ? '🌓' : theme === 'light' ? '☀️' : '🌙';
+		btn.setAttribute('aria-label', labels[theme] || 'Toggle theme');
 	}
 }
 

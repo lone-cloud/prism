@@ -37,7 +37,8 @@
 							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 
 								hx-target="#apps-list" 
 								hx-swap="innerHTML" 
-								hx-confirm="Delete this channel?">×</button>
+								hx-confirm="Delete this channel?"
+								aria-label="Remove {{$channel.Channel}} channel">×</button>
 						</span>
 						{{end}}
 					{{end}}
