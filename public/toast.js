@@ -8,13 +8,25 @@ function showToast(message, type = 'info') {
 
 	container.appendChild(toast);
 
-	setTimeout(() => {
+	const dismiss = () => {
 		toast.classList.add('hiding');
 		setTimeout(() => toast.remove(), 300);
-	}, 3000);
+	};
+
+	setTimeout(dismiss, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape') {
+			const toasts = document.querySelectorAll('.toast:not(.hiding)');
+			toasts.forEach((t) => {
+				t.classList.add('hiding');
+				setTimeout(() => t.remove(), 300);
+			});
+		}
+	});
+
 	document.body.addEventListener('htmx:afterRequest', (event) => {
 		const xhr = event.detail.xhr;
 		const triggerHeader = xhr.getResponseHeader('HX-Trigger');

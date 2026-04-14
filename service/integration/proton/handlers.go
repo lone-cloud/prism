@@ -72,7 +72,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	integData.Name = "Proton Mail"
 
 	if !hasCredentials {
-		integData.StatusClass = "disconnected"
+		integData.StatusClass = "unlinked"
 		integData.StatusText = "Unlinked"
 		integData.StatusTooltip = "Enter credentials to link"
 		integData.Open = true

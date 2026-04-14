@@ -51,7 +51,7 @@
 			{{end}}
 		</div>
 		<div class="app-actions">
-			<button type="button" class="btn-delete" hx-delete="/apps/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}} and all subscriptions?">Delete</button>
+			<button type="button" class="btn-danger" hx-delete="/apps/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}} and all subscriptions?">Delete</button>
 		</div>
 	</li>
 {{end}}

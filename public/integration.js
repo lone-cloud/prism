@@ -3,6 +3,7 @@ function showConfirm(btn, message, onConfirm) {
 	wrapper.className = 'confirm-inline';
 	wrapper.setAttribute('role', 'group');
 	wrapper.setAttribute('aria-label', message);
+	wrapper.setAttribute('aria-live', 'polite');
 
 	const msg = document.createElement('span');
 	msg.className = 'confirm-message';
@@ -239,6 +240,14 @@ async function linkSignal(btn) {
 				statusCheckInProgress = false;
 			}
 		}, 2000);
+
+		setTimeout(() => {
+			if (signalLinkingPoll) {
+				clearInterval(signalLinkingPoll);
+				signalLinkingPoll = null;
+				showQrError('QR code expired. Try again.');
+			}
+		}, 300000);
 	} catch (err) {
 		showQrError(err.message);
 	}

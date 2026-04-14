@@ -66,7 +66,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 			integData.Open = true
 			contentData.Error = err.Error()
 		} else if account == nil {
-			integData.StatusClass = "disconnected"
+			integData.StatusClass = "unlinked"
 			integData.StatusText = "Unlinked"
 			integData.StatusTooltip = "Click Link button below to link"
 			integData.Open = true

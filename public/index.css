@@ -1,20 +1,20 @@
 /* Variables */
 :root {
 	color-scheme: light dark;
-	--bg-primary: light-dark(#f4f7f8, #141a1d);
-	--bg-secondary: light-dark(#fafcfd, #1e262a);
-	--text-primary: light-dark(#0f1517, #dce9ed);
-	--text-secondary: light-dark(#566870, #8eacb5);
-	--text-on-color: #fff;
+	--bg-primary: light-dark(#f5f7fa, #141618);
+	--bg-secondary: light-dark(#fafbfd, #1e2124);
+	--text-primary: light-dark(#0f1115, #dde1e7);
+	--text-secondary: light-dark(#566070, #8ea0b5);
+	--text-on-color: #f8fafc;
 	--border-color: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
-	--accent: light-dark(#0b7589, #7dd4e8);
-	--accent-hover: light-dark(#086b7c, #5ec8e0);
-	--text-on-accent: light-dark(#fff, #0a2a33);
+	--accent: light-dark(#0b74b5, #71c9f8);
+	--accent-hover: light-dark(#0a6399, #4db8f5);
+	--text-on-accent: light-dark(#f8fafc, #00243c);
 	--success: #077a5d;
 	--success-hover: #065e48;
 	--error: #c01746;
 	--error-hover: #9e1239;
-	--spinner-track: light-dark(#dae5e9, #2e3e44);
+	--spinner-track: light-dark(#d9dde5, #2e3440);
 	--shadow-tooltip: light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.5));
 }
 
@@ -158,7 +158,7 @@ details[open] > .integration-header::before {
 }
 
 .card-header h2,
-.integration-header h2 {
+.integration-header h3 {
 	margin-bottom: 0;
 	font-size: 1.2em;
 	font-weight: 600;
@@ -266,8 +266,8 @@ details[open] > .integration-header::before {
 
 .channel-badge {
 	padding: 0.2rem 0.5rem;
-	border-radius: 0.25rem;
-	font-size: 0.8em;
+	border-radius: 1rem;
+	font-size: 0.875em;
 	font-weight: 500;
 	position: relative;
 	border: none;
@@ -281,14 +281,15 @@ details[open] > .integration-header::before {
 .badge-active {
 	cursor: pointer;
 	transition: background-color 0.2s ease;
+	min-height: 2.75rem;
 }
 
 .badge-active:hover {
-	background-color: var(--accent-hover);
+	background-color: light-dark(#cce4f3, #243d55);
 }
 
 .channel-webpush.badge-active:hover {
-	background-color: var(--success-hover);
+	background-color: light-dark(#cceade, #243d33);
 }
 
 .badge-active.htmx-request {
@@ -301,6 +302,7 @@ details[open] > .integration-header::before {
 	cursor: pointer;
 	border: 0.0625rem dashed currentColor;
 	transition: opacity 0.2s ease;
+	min-height: 2.75rem;
 }
 
 .badge-inactive:hover {
@@ -318,8 +320,8 @@ details[open] > .integration-header::before {
 }
 
 .channel-signal.badge-active {
-	background: var(--accent);
-	color: var(--text-on-accent);
+	background: light-dark(#e0f0fa, #1a3044);
+	color: var(--accent);
 }
 
 .channel-signal.badge-inactive {
@@ -328,23 +330,23 @@ details[open] > .integration-header::before {
 }
 
 .channel-signal.badge-subscribed {
-	background: var(--accent);
-	color: var(--text-on-accent);
+	background: light-dark(#e0f0fa, #1a3044);
+	color: var(--accent);
 }
 
 .channel-webpush.badge-active {
-	background: var(--success);
-	color: var(--text-on-color);
+	background: light-dark(#e0f5ef, #1a3329);
+	color: var(--success);
 }
 
 .channel-webpush.badge-subscribed {
-	background: var(--accent);
-	color: var(--text-on-accent);
+	background: light-dark(#e0f0fa, #1a3044);
+	color: var(--accent);
 }
 
 .channel-telegram.badge-active {
-	background: var(--accent);
-	color: var(--text-on-accent);
+	background: light-dark(#e0f0fa, #1a3044);
+	color: var(--accent);
 }
 
 .channel-telegram.badge-inactive {
@@ -353,29 +355,14 @@ details[open] > .integration-header::before {
 }
 
 .channel-telegram.badge-subscribed {
-	background: var(--accent);
-	color: var(--text-on-accent);
+	background: light-dark(#e0f0fa, #1a3044);
+	color: var(--accent);
 }
 
 .app-actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
-}
-
-.btn-delete {
-	padding: 0.375rem 0.75rem;
-	background: var(--error);
-	color: var(--text-on-color);
-	border: none;
-	border-radius: 0.25rem;
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	white-space: nowrap;
-}
-
-.btn-delete:hover {
-	background-color: var(--error-hover);
 }
 
 .btn-delete-sub {
@@ -425,28 +412,46 @@ details[open] > .integration-header::before {
 }
 
 .integration-status {
-	padding: 0.25rem 0.625rem;
-	border-radius: 0.25rem;
 	font-size: 0.875em;
 	font-weight: 500;
 	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.integration-status::before {
+	content: "";
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.integration-status.connected::before,
+.integration-status.available::before {
+	background: var(--success);
 }
 
 .integration-status.connected,
 .integration-status.available {
-	background: var(--success);
-	color: var(--text-on-color);
+	color: var(--success);
+}
+
+.integration-status.disconnected::before {
+	background: var(--error);
 }
 
 .integration-status.disconnected {
-	background: var(--error);
-	color: var(--text-on-color);
+	color: var(--error);
+}
+
+.integration-status.unlinked::before {
+	background: var(--text-secondary);
 }
 
 .integration-status.unlinked {
-	background: var(--bg-secondary);
-	color: var(--text-primary);
-	border: 0.0625rem solid var(--border-color);
+	color: var(--text-secondary);
 }
 
 .link-instructions {
@@ -714,6 +719,7 @@ details[open] > .integration-header::before {
 	padding: 0.25rem 0.625rem;
 	font-size: 0.875rem;
 	min-height: 2.75rem;
+	min-width: 2.75rem;
 }
 
 :focus-visible {
