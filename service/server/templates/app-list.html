@@ -11,34 +11,37 @@
 					{{$channel := .}}
 					{{if .Toggleable}}
 						{{if .Active}}
-							<button type="button" class="channel-badge channel-{{.Channel}} badge-active" 
-							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{(index .Subscriptions 0).ID}}" 
-								hx-target="#apps-list" 
-							hx-swap="innerHTML">
-								{{.Label}}
-								<span class="tooltip">Channel ID: {{(index .Subscriptions 0).ID}}</span>
-							</button>
+						<button type="button"
+							class="channel-badge channel-{{.Channel}} badge-active"
+							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{(index .Subscriptions 0).ID}}"
+							hx-target="#apps-list"
+							hx-swap="innerHTML"
+							aria-label="Disable {{.Label}} for {{$app.AppName}}">
+							{{.Label}}
+							<span class="tooltip">Channel ID: {{(index .Subscriptions 0).ID}}</span>
+						</button>
 						{{else}}
-							<button type="button" class="channel-badge channel-{{.Channel}} badge-inactive" 
-							hx-post="/apps/{{$app.AppName}}/subscriptions" 
-								hx-target="#apps-list" 
-								hx-swap="innerHTML" 
-								hx-vals='{"channel":"{{.Channel}}"}'>
-								+ {{.Label}}
-								<span class="tooltip">Click to enable</span>
-							</button>
+						<button type="button"
+							class="channel-badge channel-{{.Channel}} badge-inactive"
+							hx-post="/apps/{{$app.AppName}}/subscriptions"
+							hx-target="#apps-list"
+							hx-swap="innerHTML"
+							hx-vals='{"channel":"{{.Channel}}"}'
+							aria-label="Enable {{.Label}} for {{$app.AppName}}">
+							+ {{.Label}}
+							<span class="tooltip">Click to enable</span>
+						</button>
 						{{end}}
 					{{else}}
 						{{range .Subscriptions}}
 						<span class="channel-badge channel-{{$channel.Channel}} badge-subscribed">
 							{{$channel.Label}}
 							<span class="tooltip">Channel ID: {{.ID}}</span>
-							<button type="button" class="btn-delete-sub" 
-							hx-delete="/apps/{{$app.AppName}}/subscriptions/{{.ID}}" 
-								hx-target="#apps-list" 
-								hx-swap="innerHTML" 
-								hx-confirm="Delete this channel?"
-								aria-label="Remove {{$channel.Channel}} channel">×</button>
+							<button type="button"
+								class="btn-delete-sub"
+								data-action="delete-subscription"
+								data-url="/apps/{{$app.AppName}}/subscriptions/{{.ID}}"
+								aria-label="Remove {{$channel.Channel}} channel from {{$app.AppName}}">×</button>
 						</span>
 						{{end}}
 					{{end}}
@@ -51,7 +54,7 @@
 			{{end}}
 		</div>
 		<div class="app-actions">
-			<button type="button" class="btn-danger" hx-delete="/apps/{{.AppName}}" hx-target="#apps-list" hx-swap="innerHTML" hx-confirm="Delete {{.AppName}} and all subscriptions?">Delete</button>
+			<button type="button" class="btn-danger" data-action="delete-app" data-app-name="{{.AppName}}">Delete</button>
 		</div>
 	</li>
 {{end}}

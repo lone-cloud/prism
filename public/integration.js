@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		else if (action === 'delete-proton') deleteProton(btn);
 		else if (action === 'reload') reloadIntegrations();
 		else if (action === 'toggle-password') togglePassword(btn);
+		else if (action === 'delete-app') deleteApp(btn);
+		else if (action === 'delete-subscription') deleteSubscription(btn);
 	});
 });
 
@@ -74,6 +76,23 @@ function reloadIntegrations() {
 	if (appsList) {
 		htmx.trigger(appsList, 'reload');
 	}
+}
+
+function deleteApp(btn) {
+	const appName = btn.dataset.appName;
+	showConfirm(btn, `Delete ${appName} and all subscriptions?`, () => {
+		htmx.ajax('DELETE', `/apps/${appName}`, {
+			target: '#apps-list',
+			swap: 'innerHTML',
+		});
+	});
+}
+
+function deleteSubscription(btn) {
+	const url = btn.dataset.url;
+	showConfirm(btn, 'Delete this channel?', () => {
+		htmx.ajax('DELETE', url, { target: '#apps-list', swap: 'innerHTML' });
+	});
 }
 
 async function handleAuthForm(form, endpoint, statusId, getPayload) {

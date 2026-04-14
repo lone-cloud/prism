@@ -5,15 +5,29 @@ function showToast(message, type = 'info') {
 	const toast = document.createElement('div');
 	toast.className = `toast ${type}`;
 	toast.textContent = message;
+	toast.setAttribute('tabindex', '0');
 
 	container.appendChild(toast);
 
+	let timeoutId;
 	const dismiss = () => {
 		toast.classList.add('hiding');
 		setTimeout(() => toast.remove(), 300);
 	};
 
-	setTimeout(dismiss, 3000);
+	const startTimer = () => {
+		timeoutId = setTimeout(dismiss, 3000);
+	};
+	const pauseTimer = () => {
+		clearTimeout(timeoutId);
+	};
+
+	toast.addEventListener('mouseenter', pauseTimer);
+	toast.addEventListener('mouseleave', startTimer);
+	toast.addEventListener('focusin', pauseTimer);
+	toast.addEventListener('focusout', startTimer);
+
+	startTimer();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

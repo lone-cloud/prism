@@ -10,10 +10,16 @@
 	--accent: light-dark(#0b74b5, #71c9f8);
 	--accent-hover: light-dark(#0a6399, #4db8f5);
 	--text-on-accent: light-dark(#f8fafc, #00243c);
-	--success: #077a5d;
-	--success-hover: #065e48;
-	--error: #c01746;
-	--error-hover: #9e1239;
+	--success: light-dark(#077a5d, #34d399);
+	--success-hover: light-dark(#065e48, #2ab886);
+	--success-bg: light-dark(#077a5d, #0d9b6e);
+	--error: light-dark(#c01746, #f87171);
+	--error-hover: light-dark(#9e1239, #ef4444);
+	--error-bg: light-dark(#c01746, #d42b5a);
+	--channel-signal-bg: light-dark(#e0f0fa, #1a3044);
+	--channel-signal-hover: light-dark(#cce4f3, #243d55);
+	--channel-webpush-bg: light-dark(#e0f5ef, #1a3329);
+	--channel-webpush-hover: light-dark(#cceade, #243d33);
 	--spinner-track: light-dark(#d9dde5, #2e3440);
 	--shadow-tooltip: light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.5));
 }
@@ -285,11 +291,11 @@ details[open] > .integration-header::before {
 }
 
 .badge-active:hover {
-	background-color: light-dark(#cce4f3, #243d55);
+	background-color: var(--channel-signal-hover);
 }
 
 .channel-webpush.badge-active:hover {
-	background-color: light-dark(#cceade, #243d33);
+	background-color: var(--channel-webpush-hover);
 }
 
 .badge-active.htmx-request {
@@ -320,7 +326,7 @@ details[open] > .integration-header::before {
 }
 
 .channel-signal.badge-active {
-	background: light-dark(#e0f0fa, #1a3044);
+	background: var(--channel-signal-bg);
 	color: var(--accent);
 }
 
@@ -330,22 +336,22 @@ details[open] > .integration-header::before {
 }
 
 .channel-signal.badge-subscribed {
-	background: light-dark(#e0f0fa, #1a3044);
+	background: var(--channel-signal-bg);
 	color: var(--accent);
 }
 
 .channel-webpush.badge-active {
-	background: light-dark(#e0f5ef, #1a3329);
+	background: var(--channel-webpush-bg);
 	color: var(--success);
 }
 
 .channel-webpush.badge-subscribed {
-	background: light-dark(#e0f0fa, #1a3044);
+	background: var(--channel-signal-bg);
 	color: var(--accent);
 }
 
 .channel-telegram.badge-active {
-	background: light-dark(#e0f0fa, #1a3044);
+	background: var(--channel-signal-bg);
 	color: var(--accent);
 }
 
@@ -355,7 +361,7 @@ details[open] > .integration-header::before {
 }
 
 .channel-telegram.badge-subscribed {
-	background: light-dark(#e0f0fa, #1a3044);
+	background: var(--channel-signal-bg);
 	color: var(--accent);
 }
 
@@ -377,6 +383,10 @@ details[open] > .integration-header::before {
 	opacity: 0.7;
 	transition: opacity 0.2s ease;
 	line-height: 1;
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	display: inline-grid;
+	place-items: center;
 }
 
 .btn-delete-sub:hover {
@@ -461,7 +471,7 @@ details[open] > .integration-header::before {
 }
 
 .channel-not-configured {
-	background: var(--error);
+	background: var(--error-bg);
 	color: var(--text-on-color);
 	padding: 0.25rem 0.625rem;
 	border-radius: 0.25rem;
@@ -494,6 +504,10 @@ details[open] > .integration-header::before {
 	background: var(--bg-secondary);
 	color: var(--text-primary);
 	font-size: 1rem;
+}
+
+.form-group input:focus-visible {
+	border-color: var(--accent);
 }
 
 /* Password Toggle */
@@ -580,7 +594,7 @@ details[open] > .integration-header::before {
 }
 
 .btn-danger {
-	background: var(--error);
+	background: var(--error-bg);
 	color: var(--text-on-color);
 }
 
@@ -593,13 +607,13 @@ details[open] > .integration-header::before {
 
 .auth-status.success {
 	display: block;
-	background: var(--success);
+	background: var(--success-bg);
 	color: var(--text-on-color);
 }
 
 .auth-status.error {
 	display: block;
-	background: var(--error);
+	background: var(--error-bg);
 	color: var(--text-on-color);
 }
 
@@ -662,12 +676,12 @@ details[open] > .integration-header::before {
 }
 
 .toast.success {
-	background: var(--success);
+	background: var(--success-bg);
 	color: var(--text-on-color);
 }
 
 .toast.error {
-	background: var(--error);
+	background: var(--error-bg);
 	color: var(--text-on-color);
 }
 
@@ -740,6 +754,11 @@ details[open] > .integration-header::before {
 	border: 0;
 }
 
+.noscript-msg {
+	padding: 1rem;
+	text-align: center;
+}
+
 .skip-nav {
 	position: absolute;
 	top: -100%;
@@ -762,6 +781,21 @@ details[open] > .integration-header::before {
 	display: none;
 }
 
+@media (max-width: 48rem) {
+	.app-item {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.app-actions {
+		align-self: flex-end;
+	}
+
+	.auth-form {
+		max-width: none;
+	}
+}
+
 @media (max-width: 30rem) {
 	.theme-toggle {
 		bottom: 0.75rem;
@@ -778,5 +812,15 @@ details[open] > .integration-header::before {
 	.toast {
 		min-width: 0;
 		max-width: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms;
+		animation-iteration-count: 1;
+		transition-duration: 0.01ms;
 	}
 }
