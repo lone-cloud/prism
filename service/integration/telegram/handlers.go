@@ -89,7 +89,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 	integData.Name = "Telegram"
 
 	if client == nil {
-		integData.StatusClass = "disconnected"
+		integData.StatusClass = "unlinked"
 		integData.StatusText = "Unlinked"
 		integData.StatusTooltip = "Enter bot token to link"
 		integData.Open = true
@@ -103,7 +103,7 @@ func (h *Handlers) HandleFragment(w http.ResponseWriter, r *http.Request) {
 			integData.Open = true
 			contentData.Error = err.Error()
 		} else if chatID == 0 {
-			integData.StatusClass = "disconnected"
+			integData.StatusClass = "unlinked"
 			integData.StatusText = "Needs Chat ID"
 			integData.StatusTooltip = "@" + bot.Username
 			integData.Open = true
