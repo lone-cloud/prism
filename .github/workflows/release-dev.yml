@@ -28,7 +28,8 @@ jobs:
         context: .
         platforms: linux/amd64
         push: true
-        no-cache: true
         build-args: |
           VERSION=dev
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
         tags: ghcr.io/lone-cloud/prism:dev
