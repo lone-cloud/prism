@@ -4,7 +4,7 @@
 
 # Prism
 
-**Self-hosted notification gateway with email monitoring**
+**Notification gateway with email monitoring**
 
 [Setup](#setup) • [Integrations](#integrations) • [API](#api) • [Examples](#real-world-examples) • [Monitoring](#monitoring)
 
@@ -12,56 +12,47 @@
 
 <!-- markdownlint-enable MD033 -->
 
-Prism is a self-hosted notification gateway. Prism can receive messages and route them to Signal, Telegram or WebPush URLs. Messages can be sent via webhooks or monitored from a Proton Mail account integration.
+Route notifications to Signal, Telegram, or WebPush via webhooks or Proton Mail monitoring.
 
-Prism also comes with an Android companion app: [prism-android](https://github.com/lone-cloud/prism-android)
+Android companion app: [prism-android](https://github.com/lone-cloud/prism-android)
+
+<p align="center">
+  <img src="assets/screenshots/light.webp" alt="Prism Dashboard (light)" width="70%" />
+  <img src="assets/screenshots/dark.webp" alt="Prism Dashboard (dark)" width="70%" />
+</p>
 
 ## Setup
 
 ### Docker (Recommended)
 
 ```bash
-# Create .env file
 curl -L -O https://raw.githubusercontent.com/lone-cloud/prism/master/.env.example
 mv .env.example .env
 nano .env  # Set API_KEY=your-secret-key-here
 
-# Run Prism
-docker run -d \
-  --name prism \
-  -p 8080:8080 \
-  -v prism-data:/app/data \
-  -v signal-data:/home/prism/.local/share/signal-cli \
-  --env-file .env \
-  ghcr.io/lone-cloud/prism:latest
+curl -L -O https://raw.githubusercontent.com/lone-cloud/prism/master/docker-compose.yml
+docker compose up -d
 ```
 
 ### Binary (Alternative)
 
 ```bash
-# Download latest release
 curl -L -O https://github.com/lone-cloud/prism/releases/latest/download/prism-linux-amd64
 chmod +x prism-linux-amd64
 mv prism-linux-amd64 prism
 
-# Create .env file
 curl -L -O https://raw.githubusercontent.com/lone-cloud/prism/master/.env.example
 mv .env.example .env
 nano .env  # Set API_KEY=your-secret-key-here
 
-# Run Prism
 ./prism
 ```
 
 Prism is now running at <http://localhost:8080>.
 
-![Prism Dashboard](assets/screenshots/dashboard.webp)
-
 ## Integrations
 
-All integrations are configured through the web UI - no environment variables or command-line setup needed!
-
-Authenticate using your `API_KEY` as the password (username can be anything).
+All integrations are configured through the web UI. Authenticate with your `API_KEY` as the password (username can be anything).
 
 ### Signal
 
@@ -77,9 +68,7 @@ Send notifications through Signal Messenger.
    - Scan the displayed QR code
 5. Your device will link automatically
 
-All notifications will be sent via Signal.
-
-**Note:** If running the binary directly (not Docker), you'll need [signal-cli](https://github.com/AsamK/signal-cli/releases) installed and in your PATH. Docker images include signal-cli automatically.
+> **Note:** Binary installs require [signal-cli](https://github.com/AsamK/signal-cli/releases) in your PATH. Docker includes it automatically.
 
 ### Telegram
 
@@ -102,19 +91,9 @@ Send notifications through a Telegram bot.
    - Enter your bot token and chat ID
    - Click "Configure"
 
-All notifications will be sent to your Telegram chat.
-
 ### Proton Mail
 
 Monitor a Proton Mail account and forward new emails as notifications through Signal or Telegram.
-
-**Features:**
-
-- Monitors inbox for new emails in real-time
-- Supports 2FA-enabled accounts
-- Auto-creates "Proton Mail" app for received emails
-- Secure credential storage with AES-256-GCM encryption
-- Automatic token refresh - no re-authentication needed
 
 **Setup:**
 
@@ -127,9 +106,7 @@ Monitor a Proton Mail account and forward new emails as notifications through Si
    - 2FA code (if enabled)
 5. Click "Link"
 
-Proton Mail will connect and begin monitoring. New emails will appear as notifications from the "Proton Mail" app.
-
-**Note:** Prism uses the official Proton Mail API (same as the Proton Bridge). Credentials are encrypted and stored locally. Tokens refresh automatically in the background.
+New emails appear as notifications from the "Proton Mail" app. Credentials are encrypted (AES-256-GCM) and tokens refresh automatically.
 
 ### WebPush
 
@@ -140,8 +117,6 @@ Send notifications directly to your browser.
 1. Visit <http://localhost:8080> and authenticate with your API_KEY
 2. Allow browser notifications when prompted
 3. Apps without Signal or Telegram configured will automatically use WebPush
-
-You'll receive browser notifications when messages arrive.
 
 ## API
 
@@ -229,15 +204,9 @@ curl -X DELETE http://localhost:8080/api/v1/webpush/subscriptions/SUBSCRIPTION_I
 
 ## Real-World Examples
 
-### Email Monitoring
+### Home Assistant
 
-Receive instant Signal, Telegram or WebPush notifications when new emails arrive in your Proton Mail inbox.
-
-Prism monitors your Proton Mail account using the official Proton API and forwards new emails as notifications. Perfect for monitoring important accounts without constantly checking email.
-
-### Home Assistant Alerts
-
-Add a rest notification configuration (eg. add to configuration.yaml) to Home Assistant like:
+Add to `configuration.yaml`:
 
 ```yaml
 notify:
@@ -250,30 +219,23 @@ notify:
       Authorization: !secret prism_api_key
 ```
 
-Since Home Assistant and Prism are both on your local network, HTTP is allowed automatically - no additional configuration needed.
-
-Add your API_KEY to your secrets.yaml:
+Add to `secrets.yaml`:
 
 ```bash
 prism_api_key: "Bearer YOUR_API_KEY_HERE"
 ```
 
-Reboot your Home Assistant system and you'll then be able to send Signal notifications to yourself by using this notify prism action.
+Then use the `notify.prism` action in automations.
 
-### Beszel Alerts
+### Beszel
 
-[Beszel](https://beszel.dev) is a lightweight server monitoring tool. You can forward its alerts through Prism using the ntfy-compatible URL format.
-
-In Beszel's **Settings → Notifications**, add a URL:
+In [Beszel](https://beszel.dev)'s **Settings → Notifications**, add:
 
 ```
-ntfy://:YOUR_API_KEY@<your-prism-host>:<port>/Beszel?disableTLS=yes
+ntfy://:YOUR_API_KEY@<prism-host>:<port>/Beszel?disableTLS=yes
 ```
 
-- Replace `YOUR_API_KEY` with your Prism API key
-- Replace `<your-prism-host>:<port>` with your Prism server address (e.g. `192.168.0.10:8080`)
-- `disableTLS=yes` is only required for local HTTP deployments
-- `Beszel` is the app name that will appear in Prism — change it to anything you like
+`disableTLS=yes` is only needed for local HTTP. The app name (`Beszel`) can be anything.
 
 ## Monitoring
 
@@ -281,7 +243,7 @@ ntfy://:YOUR_API_KEY@<your-prism-host>:<port>/Beszel?disableTLS=yes
 
 #### GET /health
 
-Public health check endpoint (no authentication required). Returns `200 OK` when the service is running. Used for Docker health checks and load balancer health probes.
+Public. Returns `200 OK` when running.
 
 ```bash
 curl http://localhost:8080/health
@@ -289,7 +251,7 @@ curl http://localhost:8080/health
 
 #### GET /api/v1/health
 
-Detailed health endpoint (requires authentication). Returns JSON with uptime and integration status:
+Authenticated. Returns uptime and integration status:
 
 ```bash
 curl http://localhost:8080/api/v1/health \
@@ -298,14 +260,10 @@ curl http://localhost:8080/api/v1/health \
 
 ```json
 {
-  "version": "0.2.0",
+  "version": "1.2.0",
   "uptime": "2h15m",
   "signal": {"linked": true, "account": "+1234567890"},
   "telegram": {"linked": true, "account": "123456789"},
   "proton": {"linked": true, "account": "user@proton.me"}
 }
 ```
-
-## API Key Security
-
-Your API_KEY is both the login password and the master encryption key for all integration credentials. Use a strong unique password. Changing it will make all encrypted credentials unrecoverable.
