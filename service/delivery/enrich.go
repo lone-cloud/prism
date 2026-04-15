@@ -3,6 +3,7 @@ package delivery
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var phoneRegex = regexp.MustCompile(`(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}`)
@@ -32,9 +33,13 @@ func enrichActions(notif Notification) Notification {
 			continue
 		}
 		seen[addr] = true
+		local := addr
+		if i := strings.Index(addr, "@"); i != -1 {
+			local = addr[:i]
+		}
 		notif.Actions = append(notif.Actions, Action{
 			ID:       fmt.Sprintf("email-%s", addr),
-			Label:    fmt.Sprintf("Email %s", addr),
+			Label:    fmt.Sprintf("Email %s", local),
 			Endpoint: fmt.Sprintf("mailto:%s", addr),
 		})
 	}
