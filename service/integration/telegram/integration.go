@@ -20,6 +20,7 @@ type Integration struct {
 	Handlers *Handlers
 	Sender   *Sender
 	OnUnlink func()
+	OnLink   func()
 	db       *sql.DB
 	apiKey   string
 	logger   *slog.Logger
@@ -64,7 +65,7 @@ func NewIntegration(store *subscription.Store, logger *slog.Logger, tmpl *util.T
 }
 
 func (t *Integration) RegisterRoutes(router *chi.Mux, auth func(http.Handler) http.Handler, logger *slog.Logger) {
-	RegisterRoutes(router, t.Handlers, auth, t.db, t.apiKey, logger, t.OnUnlink)
+	RegisterRoutes(router, t.Handlers, auth, t.db, t.apiKey, logger, t.OnLink, t.OnUnlink)
 }
 
 func (t *Integration) Start(ctx context.Context, logger *slog.Logger) {

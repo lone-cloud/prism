@@ -1,4 +1,7 @@
 function showConfirm(btn, message, onConfirm) {
+	document.querySelectorAll('.confirm-inline').forEach((el) => {
+		el.replaceWith(el._original);
+	});
 	const wrapper = document.createElement('span');
 	wrapper.className = 'confirm-inline';
 	wrapper.setAttribute('role', 'group');
@@ -28,6 +31,7 @@ function showConfirm(btn, message, onConfirm) {
 		wrapper.replaceWith(btn);
 	});
 
+	wrapper._original = btn;
 	wrapper.append(msg, '\u00a0', yes, '\u00a0', cancel);
 	btn.replaceWith(wrapper);
 }
@@ -80,7 +84,7 @@ function reloadIntegrations() {
 
 function deleteApp(btn) {
 	const appName = btn.dataset.appName;
-	showConfirm(btn, `Delete ${appName} and all subscriptions?`, () => {
+	showConfirm(btn, `Delete ${appName}?`, () => {
 		htmx.ajax('DELETE', `/apps/${appName}`, {
 			target: '#apps-list',
 			swap: 'innerHTML',
@@ -90,7 +94,8 @@ function deleteApp(btn) {
 
 function deleteSubscription(btn) {
 	const url = btn.dataset.url;
-	showConfirm(btn, 'Delete this channel?', () => {
+	const anchor = btn.closest('.channel-badge') ?? btn;
+	showConfirm(anchor, 'Delete this channel?', () => {
 		htmx.ajax('DELETE', url, { target: '#apps-list', swap: 'innerHTML' });
 	});
 }

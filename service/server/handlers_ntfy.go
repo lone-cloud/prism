@@ -57,7 +57,7 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.logger.Debug("Sent ntfy message", "app", appName, "title", title, "preview", truncate(message, 50))
+	s.logger.Debug("Sent ntfy message", "app", appName, "title", title, "preview", truncate(message, 50), "image", imageURL)
 
 	now := time.Now()
 	w.Header().Set("Content-Type", "application/json")
@@ -87,14 +87,12 @@ func parseNtfyPayload(r *http.Request, body []byte) (string, string, string) {
 			Title   string `json:"title"`
 			Message string `json:"message"`
 			Attach  string `json:"attach"`
-			Data    struct {
-				Image string `json:"image"`
-			} `json:"data"`
+			Image   string `json:"image"`
 		}
 		if err := json.Unmarshal(body, &payload); err == nil {
 			message = payload.Message
 			title = payload.Title
-			imageURL = firstNonEmpty(payload.Attach, payload.Data.Image)
+			imageURL = firstNonEmpty(payload.Attach, payload.Image)
 		} else {
 			message = string(body)
 		}

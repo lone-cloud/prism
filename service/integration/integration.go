@@ -107,6 +107,15 @@ func Initialize(cfg *config.Config, store *subscription.Store, logger *slog.Logg
 	i.Publisher = publisher
 
 	if telegramIntegration != nil {
+		telegramIntegration.OnLink = func() {
+			client := telegramIntegration.Handlers.GetClient()
+			chatID := telegramIntegration.Handlers.GetChatID()
+			if client != nil && chatID != 0 {
+				sender := telegram.NewSender(client, store, logger, chatID)
+				telegramIntegration.Sender = sender
+				i.Publisher.RegisterSender(subscription.ChannelTelegram, sender)
+			}
+		}
 		telegramIntegration.OnUnlink = func() {
 			i.Publisher.DeregisterSender(subscription.ChannelTelegram)
 			if err := i.store.DeleteSubscriptionsByChannel(subscription.ChannelTelegram); err != nil {

@@ -183,11 +183,11 @@ details[open] > .integration-header::before {
 	left: 50%;
 	transform: translateX(-50%);
 	margin-bottom: 0.5rem;
-	background: var(--bg-secondary);
-	color: var(--text-primary);
+	background: #1e2124;
+	color: #fafbfd;
 	padding: 0.375rem 0.625rem;
 	border-radius: 0.25rem;
-	border: 0.0625rem solid var(--border-color);
+	border: none;
 	font-size: 0.875rem;
 	font-weight: 400;
 	white-space: nowrap;
@@ -204,19 +204,7 @@ details[open] > .integration-header::before {
 	left: 50%;
 	transform: translateX(-50%);
 	border: 0.3125rem solid transparent;
-	border-top-color: var(--border-color);
-	filter: drop-shadow(0 0.0625rem 0 var(--border-color));
-}
-
-.tooltip::before {
-	content: "";
-	position: absolute;
-	top: calc(100% - 0.0625rem);
-	left: 50%;
-	transform: translateX(-50%);
-	border: 0.25rem solid transparent;
-	border-top-color: var(--bg-secondary);
-	z-index: 1;
+	border-top-color: #1e2124;
 }
 
 :hover > .tooltip,
@@ -269,7 +257,7 @@ details[open] > .integration-header::before {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: 0.75rem;
 }
 
 .app-name {
@@ -319,12 +307,12 @@ details[open] > .integration-header::before {
 .badge-inactive {
 	cursor: pointer;
 	border: 0.0625rem dashed currentColor;
-	transition: opacity 0.2s ease;
+	transition: filter 0.2s ease;
 	min-height: 2.75rem;
 }
 
 .badge-inactive:hover {
-	opacity: 0.75;
+	filter: brightness(1.15);
 }
 
 .badge-inactive.htmx-request {
@@ -395,8 +383,8 @@ details[open] > .integration-header::before {
 	opacity: 0.7;
 	transition: opacity 0.2s ease;
 	line-height: 1;
-	min-width: 2.75rem;
-	min-height: 2.75rem;
+	min-width: 1rem;
+	min-height: 1.5rem;
 	display: inline-grid;
 	place-items: center;
 }
@@ -540,6 +528,11 @@ details[open] > .integration-header::before {
 
 .password-wrapper input {
 	width: 100%;
+}
+
+.form-group .password-wrapper input[type="text"],
+.form-group .password-wrapper input[type="email"],
+.form-group .password-wrapper input[type="password"] {
 	padding-right: 2.5rem;
 }
 
@@ -549,12 +542,10 @@ details[open] > .integration-header::before {
 	background: none;
 	border: none;
 	cursor: pointer;
-	padding: 0;
+	padding: 0.25rem;
 	color: var(--text-secondary);
 	display: grid;
 	place-items: center;
-	min-width: 2.75rem;
-	min-height: 2.75rem;
 	transition: color 0.2s;
 }
 

@@ -20,6 +20,7 @@ type linkHandler struct {
 	db       *sql.DB
 	apiKey   string
 	logger   *slog.Logger
+	onLink   func()
 	onUnlink func()
 }
 
@@ -56,6 +57,10 @@ func (h *linkHandler) handleLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.onLink != nil {
+		h.onLink()
+	}
+
 	util.SetToast(w, "Telegram linked", "success")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
@@ -79,7 +84,7 @@ func (h *linkHandler) handleUnlink(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, onUnlink func()) {
+func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler) http.Handler, db *sql.DB, apiKey string, logger *slog.Logger, onLink func(), onUnlink func()) {
 	if handlers == nil {
 		return
 	}
@@ -87,7 +92,7 @@ func RegisterRoutes(router *chi.Mux, handlers *Handlers, auth func(http.Handler)
 	handlers.DB = db
 	handlers.APIKey = apiKey
 
-	linkH := &linkHandler{db: db, apiKey: apiKey, logger: logger, onUnlink: onUnlink}
+	linkH := &linkHandler{db: db, apiKey: apiKey, logger: logger, onLink: onLink, onUnlink: onUnlink}
 
 	router.With(auth).Get("/fragment/telegram", handlers.HandleFragment)
 	router.With(auth).Post("/api/v1/telegram/link", linkH.handleLink)
