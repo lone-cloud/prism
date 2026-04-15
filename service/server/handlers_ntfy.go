@@ -57,7 +57,7 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.logger.Debug("Sent ntfy message", "app", appName, "title", title, "preview", truncate(message, 50), "image", imageURL)
+	s.logger.Debug("Sent ntfy message", "app", appName, "title", title, "message", message, "image", imageURL)
 
 	now := time.Now()
 	w.Header().Set("Content-Type", "application/json")
@@ -129,11 +129,4 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
-}
-
-func truncate(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	return s[:max]
 }
