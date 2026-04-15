@@ -1,6 +1,6 @@
 {{if .Linked}}
 <p><strong>To unlink:</strong></p>
-<ol class="link-instructions">
+<ol class="link-instructions" aria-label="Steps to unlink Signal">
 	<li>Open Signal on your phone</li>
 	<li>Go to Settings → Linked Devices</li>
 	<li>Find and remove this device</li>
@@ -12,14 +12,14 @@
 <button class="btn-primary" data-action="link-signal">Link</button>
 <div id="signal-qr-container" class="qr-container" style="display:none;">
 	<p><strong>Scan this QR code with Signal:</strong></p>
-	<ol class="link-instructions">
+	<ol class="link-instructions" aria-label="Steps to link Signal">
 		<li>Open Signal on your phone</li>
 		<li>Go to Settings → Linked Devices</li>
 		<li>Tap "+" or "Link New Device"</li>
 		<li>Scan the QR code below</li>
 	</ol>
 	<div class="qr-code-wrapper">
-		<img id="signal-qr-code" alt="QR code — scan with Signal to link this device" width="400" height="400">
+		<img id="signal-qr-code" alt="QR code to scan with Signal and link this device" width="400" height="400">
 	</div>
 </div>
 	{{end}}

@@ -98,6 +98,14 @@ func (s *Sender) Send(sub *subscription.Subscription, notif delivery.Notificatio
 		message = fmt.Sprintf("%s\n\n%s", notif.Title, notif.Message)
 	}
 
+	if notif.ImageURL != "" {
+		if err := s.client.SendGroupMessageWithAttachment(signalGroupID, message, notif.ImageURL); err != nil {
+			s.logger.Error("Failed to send group message with attachment", "groupID", signalGroupID, "error", err)
+			return err
+		}
+		return nil
+	}
+
 	if err := s.client.SendGroupMessage(signalGroupID, message); err != nil {
 		s.logger.Error("Failed to send group message", "groupID", signalGroupID, "error", err)
 		return err

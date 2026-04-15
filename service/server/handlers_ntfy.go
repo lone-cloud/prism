@@ -35,7 +35,7 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message, title := parseNtfyPayload(r, body)
+	message, title, imageURL := parseNtfyPayload(r, body)
 
 	if message == "" {
 		util.JSONError(w, "Message required", http.StatusBadRequest)
@@ -47,8 +47,9 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notif := delivery.Notification{
-		Title:   title,
-		Message: message,
+		Title:    title,
+		Message:  message,
+		ImageURL: imageURL,
 	}
 
 	if err := s.publisher.Publish(appName, notif); err != nil {
@@ -72,8 +73,8 @@ func (s *Server) handleNtfyPublish(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseNtfyPayload(r *http.Request, body []byte) (string, string) {
-	var message, title string
+func parseNtfyPayload(r *http.Request, body []byte) (string, string, string) {
+	var message, title, imageURL string
 
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -85,10 +86,15 @@ func parseNtfyPayload(r *http.Request, body []byte) (string, string) {
 		var payload struct {
 			Title   string `json:"title"`
 			Message string `json:"message"`
+			Attach  string `json:"attach"`
+			Data    struct {
+				Image string `json:"image"`
+			} `json:"data"`
 		}
 		if err := json.Unmarshal(body, &payload); err == nil {
 			message = payload.Message
 			title = payload.Title
+			imageURL = firstNonEmpty(payload.Attach, payload.Data.Image)
 		} else {
 			message = string(body)
 		}
@@ -111,7 +117,11 @@ func parseNtfyPayload(r *http.Request, body []byte) (string, string) {
 		title = firstNonEmpty(r.Header.Get("X-Title"), r.Header.Get("Title"), r.Header.Get("t"))
 	}
 
-	return message, title
+	if imageURL == "" {
+		imageURL = firstNonEmpty(r.Header.Get("X-Attach"), r.Header.Get("Attach"))
+	}
+
+	return message, title, imageURL
 }
 
 func firstNonEmpty(values ...string) string {

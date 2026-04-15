@@ -70,6 +70,14 @@ func (s *Sender) Send(sub *subscription.Subscription, notif delivery.Notificatio
 		return delivery.NewPermanentError(fmt.Errorf("invalid chat ID: %w", err))
 	}
 
+	if notif.ImageURL != "" {
+		if err := s.client.SendPhoto(chatID, notif.ImageURL, fullMessage); err != nil {
+			s.logger.Error("Failed to send telegram photo", "chatID", chatID, "error", err)
+			return err
+		}
+		return nil
+	}
+
 	if err := s.client.SendMessage(chatID, fullMessage); err != nil {
 		s.logger.Error("Failed to send telegram message", "chatID", chatID, "error", err)
 		return err

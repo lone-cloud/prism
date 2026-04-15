@@ -3,6 +3,9 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegoutil"
@@ -43,6 +46,48 @@ func (c *Client) SendMessage(chatID int64, text string) error {
 	).WithParseMode(telego.ModeHTML)
 
 	_, err := c.bot.SendMessage(context.Background(), msg)
+	return err
+}
+
+func (c *Client) SendPhoto(chatID int64, imageURL, caption string) error {
+	if c == nil || c.bot == nil {
+		return fmt.Errorf("telegram client not initialized")
+	}
+
+	resp, err := http.Get(imageURL) //nolint:noctx
+	if err != nil {
+		return fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	tmp, err := os.CreateTemp("", "prism-telegram-*.jpg")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+
+	if _, err := io.Copy(tmp, resp.Body); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to write image: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	f, err := os.Open(tmp.Name())
+	if err != nil {
+		return fmt.Errorf("failed to open temp file: %w", err)
+	}
+	defer f.Close()
+
+	params := &telego.SendPhotoParams{
+		ChatID:    telegoutil.ID(chatID),
+		Photo:     telego.InputFile{File: f},
+		Caption:   caption,
+		ParseMode: telego.ModeHTML,
+	}
+
+	_, err = c.bot.SendPhoto(context.Background(), params)
 	return err
 }
 

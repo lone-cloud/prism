@@ -141,6 +141,15 @@ curl -X POST http://localhost:8080/my-app \
   -d '{"title": "Alert", "message": "Something happened"}'
 ```
 
+**JSON payload with image:**
+
+```bash
+curl -X POST http://localhost:8080/my-app \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Motion Detected", "message": "Front door", "attach": "https://example.com/snapshot.jpg"}'
+```
+
 **Plain text payload:**
 
 ```bash
@@ -226,6 +235,17 @@ prism_api_key: "Bearer YOUR_API_KEY_HERE"
 ```
 
 Then use the `notify.prism` action in automations.
+
+**Sending an image from a camera snapshot:**
+
+```yaml
+action: notify.prism
+data:
+  title: "Motion Detected"
+  message: "Front door camera triggered"
+  data:
+    image: "https://example.com/snapshot.jpg"
+```
 
 ### Beszel
 

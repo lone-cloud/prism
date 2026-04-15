@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,5 +149,40 @@ func (c *Client) SendGroupMessage(groupID, message string) error {
 	}
 
 	_, err = c.exec("-a", account.Number, "send", "-g", groupID, "--notify-self", "-m", message)
+	return err
+}
+
+func (c *Client) SendGroupMessageWithAttachment(groupID, message, imageURL string) error {
+	if c == nil {
+		return fmt.Errorf("signal client not initialized")
+	}
+
+	resp, err := http.Get(imageURL) //nolint:noctx
+	if err != nil {
+		return fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	tmp, err := os.CreateTemp("", "prism-signal-*.jpg")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+
+	if _, err := io.Copy(tmp, resp.Body); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to write image: %w", err)
+	}
+	tmp.Close()
+
+	account, err := c.GetLinkedAccount()
+	if err != nil {
+		return fmt.Errorf("failed to get linked account: %w", err)
+	}
+	if account == nil {
+		return fmt.Errorf("no linked Signal account")
+	}
+
+	_, err = c.exec("-a", account.Number, "send", "-g", groupID, "--notify-self", "-m", message, "--attachment", tmp.Name())
 	return err
 }

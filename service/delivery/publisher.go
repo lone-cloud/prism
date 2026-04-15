@@ -46,6 +46,8 @@ func (p *Publisher) IsValidChannel(channel subscription.Channel) bool {
 }
 
 func (p *Publisher) Publish(appName string, notif Notification) error {
+	notif = enrichActions(notif)
+
 	app, err := p.Store.GetApp(appName)
 	if err != nil {
 		return util.LogError(p.logger, "Failed to get app", err, "app", appName)
