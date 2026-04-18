@@ -1,4 +1,4 @@
-.PHONY: all build start dev fix clean install-tools check-updates release release-dev
+.PHONY: all build start dev fix install-tools check-updates release release-dev
 
 BINARY_NAME=prism
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "dev")
@@ -24,10 +24,6 @@ fix:
 	goimports -w .
 	golangci-lint run --fix
 	npx @biomejs/biome@latest check --write --unsafe .
-
-clean:
-	rm -f $(BINARY_NAME) $(BINARY_NAME)-*
-	rm -rf data/
 
 install-tools:
 	@echo "Installing Go tools to $(GOBIN)..."
