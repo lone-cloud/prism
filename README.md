@@ -4,7 +4,7 @@
 
 # Prism
 
-**Notification gateway with email monitoring**
+**Private notification gateway**
 
 [Setup](#setup) • [Integrations](#integrations) • [API](#api) • [Examples](#real-world-examples) • [Monitoring](#monitoring)
 
@@ -12,7 +12,7 @@
 
 <!-- markdownlint-enable MD033 -->
 
-Route notifications to Signal, Telegram, or WebPush via webhooks or Proton Mail monitoring.
+Prism sits between your services and your phone. Services send HTTP notifications; Prism delivers them to Signal, Telegram or WebPush. Prism is ntfy-compatible, so existing integrations work without changes. It can optionally monitor a Proton Mail inbox and send a notification for new emails.
 
 Android companion app: [prism-android](https://github.com/lone-cloud/prism-android)
 
