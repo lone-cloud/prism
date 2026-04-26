@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"unicode"
 )
 
 type Config struct {
@@ -39,6 +40,11 @@ func Load() (*Config, error) {
 func (c *Config) Validate() error {
 	if c.APIKey == "" {
 		return fmt.Errorf("API_KEY environment variable is required")
+	}
+	for _, r := range c.APIKey {
+		if r > unicode.MaxASCII {
+			return fmt.Errorf("API_KEY must contain only ASCII characters")
+		}
 	}
 	return nil
 }
