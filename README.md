@@ -50,6 +50,12 @@ nano .env  # Set API_KEY=your-secret-key-here
 
 Prism is now running at <http://localhost:8080>.
 
+## Security
+
+**Deploy behind HTTPS.** Every API request sends your `API_KEY` in the `Authorization` header. Over plain HTTP that header is transmitted in cleartext — anyone who can observe the traffic between your callers and the server can read the key and make authenticated requests. Use a reverse proxy with TLS termination (Caddy, nginx, Traefik) or a tunnel service like Cloudflare Tunnel in front of Prism.
+
+Only use http URLs when callers run on the same host and traffic never leaves the machine.
+
 ## Integrations
 
 All integrations are configured through the web UI. Authenticate with your `API_KEY` as the password (username can be anything).
