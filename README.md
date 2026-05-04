@@ -247,14 +247,24 @@ Then use the `notify.prism` action in automations.
 
 **Sending an image from a camera snapshot:**
 
+Take a snapshot first, save it to HA's local static file server, then send the URL:
+
 ```yaml
-action: notify.prism
-data:
-  title: "Motion Detected"
-  message: "Front door camera triggered"
-  data:
-    image: "https://example.com/snapshot.jpg"
+actions:
+  - action: camera.snapshot
+    target:
+      entity_id: camera.front_door
+    data:
+      filename: /config/www/snapshot_front.jpg
+  - action: notify.prism
+    data:
+      title: "Motion Detected"
+      message: "Front door camera triggered"
+      data:
+        image: https://<your-ha-domain>/local/snapshot_front.jpg
 ```
+
+The `/config/www/` directory is served as `/local/` by Home Assistant's built-in HTTP server. Use your HA's external HTTPS URL so Prism can fetch the image when delivering the notification.
 
 ### Beszel
 
