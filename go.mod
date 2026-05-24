@@ -4,22 +4,22 @@ go 1.26
 
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
-	github.com/emersion/hydroxide v0.2.31
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/emersion/hydroxide v0.2.32
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/httprate v0.15.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mymmrac/telego v1.8.0
+	github.com/mymmrac/telego v1.9.0
 	github.com/yeqown/go-qrcode/v2 v2.2.5
 	github.com/yeqown/go-qrcode/writer/standard v1.3.0
-	golang.org/x/crypto v0.50.0
-	modernc.org/sqlite v1.50.0
+	golang.org/x/crypto v0.52.0
+	modernc.org/sqlite v1.50.1
 )
 
 require (
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
-	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grbit/go-json v0.11.0 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
@@ -38,14 +38,14 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.70.0 // indirect
+	github.com/valyala/fasthttp v1.71.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/yeqown/reedsolomon v1.0.0 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/arch v0.26.0 // indirect
 	golang.org/x/image v0.39.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	modernc.org/libc v1.72.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
