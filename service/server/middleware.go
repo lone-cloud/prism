@@ -63,6 +63,9 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 }
 
 func rateLimitMiddleware(rps int) func(http.Handler) http.Handler {
+	if rps <= 0 {
+		return func(next http.Handler) http.Handler { return next }
+	}
 	rl := httprate.LimitByIP(rps, time.Second)
 	return func(next http.Handler) http.Handler {
 		limited := rl(next)

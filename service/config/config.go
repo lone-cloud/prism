@@ -23,7 +23,7 @@ func Load() (*Config, error) {
 		APIKey:         os.Getenv("API_KEY"),
 		Port:           getEnvInt("PORT", 8080),
 		VerboseLogging: getEnvBool("VERBOSE_LOGGING", false),
-		RateLimit:      getEnvInt("RATE_LIMIT", 100),
+		RateLimit:      getEnvInt("RATE_LIMIT", 20),
 		StoragePath:    getEnvString("STORAGE_PATH", "./data/prism.db"),
 		EnableSignal:   getEnvBool("ENABLE_SIGNAL", true),
 		EnableTelegram: getEnvBool("ENABLE_TELEGRAM", true),
